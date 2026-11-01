@@ -2,12 +2,12 @@
   <div class="container" style="max-width:980px">
     <div class="row g-5">
       <div class="col-lg-5">
-        <div class="small-caps mb-2">Contact</div>
-        <h1 class="mb-3">We'd love to hear from you</h1>
-        <p class="text-muted">Questions about plans, onboarding a network of schools, or migrating from spreadsheets? Send us a message and our team will reply.</p>
+        <div class="small-caps mb-2"><%= t('Contact') %></div>
+        <h1 class="mb-3"><%= t("We'd love to hear from you") %></h1>
+        <p class="text-muted"><%= t('Questions about plans, onboarding a network of schools, or migrating from spreadsheets? Send us a message and our team will reply.') %></p>
         <div class="d-grid gap-3 mt-4 small">
-          <div class="d-flex gap-3"><div class="stat-icon emerald"><i class="bi bi-envelope"></i></div><div><div class="fw-semibold">Email</div>support@quranic.app</div></div>
-          <div class="d-flex gap-3"><div class="stat-icon gold"><i class="bi bi-clock"></i></div><div><div class="fw-semibold">Hours</div>Saturday – Thursday, 8:00 – 17:00</div></div>
+          <div class="d-flex gap-3"><div class="stat-icon emerald"><i class="bi bi-envelope"></i></div><div><div class="fw-semibold"><%= t('Email') %></div>support@quranic.app</div></div>
+          <div class="d-flex gap-3"><div class="stat-icon gold"><i class="bi bi-clock"></i></div><div><div class="fw-semibold"><%= t('Hours') %></div><%= t('Saturday – Thursday') %>, 8:00 – 17:00</div></div>
         </div>
       </div>
       <div class="col-lg-7">
@@ -18,7 +18,7 @@
             <%- include('../partials/field', { name: 'email', label: 'Email', ftype: 'email', required: true, col: 'col-md-6' }) %>
             <%- include('../partials/field', { name: 'phone', label: 'Phone (optional)', ftype: 'tel' }) %>
             <%- include('../partials/field', { name: 'message', label: 'Message', ftype: 'textarea', rows: 5, required: true }) %>
-            <div class="col-12"><button class="btn btn-primary" type="submit">Send message</button></div>
+            <div class="col-12"><button class="btn btn-primary" type="submit"><%= t('Send message') %></button></div>
           </form>
         </div></div>
       </div>

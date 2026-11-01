@@ -1,5 +1,5 @@
 <% var a = activity || { date: new Date() }; var editing = Boolean(activity); var base = '/school/activities/' + type; %>
-<%- include('../partials/page-header', { heading: (editing ? 'Edit ' : 'New ') + C.ACTIVITY_TYPES[type] + ' session', crumbs: [[C.ACTIVITY_TYPES[type], base], [editing ? a.title : 'New', null]] }) %>
+<%- include('../partials/page-header', { heading: editing ? t('Edit {type} session', { type: t(C.ACTIVITY_TYPES[type]) }) : t('New {type} session', { type: t(C.ACTIVITY_TYPES[type]) }), crumbs: [[t(C.ACTIVITY_TYPES[type]), base], [editing ? a.title : 'New', null]] }) %>
 
 <form method="post" action="<%= editing ? base + '/' + a._id : base %>" class="needs-validation" novalidate>
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -7,14 +7,14 @@
     <%- include('../partials/field', { name: 'title', label: 'Title', value: a.title, required: true, col: 'col-md-6' }) %>
     <%- include('../partials/field', { name: 'date', label: 'Date', ftype: 'date', value: isoDate(a.date), required: true, col: 'col-md-3' }) %>
     <%- include('../partials/field', { name: 'class', label: 'Class', ftype: 'select', value: a.class && a.class._id ? a.class._id : a.class, required: true, col: 'col-md-3', options: classes.map(function (c) { return { value: c._id, label: c.name }; }), help: editing ? '' : 'Active students in the class are added as participants.' }) %>
-    <%- include('../partials/field', { name: 'teacher', label: 'Teacher', ftype: 'select', value: a.teacher && a.teacher._id ? a.teacher._id : a.teacher, col: 'col-md-4', placeholder: '— Class teacher —', options: teachers.map(function (t) { return { value: t._id, label: t.fullName }; }) }) %>
+    <%- include('../partials/field', { name: 'teacher', label: 'Teacher', ftype: 'select', value: a.teacher && a.teacher._id ? a.teacher._id : a.teacher, col: 'col-md-4', placeholder: '— Class teacher —', options: teachers.map(function (tc) { return { value: tc._id, label: tc.fullName }; }) }) %>
     <%- include('../partials/field', { name: 'topic', label: 'Topic', value: a.topic, col: 'col-md-8' }) %>
     <%- include('../partials/field', { name: 'objectives', label: 'Objectives', ftype: 'textarea', value: a.objectives, rows: 2, col: 'col-md-6', max: 1000 }) %>
     <%- include('../partials/field', { name: 'evaluation', label: 'Evaluation', ftype: 'textarea', value: a.evaluation, rows: 2, col: 'col-md-6', max: 1000 }) %>
     <%- include('../partials/field', { name: 'remarks', label: 'Remarks', ftype: 'textarea', value: a.remarks, rows: 2, max: 1000 }) %>
     <div class="col-12 d-flex gap-2 justify-content-end">
-      <a class="btn btn-light" href="<%= editing ? base + '/' + a._id : base %>">Cancel</a>
-      <button class="btn btn-primary" type="submit"><%= editing ? 'Save' : 'Create session' %></button>
+      <a class="btn btn-light" href="<%= editing ? base + '/' + a._id : base %>"><%= t('Cancel') %></a>
+      <button class="btn btn-primary" type="submit"><%= editing ? t('Save') : t('Create session') %></button>
     </div>
   </div></div>
 </form>

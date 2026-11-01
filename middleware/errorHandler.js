@@ -21,6 +21,13 @@ function errorHandler(err, req, res, next) {
   }
   if (err.code === 11000) { status = 409; message = 'A record with the same unique value already exists.'; }
 
+  // Translate in the request language. Translatable errors carry their English template and
+  // values (err.i18nKey / err.vars, see utils/errors.js); other messages are dictionary keys.
+  if (typeof req.t === 'function') {
+    const templated = err.expose && err.i18nKey && message === err.message;
+    message = templated ? req.t(err.i18nKey, err.vars) : req.t(message);
+  }
+
   if (status >= 500) console.error(`[error] ${req.method} ${req.originalUrl}`, err);
 
   // For form posts with a recoverable error, go back to the form with a message.

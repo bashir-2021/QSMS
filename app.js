@@ -21,6 +21,7 @@ const { flash } = require('./middleware/flash');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const jobService = require('./services/jobService');
 const tenantContext = require('./utils/tenantContext');
+const i18n = require('./utils/i18n');
 
 function createApp({ sessionStore } = {}) {
   const app = express();
@@ -52,6 +53,20 @@ function createApp({ sessionStore } = {}) {
     store: sessionStore || MongoStore.create({ mongoUrl: config.mongoUri, collectionName: 'sessions', ttl: config.session.maxAgeMs / 1000 }),
     cookie: { httpOnly: true, sameSite: 'lax', secure: config.session.secureCookie, maxAge: config.session.maxAgeMs },
   }));
+
+  app.use(i18n.middleware); // req.lang / req.t / res.locals.t (English default, Arabic, Somali)
+  app.use((req, res, next) => { Object.assign(res.locals, viewHelpers.forLocale(req.t)); next(); });
+  // Language switcher: remember the choice in a cookie and go back to the same page.
+  app.get('/lang/:code', (req, res) => {
+    i18n.setLangCookie(res, req.params.code, config.session.secureCookie);
+    let target = '/';
+    try {
+      const host = req.get('host');
+      const u = new URL(String(req.get('Referrer') || '/'), `http://${host}`);
+      if (u.host === host) target = u.pathname + u.search; // same-site only (no open redirect)
+    } catch (e) { /* keep / */ }
+    res.redirect(target);
+  });
 
   app.use(tenantContext.middleware); // per-request tenant scope used by the tenant plugin
   app.use(flash);

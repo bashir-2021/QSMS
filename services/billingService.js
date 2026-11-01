@@ -50,9 +50,10 @@ async function newInvoiceNo(ctx, session) {
   return sequence.next(ctx.tenantId, 'invoice', ctx.settings.numbering && ctx.settings.numbering.invoice, { session });
 }
 
-async function createRegistrationInvoice(ctx, student, { session } = {}) {
-  const amount = ctx.settings.registrationFee || 0;
-  if (amount <= 0) throw badRequest('Registration fee is not configured in School Settings.');
+/** One-time registration fee. `amount` (minor units) overrides the school fee, e.g. a reduced fee at registration. */
+async function createRegistrationInvoice(ctx, student, { session, amount: custom } = {}) {
+  const amount = Number.isSafeInteger(custom) ? custom : ctx.settings.registrationFee || 0;
+  if (amount <= 0) throw badRequest(Number.isSafeInteger(custom) ? 'Enter a registration fee greater than zero.' : 'Registration fee is not configured in School Settings.');
   const doc = {
     tenantId: ctx.tenantId, student: student._id, class: student.class, type: 'registration',
     description: 'Registration fee', amount, total: amount, paid: 0,
@@ -129,7 +130,7 @@ async function createOther(ctx, data) {
       billingKey, createdBy: ctx.user._id, invoiceNo: await newInvoiceNo(ctx),
     });
   } catch (err) {
-    if (err.code === 11000) throw conflict(type === 'monthly' ? `This student is already billed for ${dates.periodLabel(period)}.` : 'This student already has a registration invoice.');
+    if (err.code === 11000) throw (type === 'monthly' ? conflict('This student is already billed for {period}.', { period: dates.periodLabel(period) }) : conflict('This student already has a registration invoice.'));
     throw err;
   }
 }
@@ -143,7 +144,7 @@ async function adjust(ctx, id, { discount, adjustment }) {
   if (d === null || d < 0 || a === null) throw badRequest('Enter valid amounts.');
   const total = inv.amount - d + a;
   if (total < 0) throw badRequest('The discount cannot exceed the invoice amount.');
-  if (total < inv.paid) throw badRequest(`The new total (${money.format(total, ctx.settings.currency)}) is less than the amount already paid.`);
+  if (total < inv.paid) throw badRequest('The new total ({total}) is less than the amount already paid.', null, { total: money.format(total, ctx.settings.currency) });
   const before = { discount: inv.discount, adjustment: inv.adjustment, total: inv.total };
   inv.discount = d;
   inv.adjustment = a;

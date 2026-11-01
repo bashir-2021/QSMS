@@ -39,7 +39,7 @@ async function record(ctx, req, data) {
     }
     if (!invoices.length) throw badRequest('This student has no open invoices. Create an invoice before recording a payment.');
     const due = money.sum(invoices.map((i) => i.total - i.paid));
-    if (amount > due) throw badRequest(`Amount exceeds the outstanding balance of the selected invoices (${money.format(due, ctx.settings.currency)}).`);
+    if (amount > due) throw badRequest('Amount exceeds the outstanding balance of the selected invoices ({due}).', null, { due: money.format(due, ctx.settings.currency) });
 
     // allocate oldest-first
     let remaining = amount;
@@ -112,7 +112,7 @@ async function reverse(ctx, req, id, reason) {
     for (const a of allocations) {
       const inv = await StudentInvoice.findOne({ tenantId: ctx.tenantId, _id: a.invoice }).session(session);
       inv.paid = money.sub(inv.paid, a.amount);
-      if (inv.paid < 0) throw conflict(`Invoice ${inv.invoiceNo} would have a negative paid amount.`);
+      if (inv.paid < 0) throw conflict('Invoice {invoice} would have a negative paid amount.', { invoice: inv.invoiceNo });
       inv.status = billing.deriveStatus(inv);
       await inv.save({ session });
       a.status = 'reversed';

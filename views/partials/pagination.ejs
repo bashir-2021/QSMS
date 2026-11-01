@@ -1,7 +1,7 @@
 <% if (page && page.pages > 1) { var q = locals.query || {}; %>
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 p-3 border-top">
-  <small class="text-muted">Showing <%= (page.page - 1) * page.limit + 1 %>–<%= Math.min(page.page * page.limit, page.total) %> of <%= page.total %></small>
-  <nav aria-label="Pagination">
+  <small class="text-muted"><%= t('Showing {from}–{to} of {total}', { from: (page.page - 1) * page.limit + 1, to: Math.min(page.page * page.limit, page.total), total: page.total }) %></small>
+  <nav aria-label="<%= t('Pagination') %>">
     <ul class="pagination pagination-sm mb-0">
       <li class="page-item <%= page.page <= 1 ? 'disabled' : '' %>"><a class="page-link" href="<%= qs(q, { page: page.page - 1 }) %>">‹</a></li>
       <% var start = Math.max(1, page.page - 2), end = Math.min(page.pages, start + 4); start = Math.max(1, end - 4);
@@ -13,5 +13,5 @@
   </nav>
 </div>
 <% } else if (page) { %>
-<div class="px-3 py-2 border-top"><small class="text-muted"><%= page.total %> record<%= page.total === 1 ? '' : 's' %></small></div>
+<div class="px-3 py-2 border-top"><small class="text-muted"><%= page.total === 1 ? t('1 record') : t('{n} records', { n: page.total }) %></small></div>
 <% } %>

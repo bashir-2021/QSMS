@@ -39,7 +39,7 @@ async function updateSettings(tenantId, data) {
   const fmt = (v, d) => {
     const f = String(v || '').trim();
     if (!f) return d;
-    if (!/\{SEQ(:\d)?\}/.test(f)) throw badRequest(`Number format "${f}" must contain {SEQ} or {SEQ:n}.`);
+    if (!/\{SEQ(:\d)?\}/.test(f)) throw badRequest('Number format "{format}" must contain {SEQ} or {SEQ:n}.', null, { format: f });
     if (f.length > 40) throw badRequest('Number formats must be 40 characters or fewer.');
     return f;
   };

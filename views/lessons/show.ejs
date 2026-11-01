@@ -1,21 +1,21 @@
 <% var l = lesson; var editable = can('lessons.manage'); %>
 <%- include('../partials/page-header', { heading: l.title, crumbs: [['Lessons', '/school/lessons'], [fmtDate(l.date), null]],
-  actions: editable ? '<a class="btn btn-light btn-icon" href="/school/lessons/' + l._id + '/edit"><i class="bi bi-pencil"></i>Edit</a>' : '' }) %>
+  actions: editable ? '<a class="btn btn-light btn-icon" href="/school/lessons/' + l._id + '/edit"><i class="bi bi-pencil"></i>' + t('Edit') + '</a>' : '' }) %>
 
 <div class="card mb-3"><div class="card-body">
   <dl class="dl-grid mb-0">
-    <div><dt>Category</dt><dd><%= C.LESSON_CATEGORIES[l.category] %></dd></div>
-    <div><dt>Class</dt><dd><a href="/school/classes/<%= l.class._id %>"><%= l.class.name %></a></dd></div>
-    <div><dt>Teacher</dt><dd><%= l.teacher ? l.teacher.fullName : '—' %></dd></div>
-    <div><dt>Date</dt><dd><%= fmtDate(l.date) %></dd></div>
-    <div><dt>Portion</dt><dd><%= surah ? surah.name + ' ' + l.fromVerse + '–' + l.toVerse : '—' %></dd></div>
-    <div><dt>Status</dt><dd><%- statusBadge(l.status) %></dd></div>
+    <div><dt><%= t('Category') %></dt><dd><%= t(C.LESSON_CATEGORIES[l.category]) %></dd></div>
+    <div><dt><%= t('Class') %></dt><dd><a href="/school/classes/<%= l.class._id %>"><%= l.class.name %></a></dd></div>
+    <div><dt><%= t('Teacher') %></dt><dd><%= l.teacher ? l.teacher.fullName : '—' %></dd></div>
+    <div><dt><%= t('Date') %></dt><dd><%= fmtDate(l.date) %></dd></div>
+    <div><dt><%= t('Portion') %></dt><dd><%= surah ? surah.name + ' ' + l.fromVerse + '–' + l.toVerse : '—' %></dd></div>
+    <div><dt><%= t('Status') %></dt><dd><%- statusBadge(l.status) %></dd></div>
   </dl>
   <% if (l.objectives || l.description || l.remarks) { %>
     <div class="row g-3 mt-1">
-      <% if (l.objectives) { %><div class="col-md-4"><div class="small-caps">Objectives</div><p class="small mb-0" style="white-space:pre-line"><%= l.objectives %></p></div><% } %>
-      <% if (l.description) { %><div class="col-md-4"><div class="small-caps">Description</div><p class="small mb-0" style="white-space:pre-line"><%= l.description %></p></div><% } %>
-      <% if (l.remarks) { %><div class="col-md-4"><div class="small-caps">Teacher remarks</div><p class="small mb-0" style="white-space:pre-line"><%= l.remarks %></p></div><% } %>
+      <% if (l.objectives) { %><div class="col-md-4"><div class="small-caps"><%= t('Objectives') %></div><p class="small mb-0" style="white-space:pre-line"><%= l.objectives %></p></div><% } %>
+      <% if (l.description) { %><div class="col-md-4"><div class="small-caps"><%= t('Description') %></div><p class="small mb-0" style="white-space:pre-line"><%= l.description %></p></div><% } %>
+      <% if (l.remarks) { %><div class="col-md-4"><div class="small-caps"><%= t('Teacher remarks') %></div><p class="small mb-0" style="white-space:pre-line"><%= l.remarks %></p></div><% } %>
     </div>
   <% } %>
 </div></div>
@@ -23,11 +23,11 @@
 <form method="post" action="/school/lessons/<%= l._id %>/progress">
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center"><span>Student performance</span><% if (editable && roster.length) { %><button class="btn btn-primary btn-sm" type="submit">Save performance</button><% } %></div>
+    <div class="card-header d-flex justify-content-between align-items-center"><span><%= t('Student performance') %></span><% if (editable && roster.length) { %><button class="btn btn-primary btn-sm" type="submit"><%= t('Save performance') %></button><% } %></div>
     <div class="table-responsive"><table class="table">
-      <thead><tr><th>Student</th><th style="width:190px">Performance</th><th style="width:110px">Score</th><th style="width:90px">Done</th><th>Remarks</th></tr></thead>
+      <thead><tr><th><%= t('Student') %></th><th style="width:190px"><%= t('Performance') %></th><th style="width:110px"><%= t('Score') %></th><th style="width:90px"><%= t('Done') %></th><th><%= t('Remarks') %></th></tr></thead>
       <tbody>
-        <% if (!roster.length) { %><tr><td colspan="5" class="empty-state">No active students in this class</td></tr><% } %>
+        <% if (!roster.length) { %><tr><td colspan="5" class="empty-state"><%= t('No active students in this class') %></td></tr><% } %>
         <% roster.forEach(function (r) { var p = r.progress || {}; var k = 'rows[' + r.student._id + ']'; %>
           <tr>
             <td><a class="row-link" href="/school/students/<%= r.student._id %>"><%= r.student.fullName %></a><div class="small text-muted font-monospace"><%= r.student.studentCode %></div></td>
@@ -43,8 +43,8 @@
 </form>
 
 <% if (editable) { %>
-<form method="post" action="/school/lessons/<%= l._id %>/delete" class="mt-3 text-end" data-confirm="Delete this lesson and all recorded student performance for it? This cannot be undone." data-confirm-button="Delete lesson">
+<form method="post" action="/school/lessons/<%= l._id %>/delete" class="mt-3 text-end" data-confirm="<%= t('Delete this lesson and all recorded student performance for it? This cannot be undone.') %>" data-confirm-button="<%= t('Delete lesson') %>">
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-  <button class="btn btn-outline-danger btn-sm" type="submit"><i class="bi bi-trash"></i> Delete lesson</button>
+  <button class="btn btn-outline-danger btn-sm" type="submit"><i class="bi bi-trash"></i> <%= t('Delete lesson') %></button>
 </form>
 <% } %>

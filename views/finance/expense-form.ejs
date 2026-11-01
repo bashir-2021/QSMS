@@ -1,21 +1,21 @@
 <% var e = expense; var editing = Boolean(expense); %>
-<%- include('../partials/page-header', { heading: editing ? 'Edit expense ' + e.expenseNo : 'Record expense', crumbs: [['Expenses', '/school/finance/expenses'], [editing ? e.expenseNo : 'New', null]],
+<%- include('../partials/page-header', { heading: editing ? t('Edit expense {no}', { no: e.expenseNo }) : 'Record expense', crumbs: [['Expenses', '/school/finance/expenses'], [editing ? e.expenseNo : 'New', null]],
   sub: editing ? 'Amount, date and category cannot be changed once recorded — cancel and re-record instead.' : '' }) %>
 
 <% if (editing) { %>
 <form method="post" action="/school/finance/expenses/<%= e._id %>" class="needs-validation" novalidate style="max-width:820px">
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <div class="card"><div class="card-body row g-3">
-    <div class="col-md-4"><div class="small-caps">Category</div><div class="fw-semibold"><%= e.category.name %></div></div>
-    <div class="col-md-4"><div class="small-caps">Amount</div><div class="fw-semibold"><%= money(e.amount, currency) %></div></div>
-    <div class="col-md-4"><div class="small-caps">Date</div><div class="fw-semibold"><%= fmtDate(e.expenseDate) %></div></div>
+    <div class="col-md-4"><div class="small-caps"><%= t('Category') %></div><div class="fw-semibold"><%= t(e.category.name) %></div></div>
+    <div class="col-md-4"><div class="small-caps"><%= t('Amount') %></div><div class="fw-semibold"><%= money(e.amount, currency) %></div></div>
+    <div class="col-md-4"><div class="small-caps"><%= t('Date') %></div><div class="fw-semibold"><%= fmtDate(e.expenseDate) %></div></div>
     <%- include('../partials/field', { name: 'description', label: 'Description', value: e.description, required: true }) %>
     <%- include('../partials/field', { name: 'recipient', label: 'Recipient', value: e.recipient, col: 'col-md-4' }) %>
     <%- include('../partials/field', { name: 'method', label: 'Payment method', ftype: 'select', value: e.method, col: 'col-md-4', options: settings.paymentMethods.map(function (m) { return { value: m, label: m }; }) }) %>
     <%- include('../partials/field', { name: 'reference', label: 'Reference number', value: e.reference, col: 'col-md-4' }) %>
-    <div class="col-md-4"><div class="form-check form-switch mt-2"><input class="form-check-input" type="checkbox" name="recurring" id="recurring" <%= e.recurring && e.recurring.enabled ? 'checked' : '' %>><label class="form-check-label" for="recurring">Recurring expense</label></div></div>
+    <div class="col-md-4"><div class="form-check form-switch mt-2"><input class="form-check-input" type="checkbox" name="recurring" id="recurring" <%= e.recurring && e.recurring.enabled ? 'checked' : '' %>><label class="form-check-label" for="recurring"><%= t('Recurring expense') %></label></div></div>
     <div class="col-md-4" data-frequency-wrap><select class="form-select" name="frequency"><% ['monthly', 'quarterly', 'annual'].forEach(function (f) { %><option value="<%= f %>" <%= selected(e.recurring && e.recurring.frequency, f) %>><%= titleCase(f) %></option><% }) %></select></div>
-    <div class="col-12 d-flex justify-content-end gap-2"><a class="btn btn-light" href="/school/finance/expenses">Cancel</a><button class="btn btn-primary" type="submit">Save</button></div>
+    <div class="col-12 d-flex justify-content-end gap-2"><a class="btn btn-light" href="/school/finance/expenses"><%= t('Cancel') %></a><button class="btn btn-primary" type="submit"><%= t('Save') %></button></div>
   </div></div>
 </form>
 <% } else { %>
@@ -29,9 +29,9 @@
     <%- include('../partials/field', { name: 'method', label: 'Payment method', ftype: 'select', col: 'col-md-4', value: settings.paymentMethods[0], options: settings.paymentMethods.map(function (m) { return { value: m, label: m }; }) }) %>
     <%- include('../partials/field', { name: 'reference', label: 'Reference number', col: 'col-md-4' }) %>
     <%- include('../partials/field', { name: 'attachment', label: 'Attachment (receipt / invoice)', ftype: 'file', accept: 'application/pdf,image/png,image/jpeg,image/webp', col: 'col-md-6', help: 'PDF, JPG, PNG or WebP · max 5 MB · stored privately' }) %>
-    <div class="col-md-3"><label class="form-label">&nbsp;</label><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="recurring" id="recurring" <%= old.recurring ? 'checked' : '' %>><label class="form-check-label" for="recurring">Recurring</label></div></div>
-    <div class="col-md-3" data-frequency-wrap><label class="form-label">Frequency</label><select class="form-select" name="frequency"><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="annual">Annual</option></select></div>
-    <div class="col-12 d-flex justify-content-end gap-2"><a class="btn btn-light" href="/school/finance/expenses">Cancel</a><button class="btn btn-primary" type="submit">Record expense</button></div>
+    <div class="col-md-3"><label class="form-label">&nbsp;</label><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="recurring" id="recurring" <%= old.recurring ? 'checked' : '' %>><label class="form-check-label" for="recurring"><%= t('Recurring') %></label></div></div>
+    <div class="col-md-3" data-frequency-wrap><label class="form-label"><%= t('Frequency') %></label><select class="form-select" name="frequency"><option value="monthly"><%= t('Monthly') %></option><option value="quarterly"><%= t('Quarterly') %></option><option value="annual"><%= t('Annual') %></option></select></div>
+    <div class="col-12 d-flex justify-content-end gap-2"><a class="btn btn-light" href="/school/finance/expenses"><%= t('Cancel') %></a><button class="btn btn-primary" type="submit"><%= t('Record expense') %></button></div>
   </div></div>
 </form>
 <% } %>

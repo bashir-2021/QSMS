@@ -24,15 +24,15 @@
       if (!form.matches('form[data-confirm]') || form.dataset.confirmed === '1') return;
       e.preventDefault();
       pendingForm = form;
+      const okBtn = modalEl.querySelector('[data-confirm-ok]');
       modalEl.querySelector('[data-confirm-text]').textContent = form.dataset.confirm;
-      modalEl.querySelector('[data-confirm-title]').textContent = form.dataset.confirmTitle || 'Please confirm';
+      modalEl.querySelector('[data-confirm-title]').textContent = form.dataset.confirmTitle || okBtn.dataset.defaultTitle || 'Please confirm';
       const needsReason = form.dataset.confirmReason === 'true';
       reasonWrap.classList.toggle('d-none', !needsReason);
       reasonInput.value = '';
       reasonInput.required = needsReason;
-      const okBtn = modalEl.querySelector('[data-confirm-ok]');
       okBtn.className = `btn ${form.dataset.confirmVariant || 'btn-danger'}`;
-      okBtn.textContent = form.dataset.confirmButton || 'Confirm';
+      okBtn.textContent = form.dataset.confirmButton || okBtn.dataset.defaultLabel || 'Confirm';
       modal.show();
       if (needsReason) setTimeout(() => reasonInput.focus(), 300);
     });
@@ -69,6 +69,13 @@
 
   /* ---- Auto-submit filters ---- */
   document.querySelectorAll('[data-autosubmit]').forEach((el) => el.addEventListener('change', () => el.form.submit()));
+
+  /* ---- Checkboxes that show/hide a section (data-toggle-target="#id") ---- */
+  document.querySelectorAll('input[type=checkbox][data-toggle-target]').forEach((cb) => {
+    const target = document.querySelector(cb.dataset.toggleTarget);
+    const sync = () => target && target.classList.toggle('d-none', !cb.checked);
+    cb.addEventListener('change', sync); sync();
+  });
 
   /* ---- Print buttons ---- */
   document.querySelectorAll('[data-print]').forEach((b) => b.addEventListener('click', () => window.print()));

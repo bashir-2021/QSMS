@@ -2,9 +2,9 @@
 
 <% if (!student) { %>
   <div class="card" style="max-width:640px"><div class="card-body">
-    <label class="form-label" for="studentSearch">Find the student</label>
-    <input id="studentSearch" class="form-control" placeholder="Type a name or student ID…" autocomplete="off" data-target="invoice">
-    <div id="studentResults" class="list-group mt-2"></div>
+    <label class="form-label" for="studentSearch"><%= t('Find the student') %></label>
+    <input id="studentSearch" class="form-control" placeholder="<%= t('Type a name or student ID…') %>" autocomplete="off" data-target="invoice">
+    <div id="studentResults" class="list-group mt-2" data-empty-text="<%= t('No students found') %>"></div>
   </div></div>
   <script src="/js/invoice-picker.js"></script>
 <% } else { %>
@@ -12,13 +12,13 @@
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <input type="hidden" name="student" value="<%= student._id %>">
   <div class="card"><div class="card-body row g-3">
-    <div class="col-12"><div class="small-caps">Student</div><div class="fw-bold"><%= student.fullName %> <span class="text-muted font-monospace small"><%= student.studentCode %></span></div></div>
-    <%- include('../partials/field', { name: 'type', label: 'Invoice type', ftype: 'select', value: 'other', placeholder: false, required: true, col: 'col-md-4', attrs: 'data-invoice-type', options: Object.keys(C.INVOICE_TYPES).map(function (t) { return { value: t, label: C.INVOICE_TYPES[t] }; }) }) %>
-    <div class="col-md-4" data-period-wrap><label class="form-label">Billing month</label><input type="month" class="form-control" name="period" value="<%= old.period || thisPeriod %>"></div>
+    <div class="col-12"><div class="small-caps"><%= t('Student') %></div><div class="fw-bold"><%= student.fullName %> <span class="text-muted font-monospace small"><%= student.studentCode %></span></div></div>
+    <%- include('../partials/field', { name: 'type', label: 'Invoice type', ftype: 'select', value: 'other', placeholder: false, required: true, col: 'col-md-4', attrs: 'data-invoice-type', options: Object.keys(C.INVOICE_TYPES).map(function (it) { return { value: it, label: C.INVOICE_TYPES[it] }; }) }) %>
+    <div class="col-md-4" data-period-wrap><label class="form-label"><%= t('Billing month') %></label><input type="month" class="form-control" name="period" value="<%= old.period || thisPeriod %>"></div>
     <%- include('../partials/field', { name: 'amount', label: 'Amount', ftype: 'money', required: true, col: 'col-md-4' }) %>
     <%- include('../partials/field', { name: 'description', label: 'Description', col: 'col-md-8', placeholder: 'e.g. Books and Mushaf' }) %>
     <%- include('../partials/field', { name: 'dueDate', label: 'Due date', ftype: 'date', col: 'col-md-4' }) %>
-    <div class="col-12 d-flex justify-content-end gap-2"><a class="btn btn-light" href="/school/students/<%= student._id %>">Cancel</a><button class="btn btn-primary" type="submit">Create invoice</button></div>
+    <div class="col-12 d-flex justify-content-end gap-2"><a class="btn btn-light" href="/school/students/<%= student._id %>"><%= t('Cancel') %></a><button class="btn btn-primary" type="submit"><%= t('Create invoice') %></button></div>
   </div></div>
 </form>
 <% } %>

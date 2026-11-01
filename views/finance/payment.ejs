@@ -1,28 +1,28 @@
 <% var p = payment; %>
-<%- include('../partials/page-header', { heading: 'Payment ' + p.paymentNo, crumbs: [['Payments', '/school/finance/payments'], [p.paymentNo, null]],
-  actions: p.receipt ? '<a class="btn btn-primary btn-icon" href="/school/finance/receipts/' + p.receipt._id + '"><i class="bi bi-receipt"></i>Receipt ' + p.receipt.receiptNo + '</a>' : '' }) %>
+<%- include('../partials/page-header', { heading: t('Payment {no}', { no: p.paymentNo }), crumbs: [['Payments', '/school/finance/payments'], [p.paymentNo, null]],
+  actions: p.receipt ? '<a class="btn btn-primary btn-icon" href="/school/finance/receipts/' + p.receipt._id + '"><i class="bi bi-receipt"></i>' + t('Receipt {no}', { no: p.receipt.receiptNo }) + '</a>' : '' }) %>
 
 <div class="row g-3">
   <div class="col-lg-8">
     <div class="card mb-3"><div class="card-body">
       <dl class="dl-grid mb-0">
-        <div><dt>Student</dt><dd><a href="/school/students/<%= p.student._id %>"><%= p.student.fullName %></a> <span class="small text-muted"><%= p.student.studentCode %></span></dd></div>
-        <div><dt>Amount</dt><dd class="fs-5"><%= money(p.amount, currency) %></dd></div>
-        <div><dt>Status</dt><dd><%- statusBadge(p.status) %></dd></div>
-        <div><dt>Date</dt><dd><%= fmtDate(p.paymentDate) %></dd></div>
-        <div><dt>Method</dt><dd><%= p.method %></dd></div>
-        <div><dt>Reference</dt><dd><%= p.transactionRef || '—' %></dd></div>
-        <div><dt>Category</dt><dd><%= titleCase(p.category) %></dd></div>
-        <div><dt>Received by</dt><dd><%= p.receivedByName %></dd></div>
-        <% if (p.notes) { %><div><dt>Notes</dt><dd><%= p.notes %></dd></div><% } %>
+        <div><dt><%= t('Student') %></dt><dd><a href="/school/students/<%= p.student._id %>"><%= p.student.fullName %></a> <span class="small text-muted"><%= p.student.studentCode %></span></dd></div>
+        <div><dt><%= t('Amount') %></dt><dd class="fs-5"><%= money(p.amount, currency) %></dd></div>
+        <div><dt><%= t('Status') %></dt><dd><%- statusBadge(p.status) %></dd></div>
+        <div><dt><%= t('Date') %></dt><dd><%= fmtDate(p.paymentDate) %></dd></div>
+        <div><dt><%= t('Method') %></dt><dd><%= p.method %></dd></div>
+        <div><dt><%= t('Reference') %></dt><dd><%= p.transactionRef || '—' %></dd></div>
+        <div><dt><%= t('Category') %></dt><dd><%= titleCase(p.category) %></dd></div>
+        <div><dt><%= t('Received by') %></dt><dd><%= p.receivedByName %></dd></div>
+        <% if (p.notes) { %><div><dt><%= t('Notes') %></dt><dd><%= p.notes %></dd></div><% } %>
       </dl>
-      <% if (p.status === 'reversed') { %><div class="alert alert-secondary small mt-3 mb-0"><i class="bi bi-arrow-counterclockwise"></i> Reversed on <%= fmtDate(p.reversal.at) %> by <%= p.reversal.byName %>: <%= p.reversal.reason %></div><% } %>
+      <% if (p.status === 'reversed') { %><div class="alert alert-secondary small mt-3 mb-0"><i class="bi bi-arrow-counterclockwise"></i> <%= t('Reversed on {date} by {name}: {reason}', { date: fmtDate(p.reversal.at), name: p.reversal.byName, reason: p.reversal.reason }) %></div><% } %>
     </div></div>
-    <div class="card"><div class="card-header">Allocation</div><div class="table-responsive"><table class="table">
-      <thead><tr><th>Invoice</th><th>Description</th><th class="num">Invoice total</th><th class="num">Applied</th><th>Allocation</th><th>Invoice status</th></tr></thead>
+    <div class="card"><div class="card-header"><%= t('Allocation') %></div><div class="table-responsive"><table class="table">
+      <thead><tr><th><%= t('Invoice') %></th><th><%= t('Description') %></th><th class="num"><%= t('Invoice total') %></th><th class="num"><%= t('Applied') %></th><th><%= t('Allocation') %></th><th><%= t('Invoice status') %></th></tr></thead>
       <tbody>
         <% allocations.forEach(function (a) { var inv = a.invoice || {}; %>
-          <tr><td><a class="font-monospace small" href="/school/finance/invoices/<%= inv._id %>"><%= inv.invoiceNo %></a></td><td class="small"><%= inv.description %></td>
+          <tr><td><a class="font-monospace small" href="/school/finance/invoices/<%= inv._id %>"><%= inv.invoiceNo %></a></td><td class="small"><%= t(inv.description) %></td>
             <td class="num"><%= money(inv.total, currency) %></td><td class="num fw-semibold"><%= money(a.amount, currency) %></td><td><%- statusBadge(a.status) %></td><td><%- statusBadge(inv.status) %></td></tr>
         <% }) %>
       </tbody>
@@ -31,11 +31,11 @@
   <div class="col-lg-4">
     <% if (p.status === 'confirmed' && can('payments.reverse')) { %>
     <div class="card"><div class="card-body">
-      <h2 class="h6">Reverse this payment</h2>
-      <p class="small text-muted">Use this when a payment was recorded in error or bounced. The payment is kept, its invoices are re-opened, and the receipt is marked void.</p>
-      <form method="post" action="/school/finance/payments/<%= p._id %>/reverse" data-confirm="Reverse payment <%= p.paymentNo %> of <%= money(p.amount, currency) %>?" data-confirm-reason="true" data-confirm-button="Reverse payment">
+      <h2 class="h6"><%= t('Reverse this payment') %></h2>
+      <p class="small text-muted"><%= t('Use this when a payment was recorded in error or bounced. The payment is kept, its invoices are re-opened, and the receipt is marked void.') %></p>
+      <form method="post" action="/school/finance/payments/<%= p._id %>/reverse" data-confirm="<%= t('Reverse payment {no} of {amount}?', { no: p.paymentNo, amount: money(p.amount, currency) }) %>" data-confirm-reason="true" data-confirm-button="<%= t('Reverse payment') %>">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <button class="btn btn-outline-danger w-100" type="submit"><i class="bi bi-arrow-counterclockwise"></i> Reverse payment</button>
+        <button class="btn btn-outline-danger w-100" type="submit"><i class="bi bi-arrow-counterclockwise"></i> <%= t('Reverse payment') %></button>
       </form>
     </div></div>
     <% } %>

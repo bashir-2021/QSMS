@@ -5,7 +5,7 @@
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <div class="row g-3">
     <div class="col-lg-8">
-      <div class="card mb-3"><div class="card-header">Plan &amp; price</div><div class="card-body row g-3">
+      <div class="card mb-3"><div class="card-header"><%= t('Plan & price') %></div><div class="card-body row g-3">
         <%- include('../partials/field', { name: 'name', label: 'Name', value: p.name, required: true, col: 'col-md-5' }) %>
         <%- include('../partials/field', { name: 'code', label: 'Code', value: p.code, col: 'col-md-3', placeholder: 'auto' }) %>
         <%- include('../partials/field', { name: 'sortOrder', label: 'Display order', ftype: 'number', value: p.sortOrder, col: 'col-md-4' }) %>
@@ -13,17 +13,17 @@
         <%- include('../partials/field', { name: 'price', label: 'Price', ftype: 'money', value: p.price != null ? moneyInput(p.price) : '', required: true, col: 'col-md-4', currency: p.currency }) %>
         <%- include('../partials/field', { name: 'currency', label: 'Currency', value: p.currency, required: true, col: 'col-md-2', attrs: 'maxlength="3"' }) %>
         <%- include('../partials/field', { name: 'billingCycle', label: 'Billing cycle', ftype: 'select', value: p.billingCycle, placeholder: false, required: true, col: 'col-md-3', options: Object.keys(C.BILLING_CYCLES).map(function (k) { return { value: k, label: C.BILLING_CYCLES[k].label }; }) }) %>
-        <div class="col-md-3" data-custom-days><label class="form-label">Custom days</label><input type="number" class="form-control" name="customDays" min="1" max="1825" value="<%= old.customDays || p.customDays || 30 %>"></div>
+        <div class="col-md-3" data-custom-days><label class="form-label"><%= t('Custom days') %></label><input type="number" class="form-control" name="customDays" min="1" max="1825" value="<%= old.customDays || p.customDays || 30 %>"></div>
       </div></div>
-      <div class="card mb-3"><div class="card-header">Limits <span class="small text-muted fw-normal">(0 = unlimited, enforced on the server)</span></div><div class="card-body row g-3">
+      <div class="card mb-3"><div class="card-header"><%= t('Limits') %> <span class="small text-muted fw-normal"><%= t('(0 = unlimited, enforced on the server)') %></span></div><div class="card-body row g-3">
         <%- include('../partials/field', { name: 'maxStudents', label: 'Max students', ftype: 'number', min: 0, value: p.limits.students, col: 'col-6 col-md-3' }) %>
         <%- include('../partials/field', { name: 'maxTeachers', label: 'Max teachers', ftype: 'number', min: 0, value: p.limits.teachers, col: 'col-6 col-md-3' }) %>
         <%- include('../partials/field', { name: 'maxClasses', label: 'Max classes', ftype: 'number', min: 0, value: p.limits.classes, col: 'col-6 col-md-3' }) %>
         <%- include('../partials/field', { name: 'maxUsers', label: 'Max users', ftype: 'number', min: 0, value: p.limits.users, col: 'col-6 col-md-3' }) %>
       </div></div>
-      <div class="card"><div class="card-header">Enabled modules</div><div class="card-body row g-2">
+      <div class="card"><div class="card-header"><%= t('Enabled modules') %></div><div class="card-body row g-2">
         <% Object.keys(C.PLAN_FEATURES).forEach(function (f) { %>
-          <div class="col-md-6"><div class="form-check"><input class="form-check-input" type="checkbox" name="features" value="<%= f %>" id="feat_<%= f %>" <%= feats.indexOf(f) >= 0 ? 'checked' : '' %>><label class="form-check-label" for="feat_<%= f %>"><%= C.PLAN_FEATURES[f] %></label></div></div>
+          <div class="col-md-6"><div class="form-check"><input class="form-check-input" type="checkbox" name="features" value="<%= f %>" id="feat_<%= f %>" <%= feats.indexOf(f) >= 0 ? 'checked' : '' %>><label class="form-check-label" for="feat_<%= f %>"><%= t(C.PLAN_FEATURES[f]) %></label></div></div>
         <% }) %>
       </div></div>
     </div>
@@ -33,7 +33,7 @@
       <%- include('../partials/field', { name: 'reminderDays', label: 'Renewal reminders (days before expiry)', value: (p.reminderDays || []).join(','), help: 'Comma separated, e.g. 7,3,1' }) %>
       <%- include('../partials/field', { name: 'isActive', label: 'Plan is active', ftype: 'checkbox', value: p.isActive }) %>
       <%- include('../partials/field', { name: 'isPublic', label: 'Show on public pricing page', ftype: 'checkbox', value: p.isPublic }) %>
-      <div class="col-12 d-grid gap-2"><button class="btn btn-primary" type="submit">Save plan</button><a class="btn btn-light" href="/platform/plans">Cancel</a></div>
+      <div class="col-12 d-grid gap-2"><button class="btn btn-primary" type="submit"><%= t('Save plan') %></button><a class="btn btn-light" href="/platform/plans"><%= t('Cancel') %></a></div>
     </div></div></div>
   </div>
 </form>

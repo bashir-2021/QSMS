@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="<%= lang %>" dir="<%= dir %>">
 <head>
   <%- include('../partials/head') %>
 </head>
@@ -13,8 +13,8 @@
       <% if (locals.access && access.message) { %>
         <div class="sub-banner <%= access.mode === 'full' && !access.inGrace ? 'warning' : 'danger' %>">
           <i class="bi bi-<%= access.mode === 'full' ? 'hourglass-split' : 'lock' %> fs-5"></i>
-          <div class="flex-grow-1"><%= access.message %></div>
-          <a class="btn btn-sm btn-light" href="/school/subscription">Manage subscription</a>
+          <div class="flex-grow-1"><%= access.messageKey ? t(access.messageKey, access.messageVars) : t(access.message) %></div>
+          <a class="btn btn-sm btn-light" href="/school/subscription"><%= t('Manage subscription') %></a>
         </div>
       <% } %>
       <%- include('../partials/flash') %>

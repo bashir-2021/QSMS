@@ -1,25 +1,26 @@
 <header class="topbar">
-  <button class="btn btn-light d-lg-none" type="button" data-toggle-sidebar aria-label="Open menu"><i class="bi bi-list"></i></button>
+  <button class="btn btn-light d-lg-none" type="button" data-toggle-sidebar aria-label="<%= t('Open menu') %>"><i class="bi bi-list"></i></button>
   <div class="flex-grow-1 small text-muted d-none d-md-block">
-    <% if (locals.tenant) { %><%= tenant.name %><% if (locals.settings && settings.academicYear) { %> · Academic year <%= settings.academicYear %><% } %><% } else { %>Quranic platform administration<% } %>
+    <% if (locals.tenant) { %><%= tenant.name %><% if (locals.settings && settings.academicYear) { %> · <%= t('Academic year') %> <%= settings.academicYear %><% } %><% } else { %><%= t('Quranic platform administration') %><% } %>
   </div>
   <div class="flex-grow-1 d-md-none"></div>
-  <a class="btn btn-light position-relative" href="<%= notifUrl %>" aria-label="Notifications">
+  <%- include('lang-switch') %>
+  <a class="btn btn-light position-relative" href="<%= notifUrl %>" aria-label="<%= t('Notifications') %>">
     <i class="bi bi-bell"></i>
     <% if (locals.unreadCount) { %><span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"><%= unreadCount > 99 ? '99+' : unreadCount %></span><% } %>
   </a>
   <div class="dropdown">
     <button class="user-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
       <span class="avatar"><%= initials(currentUser.name) %></span>
-      <span class="d-none d-sm-block text-start lh-sm"><span class="fw-semibold d-block small"><%= currentUser.name %></span><span class="text-muted" style="font-size:.72rem"><%= roleLabel %></span></span>
+      <span class="d-none d-sm-block text-start lh-sm"><span class="fw-semibold d-block small"><%= currentUser.name %></span><span class="text-muted" style="font-size:.72rem"><%= t(roleLabel) %></span></span>
     </button>
     <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-      <li><a class="dropdown-item" href="<%= accountUrl %>"><i class="bi bi-person me-2"></i>My account</a></li>
+      <li><a class="dropdown-item" href="<%= accountUrl %>"><i class="bi bi-person me-2"></i><%= t('My account') %></a></li>
       <li><hr class="dropdown-divider"></li>
       <li>
         <form method="post" action="/logout">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-          <button class="dropdown-item text-danger" type="submit"><i class="bi bi-box-arrow-right me-2"></i>Sign out</button>
+          <button class="dropdown-item text-danger" type="submit"><i class="bi bi-box-arrow-right me-2"></i><%= t('Sign out') %></button>
         </form>
       </li>
     </ul>

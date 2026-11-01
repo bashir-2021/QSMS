@@ -81,7 +81,7 @@ async function update(ctx, id, data) {
   const fields = await readFields(ctx.tenantId, data);
   if (fields.isActive && !cls.isActive) await subscriptionService.assertLimit(ctx.subscription, ctx.tenantId, 'classes');
   const active = await Student.countDocuments({ tenantId: ctx.tenantId, class: cls._id, status: 'active' });
-  if (fields.capacity < active) throw badRequest(`Capacity cannot be lower than the ${active} active students in this class.`);
+  if (fields.capacity < active) throw badRequest('Capacity cannot be lower than the {n} active students in this class.', null, { n: active });
   Object.assign(cls, fields);
   try {
     await cls.save();

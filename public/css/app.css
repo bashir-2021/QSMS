@@ -197,3 +197,23 @@ h1, h2, h3, h4, h5, .h1, .h2, .h3, .h4, .h5 { font-weight: 700; letter-spacing: 
   .card { border: 0; box-shadow: none; }
   body { background: #fff; }
 }
+
+/* ==========================================================================
+   Right-to-left (Arabic). Bootstrap's RTL build flips utilities; these flip the app shell.
+   ========================================================================== */
+[dir="rtl"] body { font-family: "Noto Sans Arabic", "Plus Jakarta Sans", system-ui, sans-serif; }
+[dir="rtl"] .sidebar { inset: 0 0 0 auto; }
+[dir="rtl"] .sidebar .nav-link.active { box-shadow: inset -3px 0 0 var(--q-gold); }
+[dir="rtl"] .sidebar .nav-link .badge { margin-left: 0; margin-right: auto; }
+[dir="rtl"] .sidebar .nav-section { letter-spacing: 0; }
+[dir="rtl"] .main { margin-left: 0; margin-right: var(--q-sidebar); }
+[dir="rtl"] .num { text-align: left; }
+[dir="rtl"] .dl-grid dt, [dir="rtl"] .small-caps { letter-spacing: 0; }
+[dir="rtl"] .bi-arrow-right::before, [dir="rtl"] .bi-arrow-left::before, [dir="rtl"] .bi-chevron-right::before, [dir="rtl"] .bi-chevron-left::before { display: inline-block; transform: scaleX(-1); }
+/* numbers, codes, emails and phones stay left-to-right inside Arabic text */
+[dir="rtl"] input[type="email"], [dir="rtl"] input[type="tel"], [dir="rtl"] input[inputmode="decimal"] { direction: ltr; text-align: right; }
+@media (max-width: 991.98px) {
+  [dir="rtl"] .sidebar { transform: translateX(100%); }
+  [dir="rtl"] .sidebar.show { transform: none; }
+  [dir="rtl"] .main { margin-right: 0; }
+}

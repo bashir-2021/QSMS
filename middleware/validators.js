@@ -3,54 +3,65 @@
 const { body } = require('express-validator');
 const C = require('../config/constants');
 
+/**
+ * Translated message: m('{label} is required', 'Full name') is rendered in the request language.
+ * `lower` lowercases the English label inside a sentence ("Enter a valid guardian phone").
+ */
+const m = (key, label, { lower = false } = {}) => (value, { req }) => {
+  const t = req.t || ((s, v) => (v ? s.replace(/\{(\w+)\}/g, (x, k) => v[k]) : s));
+  if (label === undefined) return t(key);
+  const l = t(label);
+  return t(key, { label: lower && l === label ? label.toLowerCase() : l });
+};
+
 const text = (field, label, { max = 120, required = true } = {}) => {
   const c = body(field).trim();
   return required
-    ? c.notEmpty().withMessage(`${label} is required`).bail().isLength({ max }).withMessage(`${label} is too long`)
-    : c.optional({ values: 'falsy' }).isLength({ max }).withMessage(`${label} is too long`);
+    ? c.notEmpty().withMessage(m('{label} is required', label)).bail().isLength({ max }).withMessage(m('{label} is too long', label))
+    : c.optional({ values: 'falsy' }).isLength({ max }).withMessage(m('{label} is too long', label));
 };
 const email = (field = 'email', required = true) => {
   const c = body(field).trim();
-  return (required ? c.notEmpty().withMessage('Email is required').bail() : c.optional({ values: 'falsy' }))
-    .isEmail().withMessage('Enter a valid email address').normalizeEmail({ gmail_remove_dots: false });
+  return (required ? c.notEmpty().withMessage(m('Email is required')).bail() : c.optional({ values: 'falsy' }))
+    .isEmail().withMessage(m('Enter a valid email address')).normalizeEmail({ gmail_remove_dots: false });
 };
 const phone = (field, label = 'Phone', required = false) => {
   const c = body(field).trim();
-  return (required ? c.notEmpty().withMessage(`${label} is required`).bail() : c.optional({ values: 'falsy' }))
-    .matches(/^[+\d][\d\s-]{5,20}$/).withMessage(`Enter a valid ${label.toLowerCase()}`);
+  return (required ? c.notEmpty().withMessage(m('{label} is required', label)).bail() : c.optional({ values: 'falsy' }))
+    .matches(/^[+\d][\d\s-]{5,20}$/).withMessage(m('Enter a valid {label}', label, { lower: true }));
 };
 const amount = (field, label, { required = true } = {}) => {
   const c = body(field).trim();
-  return (required ? c.notEmpty().withMessage(`${label} is required`).bail() : c.optional({ values: 'falsy' }))
-    .matches(/^\d{1,9}([.]\d{1,2})?$/).withMessage(`${label} must be a valid amount (e.g. 25 or 25.50)`);
+  return (required ? c.notEmpty().withMessage(m('{label} is required', label)).bail() : c.optional({ values: 'falsy' }))
+    .matches(/^\d{1,9}([.]\d{1,2})?$/).withMessage(m('{label} must be a valid amount (e.g. 25 or 25.50)', label));
 };
 const date = (field, label, required = false) => {
   const c = body(field).trim();
-  return (required ? c.notEmpty().withMessage(`${label} is required`).bail() : c.optional({ values: 'falsy' }))
-    .isISO8601().withMessage(`${label} must be a valid date`);
+  return (required ? c.notEmpty().withMessage(m('{label} is required', label)).bail() : c.optional({ values: 'falsy' }))
+    .isISO8601().withMessage(m('{label} must be a valid date', label));
 };
 const objectId = (field, label, required = true) => {
   const c = body(field).trim();
-  return (required ? c.notEmpty().withMessage(`${label} is required`).bail() : c.optional({ values: 'falsy' }))
-    .isMongoId().withMessage(`Choose a valid ${label.toLowerCase()}`);
+  return (required ? c.notEmpty().withMessage(m('{label} is required', label)).bail() : c.optional({ values: 'falsy' }))
+    .isMongoId().withMessage(m('Choose a valid {label}', label, { lower: true }));
 };
 const password = (field = 'password', required = true) => {
   const c = body(field);
-  return (required ? c.notEmpty().withMessage('Password is required').bail() : c.optional({ values: 'falsy' }))
-    .isLength({ min: 8, max: 128 }).withMessage('Password must be at least 8 characters')
-    .matches(/[A-Za-z]/).withMessage('Password must contain a letter')
-    .matches(/\d/).withMessage('Password must contain a number');
+  return (required ? c.notEmpty().withMessage(m('Password is required')).bail() : c.optional({ values: 'falsy' }))
+    .isLength({ min: 8, max: 128 }).withMessage(m('Password must be at least 8 characters'))
+    .matches(/[A-Za-z]/).withMessage(m('Password must contain a letter'))
+    .matches(/\d/).withMessage(m('Password must contain a number'));
 };
 const confirm = (field = 'confirmPassword', of = 'password') => body(field).custom((v, { req }) => {
-  if ((req.body[of] || '') !== (v || '')) throw new Error('Passwords do not match');
+  if ((req.body[of] || '') !== (v || '')) throw new Error(req.t ? req.t('Passwords do not match') : 'Passwords do not match');
   return true;
 });
 const oneOf = (field, list, label, required = true) => {
   const c = body(field);
-  return (required ? c.notEmpty().withMessage(`${label} is required`).bail() : c.optional({ values: 'falsy' }))
-    .isIn(list).withMessage(`Choose a valid ${label.toLowerCase()}`);
+  return (required ? c.notEmpty().withMessage(m('{label} is required', label)).bail() : c.optional({ values: 'falsy' }))
+    .isIn(list).withMessage(m('Choose a valid {label}', label, { lower: true }));
 };
-const period = (field, label = 'Month') => body(field).trim().matches(/^\d{4}-(0[1-9]|1[0-2])$/).withMessage(`${label} is required (YYYY-MM)`);
+const period = (field, label = 'Month') => body(field).trim().matches(/^\d{4}-(0[1-9]|1[0-2])$/).withMessage(m('{label} is required (YYYY-MM)', label));
 
 module.exports = {
   login: [email(), body('password').notEmpty().withMessage('Password is required')],
@@ -69,6 +80,8 @@ module.exports = {
     text('address', 'Address', { max: 300, required: false }), date('registrationDate', 'Registration date'),
     objectId('class', 'Class', false), objectId('teacher', 'Teacher', false), oneOf('status', C.STUDENT_STATUSES, 'Status', false),
     amount('feeOverride', 'Custom monthly fee', { required: false }), text('notes', 'Notes', { max: 500, required: false }),
+    amount('registrationFee', 'Registration fee', { required: false }), text('paymentMethod', 'Payment method', { max: 60, required: false }),
+    text('transactionRef', 'Transaction reference', { required: false }),
   ],
   teacher: [
     text('fullName', 'Full name'), oneOf('gender', C.GENDERS, 'Gender', false), phone('phone', 'Phone', true), email('email', false),

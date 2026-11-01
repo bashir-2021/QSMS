@@ -159,7 +159,7 @@ async function paySalary(ctx, req, data) {
       return salary;
     });
   } catch (err) {
-    if (err.code === 11000) throw conflict(`${teacher.fullName} has already been paid for ${dates.periodLabel(data.period)}.`);
+    if (err.code === 11000) throw conflict('{name} has already been paid for {period}.', { name: teacher.fullName, period: dates.periodLabel(data.period) });
     throw err;
   }
 }

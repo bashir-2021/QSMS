@@ -1,14 +1,14 @@
 <%- include('../partials/page-header', { heading: 'Student attendance', sub: 'Daily register by class',
-  actions: '<a class="btn btn-light btn-icon" href="/school/attendance/teachers"><i class="bi bi-person-badge"></i>Teacher attendance</a><a class="btn btn-light btn-icon" href="/school/attendance/reports"><i class="bi bi-clipboard-data"></i>Reports</a>' }) %>
+  actions: '<a class="btn btn-light btn-icon" href="/school/attendance/teachers"><i class="bi bi-person-badge"></i>' + t('Teacher attendance') + '</a><a class="btn btn-light btn-icon" href="/school/attendance/reports"><i class="bi bi-clipboard-data"></i>' + t('Reports') + '</a>' }) %>
 
 <form class="filter-bar row g-2 align-items-end" method="get">
-  <div class="col-md-5"><label class="form-label">Class</label><select class="form-select" name="class" data-autosubmit><% classes.forEach(function (c) { %><option value="<%= c._id %>" <%= sheet && selected(sheet.cls._id, c._id) %>><%= c.name %></option><% }) %></select></div>
-  <div class="col-md-4"><label class="form-label">Date</label><input type="date" class="form-control" name="date" value="<%= date %>" max="<%= isoDate(new Date()) %>" data-autosubmit></div>
-  <div class="col-md-3"><button class="btn btn-light w-100" type="submit">Load register</button></div>
+  <div class="col-md-5"><label class="form-label"><%= t('Class') %></label><select class="form-select" name="class" data-autosubmit><% classes.forEach(function (c) { %><option value="<%= c._id %>" <%= sheet && selected(sheet.cls._id, c._id) %>><%= c.name %></option><% }) %></select></div>
+  <div class="col-md-4"><label class="form-label"><%= t('Date') %></label><input type="date" class="form-control" name="date" value="<%= date %>" max="<%= isoDate(new Date()) %>" data-autosubmit></div>
+  <div class="col-md-3"><button class="btn btn-light w-100" type="submit"><%= t('Load register') %></button></div>
 </form>
 
 <% if (!sheet) { %>
-  <div class="card"><div class="empty-state"><i class="bi bi-easel"></i>Create a class first to take attendance.</div></div>
+  <div class="card"><div class="empty-state"><i class="bi bi-easel"></i><%= t('Create a class first to take attendance.') %></div></div>
 <% } else { var editable = can('attendance.manage'); %>
 <form method="post" action="/school/attendance">
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -16,23 +16,23 @@
   <input type="hidden" name="date" value="<%= date %>">
   <div class="card">
     <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
-      <span><%= sheet.cls.name %> · <%= fmtDate(sheet.date) %> <% if (sheet.saved) { %><span class="badge badge-soft-success ms-1">Saved</span><% } else { %><span class="badge badge-soft-warning ms-1">Not yet taken</span><% } %></span>
+      <span><%= sheet.cls.name %> · <%= fmtDate(sheet.date) %> <% if (sheet.saved) { %><span class="badge badge-soft-success ms-1"><%= t('Saved') %></span><% } else { %><span class="badge badge-soft-warning ms-1"><%= t('Not yet taken') %></span><% } %></span>
       <% if (editable && sheet.rows.length) { %>
         <div class="d-flex gap-2 no-print">
-          <button class="btn btn-sm btn-light" type="button" data-mark-all="present">All present</button>
-          <button class="btn btn-sm btn-primary" type="submit">Save attendance</button>
+          <button class="btn btn-sm btn-light" type="button" data-mark-all="present"><%= t('All present') %></button>
+          <button class="btn btn-sm btn-primary" type="submit"><%= t('Save attendance') %></button>
         </div>
       <% } %>
     </div>
     <div class="table-responsive"><table class="table">
-      <thead><tr><th>Student</th><th>Status</th><th>Remarks</th></tr></thead>
+      <thead><tr><th><%= t('Student') %></th><th><%= t('Status') %></th><th><%= t('Remarks') %></th></tr></thead>
       <tbody>
-        <% if (!sheet.rows.length) { %><tr><td colspan="3" class="empty-state">No active students in this class</td></tr><% } %>
+        <% if (!sheet.rows.length) { %><tr><td colspan="3" class="empty-state"><%= t('No active students in this class') %></td></tr><% } %>
         <% sheet.rows.forEach(function (r) { var st = r.record ? r.record.status : 'present'; var id = r.student._id; %>
           <tr>
             <td><div class="fw-semibold"><%= r.student.fullName %></div><div class="small text-muted font-monospace"><%= r.student.studentCode %></div></td>
             <td><div class="btn-group att-toggle" role="group">
-              <% [['present', 'success', 'P'], ['absent', 'danger', 'A'], ['late', 'warning', 'L'], ['excused', 'info', 'E']].forEach(function (o) { %>
+              <% [['present', 'success', t('P')], ['absent', 'danger', t('A')], ['late', 'warning', t('L')], ['excused', 'info', t('E')]].forEach(function (o) { %>
                 <input type="radio" class="btn-check" name="att[<%= id %>][status]" id="a_<%= id %>_<%= o[0] %>" value="<%= o[0] %>" <%= st === o[0] ? 'checked' : '' %> <%= editable ? '' : 'disabled' %>>
                 <label class="btn btn-outline-<%= o[1] %>" for="a_<%= id %>_<%= o[0] %>" title="<%= titleCase(o[0]) %>"><span class="d-none d-md-inline"><%= titleCase(o[0]) %></span><span class="d-md-none"><%= o[2] %></span></label>
               <% }) %>

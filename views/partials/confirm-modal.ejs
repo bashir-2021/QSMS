@@ -2,20 +2,20 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius:16px">
       <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title" data-confirm-title>Please confirm</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title" data-confirm-title><%= t('Please confirm') %></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<%= t('Close') %>"></button>
       </div>
       <div class="modal-body">
         <p class="mb-2" data-confirm-text></p>
         <div class="d-none" data-reason-wrap>
-          <label class="form-label required" for="confirmReason">Reason (kept in the audit log)</label>
+          <label class="form-label required" for="confirmReason"><%= t('Reason (kept in the audit log)') %></label>
           <textarea class="form-control" id="confirmReason" rows="2" maxlength="300"></textarea>
-          <div class="invalid-feedback">Please give a reason (at least 3 characters).</div>
+          <div class="invalid-feedback"><%= t('Please give a reason (at least 3 characters).') %></div>
         </div>
       </div>
       <div class="modal-footer border-0 pt-0">
-        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-danger" data-confirm-ok>Confirm</button>
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal"><%= t('Cancel') %></button>
+        <button type="button" class="btn btn-danger" data-confirm-ok data-default-label="<%= t('Confirm') %>" data-default-title="<%= t('Please confirm') %>"><%= t('Confirm') %></button>
       </div>
     </div>
   </div>

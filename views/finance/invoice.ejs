@@ -1,36 +1,36 @@
 <% var i = inv; var open = ['unpaid', 'partial', 'overdue'].indexOf(i.status) >= 0; %>
-<%- include('../partials/page-header', { heading: 'Invoice ' + i.invoiceNo, crumbs: [['Invoices', '/school/finance/invoices'], [i.invoiceNo, null]],
-  actions: '<button class="btn btn-light btn-icon" type="button" data-print><i class="bi bi-printer"></i>Print</button>' +
-    (open && can('payments.create') ? '<a class="btn btn-primary btn-icon" href="/school/finance/payments/new?student=' + i.student._id + '&invoice=' + i._id + '"><i class="bi bi-cash-coin"></i>Receive payment</a>' : '') }) %>
+<%- include('../partials/page-header', { heading: t('Invoice {no}', { no: i.invoiceNo }), crumbs: [['Invoices', '/school/finance/invoices'], [i.invoiceNo, null]],
+  actions: '<button class="btn btn-light btn-icon" type="button" data-print><i class="bi bi-printer"></i>' + t('Print') + '</button>' +
+    (open && can('payments.create') ? '<a class="btn btn-primary btn-icon" href="/school/finance/payments/new?student=' + i.student._id + '&invoice=' + i._id + '"><i class="bi bi-cash-coin"></i>' + t('Receive payment') + '</a>' : '') }) %>
 
 <div class="row g-3">
   <div class="col-lg-8">
     <div class="card mb-3"><div class="card-body">
       <div class="d-flex justify-content-between flex-wrap gap-2 mb-3">
-        <div><div class="small-caps">Billed to</div><a class="fw-bold fs-5" href="/school/students/<%= i.student._id %>"><%= i.student.fullName %></a><div class="small text-muted"><%= i.student.studentCode %><%= i.class ? ' · ' + i.class.name : '' %></div>
+        <div><div class="small-caps"><%= t('Billed to') %></div><a class="fw-bold fs-5" href="/school/students/<%= i.student._id %>"><%= i.student.fullName %></a><div class="small text-muted"><%= i.student.studentCode %><%= i.class ? ' · ' + i.class.name : '' %></div>
           <div class="small text-muted"><%= i.student.guardianName || '' %> <%= i.student.guardianPhone || '' %></div></div>
-        <div class="text-end"><%- statusBadge(i.status) %><div class="small text-muted mt-1">Issued <%= fmtDate(i.issueDate) %> · Due <%= fmtDate(i.dueDate) %></div></div>
+        <div class="text-end"><%- statusBadge(i.status) %><div class="small text-muted mt-1"><%= t('Issued {date}', { date: fmtDate(i.issueDate) }) %> · <%= t('Due {date}', { date: fmtDate(i.dueDate) }) %></div></div>
       </div>
       <table class="table">
         <tbody>
-          <tr><td><%= i.description %><div class="small text-muted"><%= C.INVOICE_TYPES[i.type] %><%= i.period ? ' · ' + periodLabel(i.period) : '' %></div></td><td class="num"><%= money(i.amount, currency) %></td></tr>
-          <% if (i.discount) { %><tr><td>Discount</td><td class="num text-success">− <%= money(i.discount, currency) %></td></tr><% } %>
-          <% if (i.adjustment) { %><tr><td>Adjustment</td><td class="num"><%= i.adjustment > 0 ? '+ ' : '' %><%= money(i.adjustment, currency) %></td></tr><% } %>
+          <tr><td><%= t(i.description) %><div class="small text-muted"><%= t(C.INVOICE_TYPES[i.type]) %><%= i.period ? ' · ' + periodLabel(i.period) : '' %></div></td><td class="num"><%= money(i.amount, currency) %></td></tr>
+          <% if (i.discount) { %><tr><td><%= t('Discount') %></td><td class="num text-success">− <%= money(i.discount, currency) %></td></tr><% } %>
+          <% if (i.adjustment) { %><tr><td><%= t('Adjustment') %></td><td class="num"><%= i.adjustment > 0 ? '+ ' : '' %><%= money(i.adjustment, currency) %></td></tr><% } %>
         </tbody>
         <tfoot>
-          <tr><td>Total</td><td class="num"><%= money(i.total, currency) %></td></tr>
-          <tr><td>Paid</td><td class="num"><%= money(i.paid, currency) %></td></tr>
-          <tr><td>Balance</td><td class="num <%= i.total - i.paid > 0 ? 'text-danger' : '' %>"><%= i.status === 'cancelled' ? '—' : money(i.total - i.paid, currency) %></td></tr>
+          <tr><td><%= t('Total') %></td><td class="num"><%= money(i.total, currency) %></td></tr>
+          <tr><td><%= t('Paid') %></td><td class="num"><%= money(i.paid, currency) %></td></tr>
+          <tr><td><%= t('Balance') %></td><td class="num <%= i.total - i.paid > 0 ? 'text-danger' : '' %>"><%= i.status === 'cancelled' ? '—' : money(i.total - i.paid, currency) %></td></tr>
         </tfoot>
       </table>
-      <% if (i.previousBalance) { %><div class="small text-muted mt-2">Previous outstanding balance when this invoice was issued: <%= money(i.previousBalance, currency) %></div><% } %>
-      <% if (i.cancelled && i.cancelled.at) { %><div class="alert alert-secondary small mt-3 mb-0">Cancelled on <%= fmtDate(i.cancelled.at) %> by <%= i.cancelled.byName %>: <%= i.cancelled.reason %></div><% } %>
+      <% if (i.previousBalance) { %><div class="small text-muted mt-2"><%= t('Previous outstanding balance when this invoice was issued: {amount}', { amount: money(i.previousBalance, currency) }) %></div><% } %>
+      <% if (i.cancelled && i.cancelled.at) { %><div class="alert alert-secondary small mt-3 mb-0"><%= t('Cancelled on {date} by {name}: {reason}', { date: fmtDate(i.cancelled.at), name: i.cancelled.byName, reason: i.cancelled.reason }) %></div><% } %>
     </div></div>
 
-    <div class="card"><div class="card-header">Payments applied</div><div class="table-responsive"><table class="table">
-      <thead><tr><th>Date</th><th>Payment</th><th>Receipt</th><th>Method</th><th class="num">Applied</th><th>Status</th></tr></thead>
+    <div class="card"><div class="card-header"><%= t('Payments applied') %></div><div class="table-responsive"><table class="table">
+      <thead><tr><th><%= t('Date') %></th><th><%= t('Payment') %></th><th><%= t('Receipt') %></th><th><%= t('Method') %></th><th class="num"><%= t('Applied') %></th><th><%= t('Status') %></th></tr></thead>
       <tbody>
-        <% if (!allocations.length) { %><tr><td colspan="6" class="empty-state">No payments yet</td></tr><% } %>
+        <% if (!allocations.length) { %><tr><td colspan="6" class="empty-state"><%= t('No payments yet') %></td></tr><% } %>
         <% allocations.forEach(function (a) { var p = a.payment || {}; %>
           <tr><td><%= fmtDate(p.paymentDate) %></td><td><a class="font-monospace small" href="/school/finance/payments/<%= p._id %>"><%= p.paymentNo %></a></td>
             <td><% if (p.receipt) { %><a class="small" href="/school/finance/receipts/<%= p.receipt._id %>"><%= p.receipt.receiptNo %></a><% } %></td><td><%= p.method %></td><td class="num"><%= money(a.amount, currency) %></td><td><%- statusBadge(a.status) %></td></tr>
@@ -41,21 +41,21 @@
 
   <div class="col-lg-4 no-print">
     <% if (can('invoices.manage') && i.status !== 'cancelled') { %>
-    <div class="card mb-3"><div class="card-header">Discount &amp; adjustment</div><div class="card-body">
-      <form method="post" action="/school/finance/invoices/<%= i._id %>/adjust" class="row g-2" data-confirm="Apply this discount/adjustment? The change is recorded in the audit log." data-confirm-variant="btn-primary">
+    <div class="card mb-3"><div class="card-header"><%= t('Discount & adjustment') %></div><div class="card-body">
+      <form method="post" action="/school/finance/invoices/<%= i._id %>/adjust" class="row g-2" data-confirm="<%= t('Apply this discount/adjustment? The change is recorded in the audit log.') %>" data-confirm-variant="btn-primary">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <%- include('../partials/field', { name: 'discount', label: 'Discount', ftype: 'money', value: moneyInput(i.discount), col: 'col-6' }) %>
-        <div class="col-6"><label class="form-label">Adjustment</label><input class="form-control" name="adjustment" value="<%= moneyInput(i.adjustment) %>" pattern="^-?\d{1,9}(\.\d{1,2})?$"><div class="form-text">Use − for a credit</div></div>
+        <div class="col-6"><label class="form-label"><%= t('Adjustment') %></label><input class="form-control" name="adjustment" value="<%= moneyInput(i.adjustment) %>" pattern="^-?\d{1,9}(\.\d{1,2})?$"><div class="form-text"><%= t('Use − for a credit') %></div></div>
         <%- include('../partials/field', { name: 'reason', label: 'Reason', required: true }) %>
-        <div class="col-12"><button class="btn btn-light w-100" type="submit">Apply</button></div>
+        <div class="col-12"><button class="btn btn-light w-100" type="submit"><%= t('Apply') %></button></div>
       </form>
     </div></div>
     <% if (i.paid === 0) { %>
-    <form method="post" action="/school/finance/invoices/<%= i._id %>/cancel" data-confirm="Cancel invoice <%= i.invoiceNo %>? It will no longer count as owed, and the period can be billed again." data-confirm-reason="true" data-confirm-button="Cancel invoice">
+    <form method="post" action="/school/finance/invoices/<%= i._id %>/cancel" data-confirm="<%= t('Cancel invoice {no}? It will no longer count as owed, and the period can be billed again.', { no: i.invoiceNo }) %>" data-confirm-reason="true" data-confirm-button="<%= t('Cancel invoice') %>">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-      <button class="btn btn-outline-danger w-100" type="submit"><i class="bi bi-x-circle"></i> Cancel invoice</button>
+      <button class="btn btn-outline-danger w-100" type="submit"><i class="bi bi-x-circle"></i> <%= t('Cancel invoice') %></button>
     </form>
-    <% } else { %><div class="small text-muted">Invoices with payments cannot be cancelled. Reverse the payments first.</div><% } %>
+    <% } else { %><div class="small text-muted"><%= t('Invoices with payments cannot be cancelled. Reverse the payments first.') %></div><% } %>
     <% } %>
   </div>
 </div>

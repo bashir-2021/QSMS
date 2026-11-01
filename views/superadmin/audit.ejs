@@ -1,9 +1,9 @@
 <%- include('../partials/page-header', { heading: 'Platform audit log', sub: 'Staff logins, school status changes, plan edits and payment verifications.' }) %>
 <div class="card">
   <div class="table-responsive"><table class="table table-sm table-hover">
-    <thead><tr><th>When</th><th>Staff</th><th>Action</th><th>School</th><th>Details</th><th>IP</th></tr></thead>
+    <thead><tr><th><%= t('When') %></th><th><%= t('Staff') %></th><th><%= t('Action') %></th><th><%= t('School') %></th><th><%= t('Details') %></th><th><%= t('IP') %></th></tr></thead>
     <tbody>
-      <% if (!page.items.length) { %><tr><td colspan="6" class="empty-state">No entries</td></tr><% } %>
+      <% if (!page.items.length) { %><tr><td colspan="6" class="empty-state"><%= t('No entries') %></td></tr><% } %>
       <% page.items.forEach(function (l) { %>
         <tr><td class="text-nowrap small"><%= new Date(l.createdAt).toISOString().replace('T', ' ').slice(0, 16) %></td><td><%= l.actorName %></td><td><code><%= l.action %></code></td>
           <td><% if (l.tenant) { %><a href="/platform/schools/<%= l.tenant._id %>"><%= l.tenant.name %></a><% } %></td><td class="small text-muted text-break" style="max-width:380px"><%= l.details ? JSON.stringify(l.details) : '' %></td><td class="small text-muted"><%= l.ip %></td></tr>

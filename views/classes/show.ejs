@@ -1,23 +1,23 @@
 <% var c = cls; %>
-<%- include('../partials/page-header', { heading: c.name, crumbs: [['Classes', '/school/classes'], [c.name, null]], sub: c.level + ' · ' + (c.teacher ? c.teacher.fullName : 'No teacher assigned'),
-  actions: (can('attendance.manage') && hasFeature('attendance') ? '<a class="btn btn-light btn-icon" href="/school/attendance?class=' + c._id + '"><i class="bi bi-calendar-check"></i>Attendance</a>' : '') +
-    (can('lessons.manage') && hasFeature('lessons') ? '<a class="btn btn-light btn-icon" href="/school/lessons/new?class=' + c._id + '"><i class="bi bi-book"></i>New lesson</a>' : '') +
-    (can('classes.manage') ? '<a class="btn btn-primary btn-icon" href="/school/classes/' + c._id + '/edit"><i class="bi bi-pencil"></i>Edit</a>' : '') }) %>
+<%- include('../partials/page-header', { heading: c.name, crumbs: [['Classes', '/school/classes'], [c.name, null]], sub: t(c.level) + ' · ' + (c.teacher ? c.teacher.fullName : t('No teacher assigned')),
+  actions: (can('attendance.manage') && hasFeature('attendance') ? '<a class="btn btn-light btn-icon" href="/school/attendance?class=' + c._id + '"><i class="bi bi-calendar-check"></i>' + t('Attendance') + '</a>' : '') +
+    (can('lessons.manage') && hasFeature('lessons') ? '<a class="btn btn-light btn-icon" href="/school/lessons/new?class=' + c._id + '"><i class="bi bi-book"></i>' + t('New lesson') + '</a>' : '') +
+    (can('classes.manage') ? '<a class="btn btn-primary btn-icon" href="/school/classes/' + c._id + '/edit"><i class="bi bi-pencil"></i>' + t('Edit') + '</a>' : '') }) %>
 
 <div class="row g-3 mb-3">
-  <div class="col-6 col-xl-3"><div class="card stat-card"><div class="label">Students</div><div class="value"><%= students.length %> <span class="fs-6 text-muted">/ <%= c.capacity %></span></div><div class="meta"><%= Math.max(0, c.capacity - students.length) %> seats free</div></div></div>
-  <div class="col-6 col-xl-3"><div class="card stat-card"><div class="label">Attendance (30 days)</div><div class="value"><%= summary.attendanceRate == null ? '—' : summary.attendanceRate + '%' %></div><div class="meta">Average across students</div></div></div>
-  <div class="col-6 col-xl-3"><div class="card stat-card"><div class="label">Average lesson score</div><div class="value"><%= summary.avgScore == null ? '—' : summary.avgScore %></div><div class="meta"><%= summary.lessonsLast90 %> lessons in 90 days</div></div></div>
-  <div class="col-6 col-xl-3"><div class="card stat-card"><div class="label">Monthly fee</div><div class="value"><%= money(fee, currency) %></div><div class="meta"><%= c.monthlyFee != null ? 'Class-specific fee' : 'School default fee' %></div></div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-card"><div class="label"><%= t('Students') %></div><div class="value"><%= students.length %> <span class="fs-6 text-muted">/ <%= c.capacity %></span></div><div class="meta"><%= t('{n} seats free', { n: Math.max(0, c.capacity - students.length) }) %></div></div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-card"><div class="label"><%= t('Attendance (30 days)') %></div><div class="value"><%= summary.attendanceRate == null ? '—' : summary.attendanceRate + '%' %></div><div class="meta"><%= t('Average across students') %></div></div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-card"><div class="label"><%= t('Average lesson score') %></div><div class="value"><%= summary.avgScore == null ? '—' : summary.avgScore %></div><div class="meta"><%= summary.lessonsLast90 === 1 ? t('1 lesson in 90 days') : t('{n} lessons in 90 days', { n: summary.lessonsLast90 }) %></div></div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-card"><div class="label"><%= t('Monthly fee') %></div><div class="value"><%= money(fee, currency) %></div><div class="meta"><%= t(c.monthlyFee != null ? 'Class-specific fee' : 'School default fee') %></div></div></div>
 </div>
 
 <div class="row g-3">
   <div class="col-xl-8"><div class="card">
-    <div class="card-header d-flex justify-content-between"><span>Roster &amp; performance</span><span class="small text-muted"><%= (c.schedule.days || []).join(', ') %> <%= c.schedule.startTime || '' %><%= c.schedule.endTime ? '–' + c.schedule.endTime : '' %> <%= c.schedule.room ? '· ' + c.schedule.room : '' %></span></div>
+    <div class="card-header d-flex justify-content-between"><span><%= t('Roster & performance') %></span><span class="small text-muted"><%= (c.schedule.days || []).map(function (d) { return t(d); }).join(', ') %> <%= c.schedule.startTime || '' %><%= c.schedule.endTime ? '–' + c.schedule.endTime : '' %> <%= c.schedule.room ? '· ' + c.schedule.room : '' %></span></div>
     <div class="table-responsive"><table class="table table-hover">
-      <thead><tr><th>Student</th><th>ID</th><th class="num">Attendance</th><th class="num">Avg score</th></tr></thead>
+      <thead><tr><th><%= t('Student') %></th><th><%= t('ID') %></th><th class="num"><%= t('Attendance') %></th><th class="num"><%= t('Avg score') %></th></tr></thead>
       <tbody>
-        <% if (!students.length) { %><tr><td colspan="4" class="empty-state">No students enrolled</td></tr><% } %>
+        <% if (!students.length) { %><tr><td colspan="4" class="empty-state"><%= t('No students enrolled') %></td></tr><% } %>
         <% students.forEach(function (s) { %>
           <tr><td><a class="row-link" href="/school/students/<%= s._id %>"><%= s.fullName %></a></td><td class="font-monospace small"><%= s.studentCode %></td>
             <td class="num"><%= s.attendanceRate == null ? '—' : s.attendanceRate + '%' %></td>
@@ -28,25 +28,25 @@
   </div></div>
   <div class="col-xl-4">
     <% if (can('students.manage') && candidates.length) { %>
-    <div class="card mb-3"><div class="card-header">Enrol / transfer students</div><div class="card-body">
-      <form method="post" action="/school/classes/<%= c._id %>/enrol" data-confirm="Enrol the selected students in <%= c.name %>? Students in other classes will be transferred." data-confirm-variant="btn-primary" data-confirm-button="Enrol">
+    <div class="card mb-3"><div class="card-header"><%= t('Enrol / transfer students') %></div><div class="card-body">
+      <form method="post" action="/school/classes/<%= c._id %>/enrol" data-confirm="<%= t('Enrol the selected students in {class}? Students in other classes will be transferred.', { class: c.name }) %>" data-confirm-variant="btn-primary" data-confirm-button="<%= t('Enrol') %>">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="border rounded-3 p-2 mb-2" style="max-height:260px;overflow:auto">
           <% candidates.forEach(function (s) { %>
             <div class="form-check"><input class="form-check-input" type="checkbox" name="students" value="<%= s._id %>" id="c_<%= s._id %>">
-              <label class="form-check-label small" for="c_<%= s._id %>"><%= s.fullName %> <span class="text-muted">· <%= s.class ? s.class.name : 'unassigned' %></span></label></div>
+              <label class="form-check-label small" for="c_<%= s._id %>"><%= s.fullName %> <span class="text-muted">· <%= s.class ? s.class.name : t('unassigned') %></span></label></div>
           <% }) %>
         </div>
-        <button class="btn btn-primary w-100" type="submit">Enrol selected</button>
+        <button class="btn btn-primary w-100" type="submit"><%= t('Enrol selected') %></button>
       </form>
     </div></div>
     <% } %>
-    <div class="card mb-3"><div class="card-header">Recent lessons</div><div class="list-group list-group-flush">
-      <% if (!lessons.length) { %><div class="empty-state small">No lessons yet</div><% } %>
-      <% lessons.forEach(function (l) { %><a class="list-group-item list-group-item-action" href="/school/lessons/<%= l._id %>"><div class="small fw-semibold"><%= l.title %></div><div class="text-muted" style="font-size:.74rem"><%= fmtDate(l.date) %> · <%= C.LESSON_CATEGORIES[l.category] %></div></a><% }) %>
+    <div class="card mb-3"><div class="card-header"><%= t('Recent lessons') %></div><div class="list-group list-group-flush">
+      <% if (!lessons.length) { %><div class="empty-state small"><%= t('No lessons yet') %></div><% } %>
+      <% lessons.forEach(function (l) { %><a class="list-group-item list-group-item-action" href="/school/lessons/<%= l._id %>"><div class="small fw-semibold"><%= l.title %></div><div class="text-muted" style="font-size:.74rem"><%= fmtDate(l.date) %> · <%= t(C.LESSON_CATEGORIES[l.category]) %></div></a><% }) %>
     </div></div>
-    <div class="card"><div class="card-header">Enrolment history</div><div class="list-group list-group-flush">
-      <% if (!enrollments.length) { %><div class="empty-state small">No history</div><% } %>
+    <div class="card"><div class="card-header"><%= t('Enrolment history') %></div><div class="list-group list-group-flush">
+      <% if (!enrollments.length) { %><div class="empty-state small"><%= t('No history') %></div><% } %>
       <% enrollments.forEach(function (e) { %><div class="list-group-item small d-flex justify-content-between"><span><%= e.student ? e.student.fullName : '' %></span><span class="text-muted"><%= fmtDate(e.startDate) %> <%- statusBadge(e.status) %></span></div><% }) %>
     </div></div>
   </div>

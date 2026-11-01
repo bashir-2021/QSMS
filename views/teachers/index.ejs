@@ -1,26 +1,26 @@
-<%- include('../partials/page-header', { heading: 'Teachers', sub: page.total + ' teachers',
-  actions: (hasFeature('exports') ? '<a class="btn btn-light btn-icon" href="/school/teachers?format=xlsx"><i class="bi bi-file-earmark-excel"></i>Excel</a><a class="btn btn-light btn-icon" href="/school/teachers?format=pdf"><i class="bi bi-file-earmark-pdf"></i>PDF</a>' : '') +
-    (can('teachers.manage') ? '<a class="btn btn-primary btn-icon" href="/school/teachers/new"><i class="bi bi-person-plus"></i>Add teacher</a>' : '') }) %>
+<%- include('../partials/page-header', { heading: 'Teachers', sub: page.total === 1 ? t('1 teacher') : t('{n} teachers', { n: page.total }),
+  actions: (hasFeature('exports') ? '<a class="btn btn-light btn-icon" href="/school/teachers?format=xlsx"><i class="bi bi-file-earmark-excel"></i>' + t('Excel') + '</a><a class="btn btn-light btn-icon" href="/school/teachers?format=pdf"><i class="bi bi-file-earmark-pdf"></i>' + t('PDF') + '</a>' : '') +
+    (can('teachers.manage') ? '<a class="btn btn-primary btn-icon" href="/school/teachers/new"><i class="bi bi-person-plus"></i>' + t('Add teacher') + '</a>' : '') }) %>
 
 <form class="filter-bar row g-2 align-items-end" method="get">
-  <div class="col-md-6"><label class="form-label">Search</label><input class="form-control" name="search" value="<%= query.search || '' %>" placeholder="Name, ID, phone or specialization"></div>
-  <div class="col-6 col-md-3"><label class="form-label">Status</label>
-    <select class="form-select" name="status" data-autosubmit><option value="">All</option><% C.TEACHER_STATUSES.forEach(function (s) { %><option value="<%= s %>" <%= selected(query.status, s) %>><%= titleCase(s) %></option><% }) %></select></div>
-  <div class="col-6 col-md-3 d-flex gap-2"><button class="btn btn-primary flex-fill" type="submit"><i class="bi bi-search"></i></button><a class="btn btn-light" href="/school/teachers">Reset</a></div>
+  <div class="col-md-6"><label class="form-label"><%= t('Search') %></label><input class="form-control" name="search" value="<%= query.search || '' %>" placeholder="<%= t('Name, ID, phone or specialization') %>"></div>
+  <div class="col-6 col-md-3"><label class="form-label"><%= t('Status') %></label>
+    <select class="form-select" name="status" data-autosubmit><option value=""><%= t('All') %></option><% C.TEACHER_STATUSES.forEach(function (s) { %><option value="<%= s %>" <%= selected(query.status, s) %>><%= titleCase(s) %></option><% }) %></select></div>
+  <div class="col-6 col-md-3 d-flex gap-2"><button class="btn btn-primary flex-fill" type="submit"><i class="bi bi-search"></i></button><a class="btn btn-light" href="/school/teachers"><%= t('Reset') %></a></div>
 </form>
 
 <div class="card">
   <div class="table-responsive"><table class="table table-hover">
-    <thead><tr><th>Teacher</th><th>ID</th><th>Phone</th><th>Specialization</th><th>Employed</th><% if (can('salaries.view')) { %><th class="num">Monthly salary</th><% } %><th>Status</th></tr></thead>
+    <thead><tr><th><%= t('Teacher') %></th><th><%= t('ID') %></th><th><%= t('Phone') %></th><th><%= t('Specialization') %></th><th><%= t('Employed') %></th><% if (can('salaries.view')) { %><th class="num"><%= t('Monthly salary') %></th><% } %><th><%= t('Status') %></th></tr></thead>
     <tbody>
-      <% if (!page.items.length) { %><tr><td colspan="7"><div class="empty-state"><i class="bi bi-person-badge"></i>No teachers yet.</div></td></tr><% } %>
-      <% page.items.forEach(function (t) { %>
+      <% if (!page.items.length) { %><tr><td colspan="7"><div class="empty-state"><i class="bi bi-person-badge"></i><%= t('No teachers yet.') %></div></td></tr><% } %>
+      <% page.items.forEach(function (tc) { %>
         <tr>
-          <td><div class="d-flex align-items-center gap-2"><span class="avatar"><% if (t.photo) { %><img src="/school/files/<%= t.photo.split('/').pop() %>" alt=""><% } else { %><%= initials(t.fullName) %><% } %></span>
-            <div><a class="row-link" href="/school/teachers/<%= t._id %>"><%= t.fullName %></a><div class="small text-muted"><%= t.qualification || '' %></div></div></div></td>
-          <td class="font-monospace small"><%= t.teacherCode %></td><td><%= t.phone %></td><td><%= t.specialization || '—' %></td><td><%= fmtDate(t.employmentDate) || '—' %></td>
-          <% if (can('salaries.view')) { %><td class="num"><%= money(t.monthlySalary, currency) %></td><% } %>
-          <td><%- statusBadge(t.status) %></td>
+          <td><div class="d-flex align-items-center gap-2"><span class="avatar"><% if (tc.photo) { %><img src="/school/files/<%= tc.photo.split('/').pop() %>" alt=""><% } else { %><%= initials(tc.fullName) %><% } %></span>
+            <div><a class="row-link" href="/school/teachers/<%= tc._id %>"><%= tc.fullName %></a><div class="small text-muted"><%= tc.qualification || '' %></div></div></div></td>
+          <td class="font-monospace small"><%= tc.teacherCode %></td><td><%= tc.phone %></td><td><%= tc.specialization || '—' %></td><td><%= fmtDate(tc.employmentDate) || '—' %></td>
+          <% if (can('salaries.view')) { %><td class="num"><%= money(tc.monthlySalary, currency) %></td><% } %>
+          <td><%- statusBadge(tc.status) %></td>
         </tr>
       <% }) %>
     </tbody>

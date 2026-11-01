@@ -45,7 +45,7 @@ async function readFields(tenantId, data, restrict) {
     if (!s) throw badRequest('Choose a valid surah.');
     const from = parseInt(data.fromVerse, 10) || 1;
     const to = parseInt(data.toVerse, 10) || from;
-    if (from < 1 || to < from || to > s.verses) throw badRequest(`${s.name} has ${s.verses} verses — check the verse range.`);
+    if (from < 1 || to < from || to > s.verses) throw badRequest('{surah} has {verses} verses — check the verse range.', null, { surah: s.name, verses: s.verses });
     Object.assign(out, { surah: s.number, fromVerse: from, toVerse: to });
   }
   return out;

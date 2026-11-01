@@ -1,22 +1,22 @@
-<%- include('../partials/page-header', { heading: 'Schools', sub: page.total + ' registered schools', actions: can('schools.manage') ? '<a class="btn btn-primary btn-icon" href="/platform/schools/new"><i class="bi bi-plus-lg"></i>Register school</a>' : '' }) %>
+<%- include('../partials/page-header', { heading: 'Schools', sub: t('{n} registered schools', { n: page.total }), actions: can('schools.manage') ? '<a class="btn btn-primary btn-icon" href="/platform/schools/new"><i class="bi bi-plus-lg"></i>' + t('Register school') + '</a>' : '' }) %>
 
 <form class="filter-bar row g-2 align-items-end" method="get">
-  <div class="col-md-5"><label class="form-label">Search</label><input class="form-control" name="search" value="<%= query.search || '' %>" placeholder="Name, city, country, email"></div>
-  <div class="col-6 col-md-2"><label class="form-label">Account</label><select class="form-select" name="status" data-autosubmit><option value="">All</option><% C.TENANT_STATUSES.forEach(function (s) { %><option value="<%= s %>" <%= selected(query.status, s) %>><%= titleCase(s) %></option><% }) %></select></div>
-  <div class="col-6 col-md-3"><label class="form-label">Subscription</label><select class="form-select" name="subscription" data-autosubmit><option value="">All</option><% C.SUBSCRIPTION_STATUSES.forEach(function (s) { %><option value="<%= s %>" <%= selected(query.subscription, s) %>><%= titleCase(s) %></option><% }) %></select></div>
-  <div class="col-md-2"><button class="btn btn-primary w-100" type="submit"><i class="bi bi-search"></i> Search</button></div>
+  <div class="col-md-5"><label class="form-label"><%= t('Search') %></label><input class="form-control" name="search" value="<%= query.search || '' %>" placeholder="<%= t('Name, city, country, email') %>"></div>
+  <div class="col-6 col-md-2"><label class="form-label"><%= t('Account') %></label><select class="form-select" name="status" data-autosubmit><option value=""><%= t('All') %></option><% C.TENANT_STATUSES.forEach(function (s) { %><option value="<%= s %>" <%= selected(query.status, s) %>><%= titleCase(s) %></option><% }) %></select></div>
+  <div class="col-6 col-md-3"><label class="form-label"><%= t('Subscription') %></label><select class="form-select" name="subscription" data-autosubmit><option value=""><%= t('All') %></option><% C.SUBSCRIPTION_STATUSES.forEach(function (s) { %><option value="<%= s %>" <%= selected(query.subscription, s) %>><%= titleCase(s) %></option><% }) %></select></div>
+  <div class="col-md-2"><button class="btn btn-primary w-100" type="submit"><i class="bi bi-search"></i> <%= t('Search') %></button></div>
 </form>
 
 <div class="card">
   <div class="table-responsive"><table class="table table-hover">
-    <thead><tr><th>School</th><th>Location</th><th>Plan</th><th>Subscription</th><th>Ends</th><th class="num">Students</th><th class="num">Users</th><th>Account</th></tr></thead>
+    <thead><tr><th><%= t('School') %></th><th><%= t('Location') %></th><th><%= t('Plan') %></th><th><%= t('Subscription') %></th><th><%= t('Ends') %></th><th class="num"><%= t('Students') %></th><th class="num"><%= t('Users') %></th><th><%= t('Account') %></th></tr></thead>
     <tbody>
-      <% if (!page.items.length) { %><tr><td colspan="8"><div class="empty-state"><i class="bi bi-buildings"></i>No schools found.</div></td></tr><% } %>
-      <% page.items.forEach(function (t) { var s = t.currentSubscription; %>
-        <tr><td><a class="row-link" href="/platform/schools/<%= t._id %>"><%= t.name %></a><div class="small text-muted"><%= t.email %></div></td>
-          <td><%= [t.city, t.country].filter(Boolean).join(', ') %></td><td><%= s && s.planSnapshot ? s.planSnapshot.name : '—' %></td>
+      <% if (!page.items.length) { %><tr><td colspan="8"><div class="empty-state"><i class="bi bi-buildings"></i><%= t('No schools found.') %></div></td></tr><% } %>
+      <% page.items.forEach(function (tn) { var s = tn.currentSubscription; %>
+        <tr><td><a class="row-link" href="/platform/schools/<%= tn._id %>"><%= tn.name %></a><div class="small text-muted"><%= tn.email %></div></td>
+          <td><%= [tn.city, tn.country].filter(Boolean).join(', ') %></td><td><%= s && s.planSnapshot ? s.planSnapshot.name : '—' %></td>
           <td><%- s ? statusBadge(s.status) : '—' %></td><td><%= s ? fmtDate(s.endDate) : '' %></td>
-          <td class="num"><%= t.studentCount %></td><td class="num"><%= t.userCount %></td><td><%- statusBadge(t.status) %></td></tr>
+          <td class="num"><%= tn.studentCount %></td><td class="num"><%= tn.userCount %></td><td><%- statusBadge(tn.status) %></td></tr>
       <% }) %>
     </tbody>
   </table></div>

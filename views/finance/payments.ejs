@@ -1,20 +1,20 @@
 <%- include('../partials/page-header', { heading: 'Student payments', sub: 'Confirmed payments are school income. Reversed payments are kept for the audit trail.',
-  actions: can('payments.create') ? '<a class="btn btn-primary btn-icon" href="/school/finance/payments/new"><i class="bi bi-cash-coin"></i>Receive payment</a>' : '' }) %>
+  actions: can('payments.create') ? '<a class="btn btn-primary btn-icon" href="/school/finance/payments/new"><i class="bi bi-cash-coin"></i>' + t('Receive payment') + '</a>' : '' }) %>
 
 <form class="filter-bar row g-2 align-items-end" method="get">
-  <div class="col-md-3"><label class="form-label">Search</label><input class="form-control" name="search" value="<%= query.search || '' %>" placeholder="Student, payment # or reference"></div>
-  <div class="col-6 col-md-2"><label class="form-label">Method</label><select class="form-select" name="method" data-autosubmit><option value="">All</option><% settings.paymentMethods.forEach(function (m) { %><option <%= selected(query.method, m) %>><%= m %></option><% }) %></select></div>
-  <div class="col-6 col-md-2"><label class="form-label">Status</label><select class="form-select" name="status" data-autosubmit><option value="">All</option><option value="confirmed" <%= selected(query.status, 'confirmed') %>>Confirmed</option><option value="reversed" <%= selected(query.status, 'reversed') %>>Reversed</option></select></div>
-  <div class="col-6 col-md-2"><label class="form-label">From</label><input type="date" class="form-control" name="from" value="<%= query.from || '' %>"></div>
-  <div class="col-6 col-md-2"><label class="form-label">To</label><input type="date" class="form-control" name="to" value="<%= query.to || '' %>"></div>
-  <div class="col-md-1"><button class="btn btn-primary w-100" type="submit"><i class="bi bi-search"></i></button></div>
+  <div class="col-md-3"><label class="form-label"><%= t('Search') %></label><input class="form-control" name="search" value="<%= query.search || '' %>" placeholder="<%= t('Student, payment # or reference') %>"></div>
+  <div class="col-6 col-md-2"><label class="form-label"><%= t('Method') %></label><select class="form-select" name="method" data-autosubmit><option value=""><%= t('All') %></option><% settings.paymentMethods.forEach(function (m) { %><option <%= selected(query.method, m) %>><%= m %></option><% }) %></select></div>
+  <div class="col-6 col-md-2"><label class="form-label"><%= t('Status') %></label><select class="form-select" name="status" data-autosubmit><option value=""><%= t('All') %></option><option value="confirmed" <%= selected(query.status, 'confirmed') %>><%= t('Confirmed') %></option><option value="reversed" <%= selected(query.status, 'reversed') %>><%= t('Reversed') %></option></select></div>
+  <div class="col-6 col-md-2"><label class="form-label"><%= t('From') %></label><input type="date" class="form-control" name="from" value="<%= query.from || '' %>"></div>
+  <div class="col-6 col-md-2"><label class="form-label"><%= t('To') %></label><input type="date" class="form-control" name="to" value="<%= query.to || '' %>"></div>
+  <div class="col-md-1"><button class="btn btn-primary w-100" type="submit" title="<%= t('Search') %>" aria-label="<%= t('Search') %>"><i class="bi bi-search"></i></button></div>
 </form>
 
 <div class="card">
   <div class="table-responsive"><table class="table table-hover">
-    <thead><tr><th>Date</th><th>Payment</th><th>Student</th><th>Category</th><th>Method</th><th>Receipt</th><th class="num">Amount</th><th>Status</th></tr></thead>
+    <thead><tr><th><%= t('Date') %></th><th><%= t('Payment') %></th><th><%= t('Student') %></th><th><%= t('Category') %></th><th><%= t('Method') %></th><th><%= t('Receipt') %></th><th class="num"><%= t('Amount') %></th><th><%= t('Status') %></th></tr></thead>
     <tbody>
-      <% if (!page.items.length) { %><tr><td colspan="8"><div class="empty-state"><i class="bi bi-cash"></i>No payments found.</div></td></tr><% } %>
+      <% if (!page.items.length) { %><tr><td colspan="8"><div class="empty-state"><i class="bi bi-cash"></i><%= t('No payments found.') %></div></td></tr><% } %>
       <% page.items.forEach(function (p) { %>
         <tr><td class="text-nowrap"><%= fmtDate(p.paymentDate) %></td><td><a class="row-link font-monospace small" href="/school/finance/payments/<%= p._id %>"><%= p.paymentNo %></a></td>
           <td><%= p.student ? p.student.fullName : '' %><div class="small text-muted"><%= p.student ? p.student.studentCode : '' %></div></td>

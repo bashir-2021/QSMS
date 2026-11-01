@@ -16,7 +16,13 @@
         if (!res.ok) return;
         const items = await res.json();
         results.innerHTML = '';
-        if (!items.length) { results.innerHTML = '<div class="list-group-item text-muted small">No students found</div>'; return; }
+        if (!items.length) {
+          const empty = document.createElement('div');
+          empty.className = 'list-group-item text-muted small';
+          empty.textContent = results.dataset.emptyText || 'No students found';
+          results.appendChild(empty);
+          return;
+        }
         items.forEach((s) => {
           const a = document.createElement('a');
           a.className = 'list-group-item list-group-item-action d-flex justify-content-between';
@@ -43,6 +49,9 @@
     if (!m) return null;
     return Number(m[1]) * 100 + Number(((m[2] || '') + '00').slice(0, 2));
   };
+  const esc = (x) => String(x).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  /* Translated text comes from data-i18n-* attributes on the form (English fallback); {amount} is replaced with HTML. */
+  const msg = (key, fallback, amountHtml) => esc(form.dataset[key] || fallback).replace('{amount}', amountHtml === undefined ? '' : amountHtml);
   const fmt = (c) => { try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur }).format(c / 100); } catch (e) { return (c / 100).toFixed(2); } };
 
   function selected() {
@@ -55,11 +64,11 @@
     const invs = selected();
     const due = invs.reduce((a, i) => a + i.due, 0);
     if (!preview) return;
-    if (cents === null || cents <= 0) { preview.innerHTML = `<span class="text-muted">Outstanding on selected invoices: <strong>${fmt(due)}</strong></span>`; return; }
-    if (cents > due) { preview.innerHTML = `<span class="text-danger">Amount exceeds the outstanding ${fmt(due)}.</span>`; return; }
+    if (cents === null || cents <= 0) { preview.innerHTML = `<span class="text-muted">${msg('i18nOutstanding', 'Outstanding on selected invoices: {amount}', `<strong>${fmt(due)}</strong>`)}</span>`; return; }
+    if (cents > due) { preview.innerHTML = `<span class="text-danger">${msg('i18nExceeds', 'Amount exceeds the outstanding {amount}.', fmt(due))}</span>`; return; }
     let left = cents;
-    const lines = invs.map((i) => { const a = Math.min(left, i.due); left -= a; return a > 0 ? `<li>${i.no}: ${fmt(a)}${a < i.due ? ` <span class="text-muted">(partial, ${fmt(i.due - a)} left)</span>` : ' <span class="text-success">paid in full</span>'}</li>` : ''; }).join('');
-    preview.innerHTML = `<div class="small-caps mb-1">Allocation</div><ul class="mb-0 ps-3">${lines}</ul><div class="mt-1">Remaining on selected invoices after payment: <strong>${fmt(due - cents)}</strong></div>`;
+    const lines = invs.map((i) => { const a = Math.min(left, i.due); left -= a; return a > 0 ? `<li>${i.no}: ${fmt(a)}${a < i.due ? ` <span class="text-muted">${msg('i18nPartial', '(partial, {amount} left)', fmt(i.due - a))}</span>` : ` <span class="text-success">${msg('i18nPaidFull', 'paid in full')}</span>`}</li>` : ''; }).join('');
+    preview.innerHTML = `<div class="small-caps mb-1">${msg('i18nAllocation', 'Allocation')}</div><ul class="mb-0 ps-3">${lines}</ul><div class="mt-1">${msg('i18nRemaining', 'Remaining on selected invoices after payment: {amount}', `<strong>${fmt(due - cents)}</strong>`)}</div>`;
   }
   amount && amount.addEventListener('input', render);
   boxes.forEach((b) => b.addEventListener('change', render));

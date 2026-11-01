@@ -5,21 +5,21 @@
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <div class="row g-3">
     <div class="col-lg-8">
-      <div class="card mb-3"><div class="card-header">Class</div><div class="card-body row g-3">
+      <div class="card mb-3"><div class="card-header"><%= t('Class') %></div><div class="card-body row g-3">
         <%- include('../partials/field', { name: 'name', label: 'Class name', value: c.name, required: true, col: 'col-md-6', placeholder: 'e.g. Hifz Group A' }) %>
-        <%- include('../partials/field', { name: 'level', label: 'Level', ftype: 'select', value: c.level || 'Beginner', placeholder: false, required: true, col: 'col-md-3', options: C.CLASS_LEVELS.map(function (l) { return { value: l, label: l }; }) }) %>
+        <%- include('../partials/field', { name: 'level', label: 'Level', ftype: 'select', value: c.level || 'Beginner', placeholder: false, required: true, col: 'col-md-3', options: C.CLASS_LEVELS.map(function (l) { return { value: l, label: t(l) }; }) }) %>
         <%- include('../partials/field', { name: 'capacity', label: 'Capacity', ftype: 'number', value: c.capacity, min: 1, required: true, col: 'col-md-3' }) %>
-        <%- include('../partials/field', { name: 'teacher', label: 'Class teacher', ftype: 'select', value: c.teacher, col: 'col-md-6', placeholder: '— Not assigned —', options: teachers.map(function (t) { return { value: t._id, label: t.fullName }; }) }) %>
-        <%- include('../partials/field', { name: 'monthlyFee', label: 'Monthly fee (optional)', ftype: 'money', value: c.monthlyFee != null ? moneyInput(c.monthlyFee) : '', col: 'col-md-6', help: 'Leave empty to use the school fee of ' + money(settings.monthlyFee, currency) + '.' }) %>
+        <%- include('../partials/field', { name: 'teacher', label: 'Class teacher', ftype: 'select', value: c.teacher, col: 'col-md-6', placeholder: '— Not assigned —', options: teachers.map(function (tc) { return { value: tc._id, label: tc.fullName }; }) }) %>
+        <%- include('../partials/field', { name: 'monthlyFee', label: 'Monthly fee (optional)', ftype: 'money', value: c.monthlyFee != null ? moneyInput(c.monthlyFee) : '', col: 'col-md-6', help: t('Leave empty to use the school fee of {fee}.', { fee: money(settings.monthlyFee, currency) }) }) %>
         <%- include('../partials/field', { name: 'startDate', label: 'Start date', ftype: 'date', value: isoDate(c.startDate), col: 'col-md-6' }) %>
         <%- include('../partials/field', { name: 'endDate', label: 'End date', ftype: 'date', value: isoDate(c.endDate), col: 'col-md-6' }) %>
         <%- include('../partials/field', { name: 'description', label: 'Description', ftype: 'textarea', value: c.description, rows: 2, max: 500 }) %>
       </div></div>
-      <div class="card mb-3"><div class="card-header">Schedule</div><div class="card-body row g-3">
-        <div class="col-12"><label class="form-label">Days</label><div class="d-flex flex-wrap gap-2">
+      <div class="card mb-3"><div class="card-header"><%= t('Schedule') %></div><div class="card-body row g-3">
+        <div class="col-12"><label class="form-label"><%= t('Days') %></label><div class="d-flex flex-wrap gap-2">
           <% C.WEEKDAYS.forEach(function (d) { %>
             <input type="checkbox" class="btn-check" name="days" id="day_<%= d %>" value="<%= d %>" <%= days.indexOf(d) >= 0 ? 'checked' : '' %>>
-            <label class="btn btn-outline-primary btn-sm" for="day_<%= d %>"><%= d %></label>
+            <label class="btn btn-outline-primary btn-sm" for="day_<%= d %>"><%= t(d) %></label>
           <% }) %>
         </div></div>
         <%- include('../partials/field', { name: 'startTime', label: 'Start time', ftype: 'time', value: c.schedule.startTime, col: 'col-md-4' }) %>
@@ -29,8 +29,8 @@
     </div>
     <div class="col-lg-4"><div class="card"><div class="card-body d-grid gap-3">
       <%- include('../partials/field', { name: 'isActive', label: 'Class is active', ftype: 'checkbox', value: c.isActive }) %>
-      <button class="btn btn-primary" type="submit"><%= editing ? 'Save changes' : 'Create class' %></button>
-      <a class="btn btn-light" href="<%= editing ? '/school/classes/' + c._id : '/school/classes' %>">Cancel</a>
+      <button class="btn btn-primary" type="submit"><%= t(editing ? 'Save changes' : 'Create class') %></button>
+      <a class="btn btn-light" href="<%= editing ? '/school/classes/' + c._id : '/school/classes' %>"><%= t('Cancel') %></a>
     </div></div></div>
   </div>
 </form>

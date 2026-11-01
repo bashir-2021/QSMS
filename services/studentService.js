@@ -66,10 +66,14 @@ async function assertCapacity(tenantId, cls, excludeStudentId) {
   const filter = { tenantId, class: cls._id, status: 'active' };
   if (excludeStudentId) filter._id = { $ne: excludeStudentId };
   const count = await Student.countDocuments(filter);
-  if (count >= cls.capacity) throw conflict(`${cls.name} is full (${cls.capacity} students).`);
+  if (count >= cls.capacity) throw conflict('{name} is full ({n} students).', { name: cls.name, n: cls.capacity });
 }
 
-async function create(ctx, data, photoFile) {
+/**
+ * Register a student. `registrationFee` (minor units) creates the one-time registration fee
+ * invoice, returned as `registrationInvoice`; the caller decides the amount and permissions.
+ */
+async function create(ctx, data, photoFile, { registrationFee } = {}) {
   await subscriptionService.assertLimit(ctx.subscription, ctx.tenantId, 'students');
   const fields = readFields(data);
   if (fields.feeOverride === null) throw badRequest('Custom monthly fee is not a valid amount.');
@@ -86,10 +90,11 @@ async function create(ctx, data, photoFile) {
   if (cls) {
     await StudentEnrollment.create({ tenantId: ctx.tenantId, student: student._id, class: cls._id, startDate: student.registrationDate, recordedBy: ctx.user._id });
   }
-  if (data.chargeRegistration && ctx.settings.registrationFee > 0) {
-    await billing.createRegistrationInvoice(ctx, student);
+  let registrationInvoice = null;
+  if (registrationFee > 0) {
+    registrationInvoice = await billing.createRegistrationInvoice(ctx, student, { amount: registrationFee });
   }
-  return student;
+  return { student, registrationInvoice };
 }
 
 async function update(ctx, id, data, photoFile) {

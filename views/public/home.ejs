@@ -2,36 +2,36 @@
   <div class="container position-relative">
     <div class="row align-items-center g-5">
       <div class="col-lg-6">
-        <span class="eyebrow"><i class="bi bi-stars"></i> Built for Quran schools &amp; madrasas</span>
-        <h1 class="mt-3 mb-3">Run your Quran school with clarity — from Hifz to fees.</h1>
-        <p class="lead mb-4">Quranic brings students, teachers, memorisation progress, Subac and Duruus sessions, attendance, monthly billing, receipts and expenses into one secure platform for every school.</p>
+        <span class="eyebrow"><i class="bi bi-stars"></i> <%= t('Built for Quran schools & madrasas') %></span>
+        <h1 class="mt-3 mb-3"><%= t('Run your Quran school with clarity — from Hifz to fees.') %></h1>
+        <p class="lead mb-4"><%= t('Quranic brings students, teachers, memorisation progress, Subac and Duruus sessions, attendance, monthly billing, receipts and expenses into one secure platform for every school.') %></p>
         <div class="d-flex flex-wrap gap-2">
-          <a class="btn btn-primary btn-lg px-4" href="/register">Register your school</a>
-          <a class="btn btn-light btn-lg px-4" href="/features">See features</a>
+          <a class="btn btn-primary btn-lg px-4" href="/register"><%= t('Register your school') %></a>
+          <a class="btn btn-light btn-lg px-4" href="/features"><%= t('See features') %></a>
         </div>
         <div class="d-flex gap-4 mt-4 small text-muted">
-          <div><strong class="d-block fs-4 text-dark"><%= stats.schools %></strong>schools onboard</div>
-          <div><strong class="d-block fs-4 text-dark"><%= stats.students.toLocaleString() %></strong>students managed</div>
-          <div><strong class="d-block fs-4 text-dark">100%</strong>data isolation</div>
+          <div><strong class="d-block fs-4 text-dark"><%= stats.schools %></strong><%= t('schools onboard') %></div>
+          <div><strong class="d-block fs-4 text-dark"><%= stats.students.toLocaleString() %></strong><%= t('students managed') %></div>
+          <div><strong class="d-block fs-4 text-dark">100%</strong><%= t('data isolation') %></div>
         </div>
       </div>
       <div class="col-lg-6">
         <div class="hero-card">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <div><div class="small-caps">This month</div><div class="fw-bold">Al-Noor Quran Centre</div></div>
-            <span class="badge badge-soft-success">Active</span>
+            <div><div class="small-caps"><%= t('This month') %></div><div class="fw-bold">Al-Noor Quran Centre</div></div>
+            <span class="badge badge-soft-success"><%= t('Active') %></span>
           </div>
           <div class="row g-2 mb-3">
-            <div class="col-4"><div class="p-2 rounded-3" style="background:var(--q-emerald-50)"><div class="small text-muted">Students</div><div class="fw-bold fs-5">Live</div></div></div>
-            <div class="col-4"><div class="p-2 rounded-3" style="background:var(--q-gold-50)"><div class="small text-muted">Attendance</div><div class="fw-bold fs-5">Daily</div></div></div>
-            <div class="col-4"><div class="p-2 rounded-3" style="background:#eaf1fd"><div class="small text-muted">Receipts</div><div class="fw-bold fs-5">PDF</div></div></div>
+            <div class="col-4"><div class="p-2 rounded-3" style="background:var(--q-emerald-50)"><div class="small text-muted"><%= t('Students') %></div><div class="fw-bold fs-5"><%= t('Live') %></div></div></div>
+            <div class="col-4"><div class="p-2 rounded-3" style="background:var(--q-gold-50)"><div class="small text-muted"><%= t('Attendance') %></div><div class="fw-bold fs-5"><%= t('Daily') %></div></div></div>
+            <div class="col-4"><div class="p-2 rounded-3" style="background:#eaf1fd"><div class="small text-muted"><%= t('Receipts') %></div><div class="fw-bold fs-5">PDF</div></div></div>
           </div>
-          <div class="small-caps mb-2">What each school gets</div>
+          <div class="small-caps mb-2"><%= t('What each school gets') %></div>
           <ul class="list-unstyled small d-grid gap-2 mb-0">
-            <li><i class="bi bi-check2-circle text-success me-2"></i>Hifz &amp; Muraja'ah progress per student, surah and verse</li>
-            <li><i class="bi bi-check2-circle text-success me-2"></i>Monthly bills with partial payments and no duplicates</li>
-            <li><i class="bi bi-check2-circle text-success me-2"></i>Printable receipts, expenses, salaries and net balance</li>
-            <li><i class="bi bi-check2-circle text-success me-2"></i>Roles for admins, finance, teachers and reception</li>
+            <li><i class="bi bi-check2-circle text-success me-2"></i><%= t("Hifz & Muraja'ah progress per student, surah and verse") %></li>
+            <li><i class="bi bi-check2-circle text-success me-2"></i><%= t('Monthly bills with partial payments and no duplicates') %></li>
+            <li><i class="bi bi-check2-circle text-success me-2"></i><%= t('Printable receipts, expenses, salaries and net balance') %></li>
+            <li><i class="bi bi-check2-circle text-success me-2"></i><%= t('Roles for admins, finance, teachers and reception') %></li>
           </ul>
         </div>
       </div>
@@ -42,8 +42,8 @@
 <section class="section section-alt">
   <div class="container">
     <div class="text-center mb-5">
-      <div class="small-caps mb-2">Everything in one place</div>
-      <h2>Academic and financial management, designed together</h2>
+      <div class="small-caps mb-2"><%= t('Everything in one place') %></div>
+      <h2><%= t('Academic and financial management, designed together') %></h2>
     </div>
     <div class="row g-3">
       <% [
@@ -57,8 +57,8 @@
         <div class="col-md-6 col-lg-4">
           <div class="feature-tile">
             <div class="stat-icon <%= f[1] %>"><i class="bi bi-<%= f[0] %>"></i></div>
-            <h3 class="h6"><%= f[2] %></h3>
-            <p class="text-muted small mb-0"><%= f[3] %></p>
+            <h3 class="h6"><%= t(f[2]) %></h3>
+            <p class="text-muted small mb-0"><%= t(f[3]) %></p>
           </div>
         </div>
       <% }) %>
@@ -69,8 +69,8 @@
 <section class="section">
   <div class="container">
     <div class="text-center mb-5">
-      <div class="small-caps mb-2">Simple pricing</div>
-      <h2>Choose the plan that fits your school</h2>
+      <div class="small-caps mb-2"><%= t('Simple pricing') %></div>
+      <h2><%= t('Choose the plan that fits your school') %></h2>
     </div>
     <%- include('plan-cards', { plans: plans }) %>
   </div>

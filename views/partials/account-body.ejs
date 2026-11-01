@@ -1,20 +1,20 @@
 <%- include('page-header', { heading: 'My account' }) %>
 <div class="row g-3">
   <div class="col-lg-5"><div class="card"><div class="card-body">
-    <div class="d-flex gap-3 align-items-center mb-3"><span class="avatar lg"><%= initials(currentUser.name) %></span><div><div class="fw-bold fs-5"><%= currentUser.name %></div><div class="text-muted"><%= roleLabel %></div></div></div>
+    <div class="d-flex gap-3 align-items-center mb-3"><span class="avatar lg"><%= initials(currentUser.name) %></span><div><div class="fw-bold fs-5"><%= currentUser.name %></div><div class="text-muted"><%= t(roleLabel) %></div></div></div>
     <dl class="dl-grid mb-0">
-      <div><dt>Email</dt><dd><%= currentUser.email %></dd></div>
-      <div><dt>Phone</dt><dd><%= currentUser.phone || '—' %></dd></div>
-      <div><dt>Last login</dt><dd><%= currentUser.lastLoginAt ? fmtDate(currentUser.lastLoginAt) : '—' %></dd></div>
+      <div><dt><%= t('Email') %></dt><dd><%= currentUser.email %></dd></div>
+      <div><dt><%= t('Phone') %></dt><dd><%= currentUser.phone || '—' %></dd></div>
+      <div><dt><%= t('Last login') %></dt><dd><%= currentUser.lastLoginAt ? fmtDate(currentUser.lastLoginAt) : '—' %></dd></div>
     </dl>
   </div></div></div>
-  <div class="col-lg-7"><div class="card"><div class="card-header">Change password</div><div class="card-body">
+  <div class="col-lg-7"><div class="card"><div class="card-header"><%= t('Change password') %></div><div class="card-body">
     <form method="post" action="<%= action %>" class="row g-3 needs-validation" novalidate>
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <%- include('field', { name: 'currentPassword', label: 'Current password', ftype: 'password', required: true, attrs: 'autocomplete="current-password"' }) %>
       <%- include('field', { name: 'newPassword', label: 'New password', ftype: 'password', required: true, col: 'col-md-6', attrs: 'minlength="8" autocomplete="new-password"' }) %>
       <%- include('field', { name: 'confirmPassword', label: 'Confirm new password', ftype: 'password', required: true, col: 'col-md-6', attrs: 'minlength="8" autocomplete="new-password"' }) %>
-      <div class="col-12"><button class="btn btn-primary" type="submit">Update password</button></div>
+      <div class="col-12"><button class="btn btn-primary" type="submit"><%= t('Update password') %></button></div>
     </form>
   </div></div></div>
 </div>

@@ -112,12 +112,12 @@ async function seedSchool({ name, city, email, plan, verifyPaid, classDefs, teac
       const father = pick(FATHERS);
       const year = 2010 + Math.floor(rand() * 9);
       const regDate = dates.toISODate(dates.addDays(new Date(), -Math.floor(60 + rand() * 200)));
-      students.push(await studentService.create(ctx, {
+      students.push((await studentService.create(ctx, {
         fullName: `${first} ${father} ${pick(FATHERS)}`, gender: female ? 'female' : 'male', dateOfBirth: `${year}-0${1 + Math.floor(rand() * 9)}-1${Math.floor(rand() * 9)}`,
         guardianName: `${father} ${pick(FATHERS)}`, guardianRelation: 'Father', guardianPhone: `+252 61 ${String(1000000 + Math.floor(rand() * 8999999))}`,
         address: `${city}, ${pick(['Hodan', 'Wadajir', 'Waberi', 'Yaqshid', 'Hamar Weyne', 'Kaaraan'])}`, registrationDate: regDate,
-        class: String(cls._id), chargeRegistration: true,
-      }));
+        class: String(cls._id),
+      }, null, { registrationFee: ctx.settings.registrationFee })).student);
     }
   }
 

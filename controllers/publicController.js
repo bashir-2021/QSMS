@@ -44,7 +44,7 @@ async function registerForm(req, res) {
 async function register(req, res) {
   const { tenant, admin } = await tenantService.registerSchool(req.body, req.file);
   await authService.establishSession(req, { kind: 'school', userId: String(admin._id), tenantId: String(tenant._id) });
-  req.flash('success', `Welcome to Quranic, ${admin.name}! ${tenant.name} is ready.`);
+  req.flash('success', req.t('Welcome to Quranic, {name}! {school} is ready.', { name: admin.name, school: tenant.name }));
   res.redirect('/school/dashboard');
 }
 

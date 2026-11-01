@@ -45,22 +45,36 @@ function computeStatus(sub, now = new Date()) {
  */
 function computeAccess(tenant, sub, now = new Date()) {
   if (!tenant || tenant.status !== 'active') {
-    return { mode: 'blocked', status: tenant ? tenant.status : 'unknown', message: `This school account is ${tenant ? tenant.status : 'unavailable'}. Please contact Quranic support.${tenant && tenant.statusReason ? ` Reason: ${tenant.statusReason}` : ''}` };
+    const reason = tenant && tenant.statusReason;
+    const base = `This school account is ${tenant ? tenant.status : 'unavailable'}. Please contact Quranic support.`;
+    return {
+      mode: 'blocked', status: tenant ? tenant.status : 'unknown', message: `${base}${reason ? ` Reason: ${reason}` : ''}`,
+      messageKey: reason ? `${base} Reason: {reason}` : base, messageVars: reason ? { reason } : undefined,
+    };
   }
   const status = computeStatus(sub, now);
   const daysLeft = sub ? dates.daysBetween(now, sub.endDate) : 0;
   if (status === 'suspended' || status === 'cancelled') {
-    return { mode: 'blocked', status, daysLeft, message: `Your subscription is ${status}. Renew or contact support to restore access.` };
+    return { mode: 'blocked', status, daysLeft, message: `Your subscription is ${status}. Renew or contact support to restore access.`, messageKey: `Your subscription is ${status}. Renew or contact support to restore access.` };
   }
   if (status === 'expired') {
     const graceEnd = sub && (sub.graceEndDate || dates.addDays(sub.endDate, (sub.planSnapshot && sub.planSnapshot.graceDays) || 0));
     if (graceEnd && now <= graceEnd) {
-      return { mode: 'full', status, inGrace: true, daysLeft: dates.daysBetween(now, graceEnd), message: `Your subscription has expired. You are in the grace period until ${dates.formatDate(graceEnd)} — renew now to avoid restrictions.` };
+      return {
+        mode: 'full', status, inGrace: true, daysLeft: dates.daysBetween(now, graceEnd),
+        message: `Your subscription has expired. You are in the grace period until ${dates.formatDate(graceEnd)} — renew now to avoid restrictions.`,
+        messageKey: 'Your subscription has expired. You are in the grace period until {date} — renew now to avoid restrictions.', messageVars: { date: dates.formatDate(graceEnd) },
+      };
     }
     const mode = config.subscription.expiredAccessPolicy === 'blocked' ? 'blocked' : 'read_only';
-    return { mode, status, daysLeft: 0, message: `Your subscription has expired. Your data is safe, but ${mode === 'read_only' ? 'the school is in read-only mode' : 'access is restricted'} until the subscription is renewed.` };
+    const expiredMsg = `Your subscription has expired. Your data is safe, but ${mode === 'read_only' ? 'the school is in read-only mode' : 'access is restricted'} until the subscription is renewed.`;
+    return { mode, status, daysLeft: 0, message: expiredMsg, messageKey: expiredMsg };
   }
-  return { mode: 'full', status, daysLeft, message: status === 'expiring_soon' ? `Your subscription expires in ${daysLeft} day(s). Renew to avoid interruption.` : null };
+  if (status !== 'expiring_soon') return { mode: 'full', status, daysLeft, message: null };
+  return {
+    mode: 'full', status, daysLeft, message: `Your subscription expires in ${daysLeft} day(s). Renew to avoid interruption.`,
+    messageKey: 'Your subscription expires in {days} day(s). Renew to avoid interruption.', messageVars: { days: daysLeft },
+  };
 }
 
 function hasFeature(sub, feature) {
@@ -83,7 +97,7 @@ async function assertLimit(sub, tenantId, resource, adding = 1) {
   if (!max) return; // 0 / undefined = unlimited
   const current = await LIMIT_SOURCES[resource](tenantId);
   if (current + adding > max) {
-    throw new AppError(403, `Your plan allows up to ${max} ${resource}. You currently have ${current}. Upgrade your subscription to add more.`);
+    throw new AppError(403, `Your plan allows up to {max} ${resource}. You currently have {current}. Upgrade your subscription to add more.`, undefined, { max, current });
   }
 }
 

@@ -34,7 +34,7 @@ async function invoiceForm(req, res) {
 async function createInvoice(req, res) {
   const inv = await billing.createOther(ctx(req), req.body);
   await audit.school(req, 'invoice.create', { entity: 'StudentInvoice', entityId: inv._id, details: { invoiceNo: inv.invoiceNo, total: inv.total } });
-  req.flash('success', `Invoice ${inv.invoiceNo} created.`);
+  req.flash('success', req.t('Invoice {no} created.', { no: inv.invoiceNo }));
   res.redirect(`/school/finance/invoices/${inv._id}`);
 }
 
@@ -44,14 +44,15 @@ async function invoiceDetail(req, res) {
   });
   const allocations = await PaymentAllocation.find({ tenantId: req.tenantId, invoice: inv._id })
     .populate({ path: 'payment', select: 'paymentNo paymentDate method status receipt', populate: { path: 'receipt', select: 'receiptNo' } }).lean();
-  res.render('finance/invoice', { title: `Invoice ${inv.invoiceNo}`, inv, allocations, nav: 'invoices' });
+  res.render('finance/invoice', { title: req.t('Invoice {no}', { no: inv.invoiceNo }), inv, allocations, nav: 'invoices' });
 }
 
 async function generate(req, res) {
   const r = await billing.generateMonthly(ctx(req), req.body.period, { classId: req.body.class || undefined });
   await audit.school(req, 'billing.generate', { details: { period: req.body.period, ...r } });
   req.flash(r.created ? 'success' : 'info',
-    `${dates.periodLabel(req.body.period)}: ${r.created} bill(s) created (${money.format(r.total, req.settings.currency)}), ${r.skipped} already billed${r.zeroFee ? `, ${r.zeroFee} skipped with no fee configured` : ''}.`);
+    req.t('{period}: {created} bill(s) created ({total}), {skipped} already billed', { period: dates.periodLabel(req.body.period), created: r.created, total: money.format(r.total, req.settings.currency), skipped: r.skipped })
+    + (r.zeroFee ? req.t(', {n} skipped with no fee configured', { n: r.zeroFee }) : '') + '.');
   res.redirect(`/school/finance/invoices?period=${req.body.period}&type=monthly`);
 }
 
@@ -59,7 +60,7 @@ async function registrationInvoice(req, res) {
   const student = await owned(Student, req.tenantId, req.params.studentId, 'Student');
   const inv = await billing.createRegistrationInvoice(ctx(req), student);
   await audit.school(req, 'invoice.create', { entity: 'StudentInvoice', entityId: inv._id, details: { invoiceNo: inv.invoiceNo, type: 'registration' } });
-  req.flash('success', `Registration invoice ${inv.invoiceNo} created.`);
+  req.flash('success', req.t('Registration invoice {no} created.', { no: inv.invoiceNo }));
   res.redirect(`/school/students/${student._id}`);
 }
 
@@ -73,7 +74,7 @@ async function adjustInvoice(req, res) {
 async function cancelInvoice(req, res) {
   const inv = await billing.cancel(ctx(req), req.params.id, req.body.reason);
   await audit.school(req, 'invoice.cancel', { entity: 'StudentInvoice', entityId: inv._id, details: { invoiceNo: inv.invoiceNo, reason: req.body.reason } });
-  req.flash('success', `Invoice ${inv.invoiceNo} cancelled.`);
+  req.flash('success', req.t('Invoice {no} cancelled.', { no: inv.invoiceNo }));
   res.redirect(`/school/finance/invoices/${inv._id}`);
 }
 
@@ -94,18 +95,18 @@ async function paymentForm(req, res) {
 
 async function recordPayment(req, res) {
   const { payment, receipt } = await payments.record(ctx(req), req, req.body);
-  req.flash('success', `Payment of ${money.format(payment.amount, req.settings.currency)} recorded. Receipt ${receipt.receiptNo}.`);
+  req.flash('success', req.t('Payment of {amount} recorded. Receipt {no}.', { amount: money.format(payment.amount, req.settings.currency), no: receipt.receiptNo }));
   res.redirect(`/school/finance/receipts/${receipt._id}`);
 }
 
 async function paymentDetail(req, res) {
   const data = await payments.detail(req.tenantId, req.params.id);
-  res.render('finance/payment', { title: `Payment ${data.payment.paymentNo}`, ...data, nav: 'payments' });
+  res.render('finance/payment', { title: req.t('Payment {no}', { no: data.payment.paymentNo }), ...data, nav: 'payments' });
 }
 
 async function reversePayment(req, res) {
   const p = await payments.reverse(ctx(req), req, req.params.id, req.body.reason);
-  req.flash('success', `Payment ${p.paymentNo} reversed; the receipt is now void.`);
+  req.flash('success', req.t('Payment {no} reversed; the receipt is now void.', { no: p.paymentNo }));
   res.redirect(`/school/finance/payments/${p._id}`);
 }
 
@@ -115,7 +116,7 @@ async function receipts(req, res) {
 }
 async function receipt(req, res) {
   const r = await payments.getReceipt(req.tenantId, req.params.id);
-  res.render('finance/receipt', { title: `Receipt ${r.receiptNo}`, r, nav: 'receipts' });
+  res.render('finance/receipt', { title: req.t('Receipt {no}', { no: r.receiptNo }), r, nav: 'receipts' });
 }
 async function receiptPrint(req, res) {
   const r = await payments.getReceipt(req.tenantId, req.params.id);
@@ -137,26 +138,26 @@ async function expenseForm(req, res) {
     req.params.id ? owned(Expense, req.tenantId, req.params.id, 'Expense', { populate: { path: 'category', select: 'name' } }) : null,
     settingsService.listCategories(req.tenantId, { activeOnly: true }),
   ]);
-  res.render('finance/expense-form', { title: expense ? `Expense ${expense.expenseNo}` : 'Record expense', expense, categories: categories.filter((c) => c.name !== C.SALARY_CATEGORY), nav: 'expenses', today: dates.toISODate(new Date()) });
+  res.render('finance/expense-form', { title: expense ? req.t('Expense {no}', { no: expense.expenseNo }) : 'Record expense', expense, categories: categories.filter((c) => c.name !== C.SALARY_CATEGORY), nav: 'expenses', today: dates.toISODate(new Date()) });
 }
 async function createExpense(req, res) {
   const e = await expenses.create(ctx(req), req, req.body, req.file);
-  req.flash('success', `Expense ${e.expenseNo} recorded.`);
+  req.flash('success', req.t('Expense {no} recorded.', { no: e.expenseNo }));
   res.redirect('/school/finance/expenses');
 }
 async function updateExpense(req, res) {
   const e = await expenses.update(ctx(req), req, req.params.id, req.body);
-  req.flash('success', `Expense ${e.expenseNo} updated.`);
+  req.flash('success', req.t('Expense {no} updated.', { no: e.expenseNo }));
   res.redirect('/school/finance/expenses');
 }
 async function cancelExpense(req, res) {
   const e = await expenses.cancel(ctx(req), req, req.params.id, req.body.reason);
-  req.flash('success', `Expense ${e.expenseNo} cancelled.`);
+  req.flash('success', req.t('Expense {no} cancelled.', { no: e.expenseNo }));
   res.redirect('/school/finance/expenses');
 }
 async function recurExpense(req, res) {
   const e = await expenses.recordRecurrence(ctx(req), req, req.params.id, req.body.date);
-  req.flash('success', `Recurring expense recorded as ${e.expenseNo}.`);
+  req.flash('success', req.t('Recurring expense recorded as {no}.', { no: e.expenseNo }));
   res.redirect('/school/finance/expenses');
 }
 async function expenseAttachment(req, res) {
@@ -181,7 +182,7 @@ async function salaries(req, res) {
 }
 async function paySalary(req, res) {
   const s = await expenses.paySalary(ctx(req), req, req.body);
-  req.flash('success', `Salary paid (${money.format(s.amount, req.settings.currency)}).`);
+  req.flash('success', req.t('Salary paid ({amount}).', { amount: money.format(s.amount, req.settings.currency) }));
   res.redirect(`/school/finance/salaries?period=${s.period}`);
 }
 async function cancelSalary(req, res) {

@@ -1,16 +1,16 @@
 <%- include('../partials/page-header', { heading: 'Audit log', sub: 'Logins, financial transactions, reversals, settings and record changes.' }) %>
 <form class="filter-bar row g-2 align-items-end" method="get">
-  <div class="col-md-4"><label class="form-label">Action</label><select class="form-select" name="action" data-autosubmit><option value="">All actions</option>
-    <% [['payment', 'Payments'], ['invoice', 'Invoices'], ['billing', 'Billing runs'], ['expense', 'Expenses'], ['salary', 'Salaries'], ['student', 'Students'], ['teacher', 'Teachers'], ['class', 'Classes'], ['user', 'Users & logins'], ['settings', 'Settings'], ['report', 'Report exports'], ['receipt', 'Receipt prints']].forEach(function (a) { %><option value="<%= a[0] %>" <%= selected(query.action, a[0]) %>><%= a[1] %></option><% }) %>
+  <div class="col-md-4"><label class="form-label"><%= t('Action') %></label><select class="form-select" name="action" data-autosubmit><option value=""><%= t('All actions') %></option>
+    <% [['payment', 'Payments'], ['invoice', 'Invoices'], ['billing', 'Billing runs'], ['expense', 'Expenses'], ['salary', 'Salaries'], ['student', 'Students'], ['teacher', 'Teachers'], ['class', 'Classes'], ['user', 'Users & logins'], ['settings', 'Settings'], ['report', 'Report exports'], ['receipt', 'Receipt prints']].forEach(function (a) { %><option value="<%= a[0] %>" <%= selected(query.action, a[0]) %>><%= t(a[1]) %></option><% }) %>
   </select></div>
 </form>
 <div class="card">
   <div class="table-responsive"><table class="table table-sm table-hover">
-    <thead><tr><th>When</th><th>User</th><th>Action</th><th>Details</th><th>IP</th></tr></thead>
+    <thead><tr><th><%= t('When') %></th><th><%= t('User') %></th><th><%= t('Action') %></th><th><%= t('Details') %></th><th><%= t('IP') %></th></tr></thead>
     <tbody>
-      <% if (!page.items.length) { %><tr><td colspan="5" class="empty-state">No entries</td></tr><% } %>
+      <% if (!page.items.length) { %><tr><td colspan="5" class="empty-state"><%= t('No entries') %></td></tr><% } %>
       <% page.items.forEach(function (l) { %>
-        <tr><td class="text-nowrap small"><%= new Date(l.createdAt).toISOString().replace('T', ' ').slice(0, 16) %></td><td><%= l.userName || 'system' %></td><td><code><%= l.action %></code></td>
+        <tr><td class="text-nowrap small"><%= new Date(l.createdAt).toISOString().replace('T', ' ').slice(0, 16) %></td><td><%= l.userName || t('system') %></td><td><code><%= l.action %></code></td>
           <td class="small text-muted text-break" style="max-width:420px"><%= l.details ? JSON.stringify(l.details) : '' %></td><td class="small text-muted"><%= l.ip %></td></tr>
       <% }) %>
     </tbody>

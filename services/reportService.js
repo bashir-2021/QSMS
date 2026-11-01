@@ -149,7 +149,8 @@ async function monthly(tenantId, q) {
   return {
     title: REPORTS.monthly, subtitle: dates.periodLabel(period), filters: { month: period },
     summary: [...summaryOf(inc, exp),
-      { label: `Monthly fees billed (${b.n} invoices)`, value: b.total, type: 'money' },
+      // labelKey/labelVars let the HTML view translate the interpolated label; exports keep using label.
+      { label: `Monthly fees billed (${b.n} invoices)`, labelKey: b.n === 1 ? 'Monthly fees billed (1 invoice)' : 'Monthly fees billed ({n} invoices)', labelVars: { n: b.n }, value: b.total, type: 'money' },
       { label: 'Of which collected', value: b.paid, type: 'money' }],
     chart: { labels: days.map((d) => d.key.slice(8)), income: days.map((d) => d.income), expenses: days.map((d) => d.expenses) },
     sections: [

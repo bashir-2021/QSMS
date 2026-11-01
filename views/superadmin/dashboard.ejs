@@ -1,39 +1,39 @@
 <%- include('../partials/page-header', { heading: 'Platform overview', sub: 'Quranic SaaS operations at a glance.',
-  actions: can('schools.manage') ? '<a class="btn btn-primary btn-icon" href="/platform/schools/new"><i class="bi bi-plus-lg"></i>Register school</a>' : '' }) %>
+  actions: can('schools.manage') ? '<a class="btn btn-primary btn-icon" href="/platform/schools/new"><i class="bi bi-plus-lg"></i>' + t('Register school') + '</a>' : '' }) %>
 
 <div class="row g-3 mb-3">
-  <div class="col-6 col-xl-3"><div class="card stat-card"><div class="d-flex justify-content-between"><div class="label">Schools</div><div class="stat-icon emerald"><i class="bi bi-buildings"></i></div></div><div class="value"><%= data.counts.schools %></div><div class="meta"><%= data.counts.activeSchools %> active · <%= data.counts.suspendedSchools %> suspended/inactive</div></div></div>
-  <div class="col-6 col-xl-3"><div class="card stat-card"><div class="d-flex justify-content-between"><div class="label">Students · teachers</div><div class="stat-icon gold"><i class="bi bi-people"></i></div></div><div class="value"><%= data.counts.students.toLocaleString() %></div><div class="meta"><%= data.counts.teachers %> teachers · <%= data.counts.classes %> classes</div></div></div>
-  <div class="col-6 col-xl-3"><div class="card stat-card"><div class="d-flex justify-content-between"><div class="label">Revenue this month</div><div class="stat-icon blue"><i class="bi bi-graph-up-arrow"></i></div></div><div class="value"><%= money(data.revenue.month) %></div><div class="meta">Year to date <%= money(data.revenue.year) %> · all time <%= money(data.revenue.all) %></div></div></div>
-  <div class="col-6 col-xl-3"><div class="card stat-card"><div class="d-flex justify-content-between"><div class="label">Pending verification</div><div class="stat-icon red"><i class="bi bi-hourglass-split"></i></div></div><div class="value"><%= data.pending.length %></div><div class="meta"><%= money(data.pendingTotal) %> awaiting review</div></div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-card"><div class="d-flex justify-content-between"><div class="label"><%= t('Schools') %></div><div class="stat-icon emerald"><i class="bi bi-buildings"></i></div></div><div class="value"><%= data.counts.schools %></div><div class="meta"><%= t('{active} active · {suspended} suspended/inactive', { active: data.counts.activeSchools, suspended: data.counts.suspendedSchools }) %></div></div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-card"><div class="d-flex justify-content-between"><div class="label"><%= t('Students · teachers') %></div><div class="stat-icon gold"><i class="bi bi-people"></i></div></div><div class="value"><%= data.counts.students.toLocaleString() %></div><div class="meta"><%= t('{teachers} teachers · {classes} classes', { teachers: data.counts.teachers, classes: data.counts.classes }) %></div></div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-card"><div class="d-flex justify-content-between"><div class="label"><%= t('Revenue this month') %></div><div class="stat-icon blue"><i class="bi bi-graph-up-arrow"></i></div></div><div class="value"><%= money(data.revenue.month) %></div><div class="meta"><%= t('Year to date {year} · all time {all}', { year: money(data.revenue.year), all: money(data.revenue.all) }) %></div></div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-card"><div class="d-flex justify-content-between"><div class="label"><%= t('Pending verification') %></div><div class="stat-icon red"><i class="bi bi-hourglass-split"></i></div></div><div class="value"><%= data.pending.length %></div><div class="meta"><%= t('{amount} awaiting review', { amount: money(data.pendingTotal) }) %></div></div></div>
 </div>
 
 <div class="row g-3 mb-3">
-  <% [['trial', 'Trial'], ['active', 'Active'], ['expiring_soon', 'Expiring soon'], ['expired', 'Expired'], ['suspended', 'Suspended'], ['cancelled', 'Cancelled']].forEach(function (s) { %>
-    <div class="col-4 col-md-2"><a class="card stat-card text-decoration-none" href="/platform/subscriptions?status=<%= s[0] %>"><div class="label"><%= s[1] %></div><div class="value fs-4"><%= data.status[s[0]] || 0 %></div></a></div>
+  <% [['trial', 'Trial'], ['active', 'Active'], ['expiring_soon', 'Expiring Soon'], ['expired', 'Expired'], ['suspended', 'Suspended'], ['cancelled', 'Cancelled']].forEach(function (s) { %>
+    <div class="col-4 col-md-2"><a class="card stat-card text-decoration-none" href="/platform/subscriptions?status=<%= s[0] %>"><div class="label"><%= t(s[1]) %></div><div class="value fs-4"><%= data.status[s[0]] || 0 %></div></a></div>
   <% }) %>
 </div>
 
 <div class="row g-3 mb-3">
-  <div class="col-lg-8"><div class="card h-100"><div class="card-header">Verified subscription revenue — last 6 months</div><div class="card-body"><div class="chart-box"><canvas data-chart="revChart"></canvas></div></div></div>
-    <script type="application/json" id="revChart"><%- JSON.stringify({ type: 'bar', money: true, currency: 'USD', labels: data.chart.labels, series: [{ label: 'Revenue', data: data.chart.revenue }] }).replace(/</g, '\\u003c') %></script></div>
-  <div class="col-lg-4"><div class="card h-100"><div class="card-header">Live subscriptions by plan</div><div class="card-body"><div class="chart-box"><canvas data-chart="planChart"></canvas></div></div></div>
+  <div class="col-lg-8"><div class="card h-100"><div class="card-header"><%= t('Verified subscription revenue — last 6 months') %></div><div class="card-body"><div class="chart-box"><canvas data-chart="revChart"></canvas></div></div></div>
+    <script type="application/json" id="revChart"><%- JSON.stringify({ type: 'bar', money: true, currency: 'USD', labels: data.chart.labels, series: [{ label: t('Revenue'), data: data.chart.revenue }] }).replace(/</g, '\\u003c') %></script></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header"><%= t('Live subscriptions by plan') %></div><div class="card-body"><div class="chart-box"><canvas data-chart="planChart"></canvas></div></div></div>
     <script type="application/json" id="planChart"><%- JSON.stringify({ type: 'doughnut', labels: data.plans.labels, values: data.plans.values }).replace(/</g, '\\u003c') %></script></div>
 </div>
 
 <div class="row g-3">
-  <div class="col-xl-4"><div class="card h-100"><div class="card-header d-flex justify-content-between"><span>Payments awaiting verification</span><a class="small" href="/platform/payments?status=pending">All</a></div>
+  <div class="col-xl-4"><div class="card h-100"><div class="card-header d-flex justify-content-between"><span><%= t('Payments awaiting verification') %></span><a class="small" href="/platform/payments?status=pending"><%= t('All') %></a></div>
     <div class="list-group list-group-flush">
-      <% if (!data.pending.length) { %><div class="empty-state small"><i class="bi bi-check2-circle"></i>Nothing pending</div><% } %>
+      <% if (!data.pending.length) { %><div class="empty-state small"><i class="bi bi-check2-circle"></i><%= t('Nothing pending') %></div><% } %>
       <% data.pending.forEach(function (p) { %><a class="list-group-item list-group-item-action d-flex justify-content-between" href="/platform/payments/<%= p._id %>"><div><div class="fw-semibold small"><%= p.tenant ? p.tenant.name : '' %></div><div class="text-muted" style="font-size:.74rem"><%= p.reference %> · <%= p.plan ? p.plan.name : '' %></div></div><span class="fw-bold small"><%= money(p.amount, p.currency) %></span></a><% }) %>
     </div></div></div>
-  <div class="col-xl-4"><div class="card h-100"><div class="card-header">Renewals due (14 days)</div>
+  <div class="col-xl-4"><div class="card h-100"><div class="card-header"><%= t('Renewals due (14 days)') %></div>
     <div class="list-group list-group-flush">
-      <% if (!data.expiring.length) { %><div class="empty-state small">No renewals due</div><% } %>
-      <% data.expiring.forEach(function (s) { %><a class="list-group-item list-group-item-action d-flex justify-content-between" href="/platform/schools/<%= s.tenant._id %>"><div><div class="fw-semibold small"><%= s.tenant.name %></div><div class="text-muted" style="font-size:.74rem"><%= s.planSnapshot ? s.planSnapshot.name : '' %> · ends <%= fmtDate(s.endDate) %></div></div><%- statusBadge(s.status) %></a><% }) %>
+      <% if (!data.expiring.length) { %><div class="empty-state small"><%= t('No renewals due') %></div><% } %>
+      <% data.expiring.forEach(function (s) { %><a class="list-group-item list-group-item-action d-flex justify-content-between" href="/platform/schools/<%= s.tenant._id %>"><div><div class="fw-semibold small"><%= s.tenant.name %></div><div class="text-muted" style="font-size:.74rem"><%= s.planSnapshot ? s.planSnapshot.name : '' %> · <%= t('ends {date}', { date: fmtDate(s.endDate) }) %></div></div><%- statusBadge(s.status) %></a><% }) %>
     </div></div></div>
-  <div class="col-xl-4"><div class="card h-100"><div class="card-header d-flex justify-content-between"><span>Newest schools</span><a class="small" href="/platform/schools">All</a></div>
+  <div class="col-xl-4"><div class="card h-100"><div class="card-header d-flex justify-content-between"><span><%= t('Newest schools') %></span><a class="small" href="/platform/schools"><%= t('All') %></a></div>
     <div class="list-group list-group-flush">
-      <% data.recentSchools.forEach(function (t) { var s = t.currentSubscription; %><a class="list-group-item list-group-item-action d-flex justify-content-between" href="/platform/schools/<%= t._id %>"><div><div class="fw-semibold small"><%= t.name %></div><div class="text-muted" style="font-size:.74rem"><%= [t.city, t.country].filter(Boolean).join(', ') %> · <%= fmtDate(t.createdAt) %></div></div><%- s ? statusBadge(s.status) : '' %></a><% }) %>
+      <% data.recentSchools.forEach(function (tn) { var s = tn.currentSubscription; %><a class="list-group-item list-group-item-action d-flex justify-content-between" href="/platform/schools/<%= tn._id %>"><div><div class="fw-semibold small"><%= tn.name %></div><div class="text-muted" style="font-size:.74rem"><%= [tn.city, tn.country].filter(Boolean).join(', ') %> · <%= fmtDate(tn.createdAt) %></div></div><%- s ? statusBadge(s.status) : '' %></a><% }) %>
     </div></div></div>
 </div>

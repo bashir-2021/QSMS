@@ -1,9 +1,10 @@
 <div class="auth-wrap">
   <div class="auth-card">
     <div class="text-center mb-4">
+      <div class="d-flex justify-content-end mb-2"><%- include('../partials/lang-switch', { compact: true }) %></div>
       <div class="mb-2"><%- include('../partials/brand') %></div>
-      <h1 class="h3 mb-1"><%= mode === 'platform' ? 'Platform console' : 'Welcome back' %></h1>
-      <p class="text-muted small"><%= mode === 'platform' ? 'For Quranic administration staff only.' : 'Sign in to your school workspace.' %></p>
+      <h1 class="h3 mb-1"><%= t(mode === 'platform' ? 'Platform console' : 'Welcome back') %></h1>
+      <p class="text-muted small"><%= t(mode === 'platform' ? 'For Quranic administration staff only.' : 'Sign in to your school workspace.') %></p>
     </div>
     <div class="card"><div class="card-body p-4">
       <form method="post" action="<%= mode === 'platform' ? '/platform/login' : '/login' %>" class="row g-3 needs-validation" novalidate>
@@ -11,11 +12,11 @@
         <input type="hidden" name="next" value="<%= next %>">
         <%- include('../partials/field', { name: 'email', label: 'Email', ftype: 'email', required: true, attrs: 'autocomplete="username" autofocus' }) %>
         <%- include('../partials/field', { name: 'password', label: 'Password', ftype: 'password', required: true, attrs: 'autocomplete="current-password"' }) %>
-        <div class="col-12"><button class="btn btn-primary w-100" type="submit">Sign in</button></div>
+        <div class="col-12"><button class="btn btn-primary w-100" type="submit"><%= t('Sign in') %></button></div>
       </form>
     </div></div>
     <p class="text-center small text-muted mt-3">
-      <% if (mode === 'platform') { %><a href="/login">School sign in</a><% } else { %>New school? <a href="/register">Register here</a> · <a href="/platform/login">Staff</a><% } %>
+      <% if (mode === 'platform') { %><a href="/login"><%= t('School sign in') %></a><% } else { %><%= t('New school?') %> <a href="/register"><%= t('Register here') %></a> · <a href="/platform/login"><%= t('Staff') %></a><% } %>
     </p>
   </div>
 </div>

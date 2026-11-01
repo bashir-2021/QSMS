@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="<%= lang %>" dir="<%= dir %>">
 <head>
   <%- include('../partials/head') %>
 </head>
@@ -7,24 +7,25 @@
   <nav class="navbar navbar-expand-lg public-nav sticky-top">
     <div class="container">
       <a class="brand text-decoration-none" href="/" style="color:var(--q-ink)"><%- include('../partials/brand') %> Quranic</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#pubNav" aria-controls="pubNav" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#pubNav" aria-controls="pubNav" aria-expanded="false" aria-label="<%= t('Toggle navigation') %>"><span class="navbar-toggler-icon"></span></button>
       <div class="collapse navbar-collapse" id="pubNav">
         <% var pg = locals.page || ''; %>
         <ul class="navbar-nav mx-auto gap-lg-2">
-          <li class="nav-item"><a class="nav-link <%= pg === 'home' ? 'active' : '' %>" href="/">Home</a></li>
-          <li class="nav-item"><a class="nav-link <%= pg === 'about' ? 'active' : '' %>" href="/about">About</a></li>
-          <li class="nav-item"><a class="nav-link <%= pg === 'features' ? 'active' : '' %>" href="/features">Features</a></li>
-          <li class="nav-item"><a class="nav-link <%= pg === 'plans' ? 'active' : '' %>" href="/plans">Plans</a></li>
-          <li class="nav-item"><a class="nav-link <%= pg === 'contact' ? 'active' : '' %>" href="/contact">Contact</a></li>
+          <li class="nav-item"><a class="nav-link <%= pg === 'home' ? 'active' : '' %>" href="/"><%= t('Home') %></a></li>
+          <li class="nav-item"><a class="nav-link <%= pg === 'about' ? 'active' : '' %>" href="/about"><%= t('About') %></a></li>
+          <li class="nav-item"><a class="nav-link <%= pg === 'features' ? 'active' : '' %>" href="/features"><%= t('Features') %></a></li>
+          <li class="nav-item"><a class="nav-link <%= pg === 'plans' ? 'active' : '' %>" href="/plans"><%= t('Plans') %></a></li>
+          <li class="nav-item"><a class="nav-link <%= pg === 'contact' ? 'active' : '' %>" href="/contact"><%= t('Contact') %></a></li>
         </ul>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 align-items-center">
+          <%- include('../partials/lang-switch') %>
           <% if (locals.auth && auth.kind === 'school') { %>
-            <a class="btn btn-primary" href="/school/dashboard">Open dashboard</a>
+            <a class="btn btn-primary" href="/school/dashboard"><%= t('Open dashboard') %></a>
           <% } else if (locals.auth && auth.kind === 'platform') { %>
-            <a class="btn btn-primary" href="/platform/dashboard">Platform console</a>
+            <a class="btn btn-primary" href="/platform/dashboard"><%= t('Platform console') %></a>
           <% } else { %>
-            <a class="btn btn-light" href="/login">Log in</a>
-            <a class="btn btn-primary" href="/register">Register your school</a>
+            <a class="btn btn-light" href="/login"><%= t('Log in') %></a>
+            <a class="btn btn-primary" href="/register"><%= t('Register your school') %></a>
           <% } %>
         </div>
       </div>
@@ -42,24 +43,24 @@
       <div class="row g-4">
         <div class="col-lg-5">
           <div class="brand text-white mb-2"><%- include('../partials/brand', { dark: true }) %> Quranic</div>
-          <p class="small mb-0" style="max-width:26rem">The complete management platform for Quran schools — students, teachers, Hifz progress, attendance, fees and reports in one secure place.</p>
+          <p class="small mb-0" style="max-width:26rem"><%= t('The complete management platform for Quran schools — students, teachers, Hifz progress, attendance, fees and reports in one secure place.') %></p>
           <p class="arabic mt-3 mb-0" lang="ar" dir="rtl" style="color:#e7c27a">خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ</p>
         </div>
         <div class="col-6 col-lg-2">
-          <div class="small-caps mb-2" style="color:#9fb8b1">Product</div>
-          <ul class="list-unstyled small d-grid gap-1"><li><a href="/features">Features</a></li><li><a href="/plans">Pricing</a></li><li><a href="/register">Get started</a></li></ul>
+          <div class="small-caps mb-2" style="color:#9fb8b1"><%= t('Product') %></div>
+          <ul class="list-unstyled small d-grid gap-1"><li><a href="/features"><%= t('Features') %></a></li><li><a href="/plans"><%= t('Pricing') %></a></li><li><a href="/register"><%= t('Get started') %></a></li></ul>
         </div>
         <div class="col-6 col-lg-2">
-          <div class="small-caps mb-2" style="color:#9fb8b1">Company</div>
-          <ul class="list-unstyled small d-grid gap-1"><li><a href="/about">About</a></li><li><a href="/contact">Contact</a></li><li><a href="/platform/login">Staff login</a></li></ul>
+          <div class="small-caps mb-2" style="color:#9fb8b1"><%= t('Company') %></div>
+          <ul class="list-unstyled small d-grid gap-1"><li><a href="/about"><%= t('About') %></a></li><li><a href="/contact"><%= t('Contact') %></a></li><li><a href="/platform/login"><%= t('Staff login') %></a></li></ul>
         </div>
         <div class="col-lg-3 small">
-          <div class="small-caps mb-2" style="color:#9fb8b1">Support</div>
+          <div class="small-caps mb-2" style="color:#9fb8b1"><%= t('Support') %></div>
           <div>support@quranic.app</div>
         </div>
       </div>
       <hr style="border-color:#ffffff22" class="my-4">
-      <div class="small d-flex justify-content-between flex-wrap gap-2"><span>© <%= year %> Quranic. All rights reserved.</span><span>Built for Quran schools everywhere.</span></div>
+      <div class="small d-flex justify-content-between flex-wrap gap-2"><span>© <%= year %> Quranic. <%= t('All rights reserved.') %></span><span><%= t('Built for Quran schools everywhere.') %></span></div>
     </div>
   </footer>
   <%- include('../partials/scripts') %>

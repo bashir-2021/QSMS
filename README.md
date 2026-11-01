@@ -87,8 +87,20 @@ Browser ──► Express (app.js)
 - **Receipts** are immutable snapshots (school, student, class, category, period, total, paid, remaining balance, method, reference, date, received-by), so reprints always match. Print count is tracked.
 - **Nothing confirmed is deleted.** Payments are *reversed*, expenses and salary payments *cancelled*, invoices *cancelled* — each with reason, actor, time and an audit-log entry.
 - Teacher salaries create a linked expense in the system category *Teacher salaries*; one live salary payment per teacher per month.
+- **Registration fee is one-time.** The school fee is set in *School Settings*; the student registration form charges it (staff with `invoices.manage` may change the amount, e.g. a discount) and can record the payment on the spot with a receipt (`payments.create`). The `student:registration` billing key guarantees one live registration invoice per student.
 
 Reports (HTML, print, PDF, Excel): daily, monthly, annual, student payments, registration fees, outstanding balances, teacher salaries, expenses by category, income & expenditure, net balance (with opening and running balance).
+
+---
+
+## Languages
+
+English (default), Arabic (right-to-left) and Somali. The switcher in the top bar, public menu and login page stores the choice in the `quranic.lang` cookie (`GET /lang/:code`).
+
+- `utils/i18n.js` — English text is the key: `t('Students')`, `t('{name} registered as {code}.', { name, code })`; anything untranslated falls back to English. `req.t` in controllers, `t` in views.
+- Dictionaries: `locales/<lang>/*.json` (flat `{ "English": "translation" }`, merged per language, loaded at startup — restart after editing).
+- `partials/field`, `partials/page-header`, flash messages, `titleCase()` and `statusBadge()` translate automatically. Never name a local variable `t` in a template.
+- PDF receipts and PDF/Excel exports are English.
 
 ---
 

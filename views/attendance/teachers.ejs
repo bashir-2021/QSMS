@@ -1,8 +1,8 @@
 <%- include('../partials/page-header', { heading: 'Teacher attendance', sub: 'Daily staff register',
-  actions: '<a class="btn btn-light btn-icon" href="/school/attendance"><i class="bi bi-people"></i>Student attendance</a><a class="btn btn-light btn-icon" href="/school/attendance/reports?scope=teacher"><i class="bi bi-clipboard-data"></i>Reports</a>' }) %>
+  actions: '<a class="btn btn-light btn-icon" href="/school/attendance"><i class="bi bi-people"></i>' + t('Student attendance') + '</a><a class="btn btn-light btn-icon" href="/school/attendance/reports?scope=teacher"><i class="bi bi-clipboard-data"></i>' + t('Reports') + '</a>' }) %>
 
 <form class="filter-bar row g-2 align-items-end" method="get">
-  <div class="col-md-4"><label class="form-label">Date</label><input type="date" class="form-control" name="date" value="<%= date %>" max="<%= isoDate(new Date()) %>" data-autosubmit></div>
+  <div class="col-md-4"><label class="form-label"><%= t('Date') %></label><input type="date" class="form-control" name="date" value="<%= date %>" max="<%= isoDate(new Date()) %>" data-autosubmit></div>
 </form>
 
 <% var editable = can('attendance.manage'); %>
@@ -11,13 +11,13 @@
   <input type="hidden" name="date" value="<%= date %>">
   <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-      <span><%= fmtDate(sheet.date) %> <% if (sheet.saved) { %><span class="badge badge-soft-success ms-1">Saved</span><% } %></span>
-      <% if (editable && sheet.rows.length) { %><div class="d-flex gap-2"><button class="btn btn-sm btn-light" type="button" data-mark-all="present">All present</button><button class="btn btn-sm btn-primary" type="submit">Save</button></div><% } %>
+      <span><%= fmtDate(sheet.date) %> <% if (sheet.saved) { %><span class="badge badge-soft-success ms-1"><%= t('Saved') %></span><% } %></span>
+      <% if (editable && sheet.rows.length) { %><div class="d-flex gap-2"><button class="btn btn-sm btn-light" type="button" data-mark-all="present"><%= t('All present') %></button><button class="btn btn-sm btn-primary" type="submit"><%= t('Save') %></button></div><% } %>
     </div>
     <div class="table-responsive"><table class="table">
-      <thead><tr><th>Teacher</th><th>Status</th><th style="width:120px">Check in</th><th style="width:120px">Check out</th><th>Remarks</th></tr></thead>
+      <thead><tr><th><%= t('Teacher') %></th><th><%= t('Status') %></th><th style="width:120px"><%= t('Check in') %></th><th style="width:120px"><%= t('Check out') %></th><th><%= t('Remarks') %></th></tr></thead>
       <tbody>
-        <% if (!sheet.rows.length) { %><tr><td colspan="5" class="empty-state">No active teachers</td></tr><% } %>
+        <% if (!sheet.rows.length) { %><tr><td colspan="5" class="empty-state"><%= t('No active teachers') %></td></tr><% } %>
         <% sheet.rows.forEach(function (r) { var rec = r.record || {}; var st = rec.status || 'present'; var id = r.teacher._id; %>
           <tr>
             <td><div class="fw-semibold"><%= r.teacher.fullName %></div><div class="small text-muted"><%= r.teacher.teacherCode %></div></td>

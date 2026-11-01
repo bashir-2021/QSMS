@@ -1,17 +1,17 @@
-<%- include('page-header', { heading: 'Notifications', sub: items.filter(function (n) { return !n.isRead; }).length + ' unread',
-  actions: '<form method="post" action="' + base + '/read"><input type="hidden" name="_csrf" value="' + csrfToken + '"><button class="btn btn-light btn-icon" type="submit"><i class="bi bi-check2-all"></i>Mark all read</button></form>' }) %>
+<%- include('page-header', { heading: 'Notifications', sub: t('{n} unread', { n: items.filter(function (n) { return !n.isRead; }).length }),
+  actions: '<form method="post" action="' + base + '/read"><input type="hidden" name="_csrf" value="' + csrfToken + '"><button class="btn btn-light btn-icon" type="submit"><i class="bi bi-check2-all"></i>' + t('Mark all read') + '</button></form>' }) %>
 <div class="card">
   <div class="list-group list-group-flush">
-    <% if (!items.length) { %><div class="empty-state"><i class="bi bi-bell"></i>You're all caught up.</div><% } %>
+    <% if (!items.length) { %><div class="empty-state"><i class="bi bi-bell"></i><%= t('You\'re all caught up.') %></div><% } %>
     <% items.forEach(function (n) { %>
       <div class="list-group-item notification-item <%= n.isRead ? '' : 'unread' %> d-flex gap-3 py-3">
         <div class="stat-icon <%= n.level === 'danger' ? 'red' : n.level === 'warning' ? 'gold' : n.level === 'success' ? 'emerald' : 'blue' %>"><i class="bi bi-<%= n.type === 'subscription' ? 'stars' : n.type === 'fees' ? 'cash-coin' : n.type === 'payment' ? 'credit-card' : n.type === 'school' ? 'buildings' : n.type === 'academic' ? 'book' : 'info-circle' %>"></i></div>
         <div class="flex-grow-1 min-w-0">
-          <div class="d-flex justify-content-between gap-2"><div class="fw-semibold"><%= n.title %></div><small class="text-muted text-nowrap"><%= fmtDate(n.createdAt) %></small></div>
+          <div class="d-flex justify-content-between gap-2"><div class="fw-semibold"><%= t(n.title) %></div><small class="text-muted text-nowrap"><%= fmtDate(n.createdAt) %></small></div>
           <div class="small text-muted" style="white-space:pre-line"><%= n.message %></div>
           <div class="d-flex gap-2 mt-1">
-            <% if (n.link) { %><a class="small" href="<%= n.link %>">Open</a><% } %>
-            <% if (!n.isRead) { %><form method="post" action="<%= base %>/<%= n._id %>/read"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-link btn-sm p-0 small" type="submit">Mark read</button></form><% } %>
+            <% if (n.link) { %><a class="small" href="<%= n.link %>"><%= t('Open') %></a><% } %>
+            <% if (!n.isRead) { %><form method="post" action="<%= base %>/<%= n._id %>/read"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-link btn-sm p-0 small" type="submit"><%= t('Mark read') %></button></form><% } %>
           </div>
         </div>
       </div>

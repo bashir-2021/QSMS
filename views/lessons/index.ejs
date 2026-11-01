@@ -1,22 +1,22 @@
-<%- include('../partials/page-header', { heading: 'Quran lessons', sub: 'Hifz, reading, Tajweed, Muraja\'ah, Islamic studies and Arabic', actions: can('lessons.manage') ? '<a class="btn btn-primary btn-icon" href="/school/lessons/new"><i class="bi bi-plus-lg"></i>New lesson</a>' : '' }) %>
+<%- include('../partials/page-header', { heading: 'Quran lessons', sub: 'Hifz, reading, Tajweed, Muraja\'ah, Islamic studies and Arabic', actions: can('lessons.manage') ? '<a class="btn btn-primary btn-icon" href="/school/lessons/new"><i class="bi bi-plus-lg"></i>' + t('New lesson') + '</a>' : '' }) %>
 
 <form class="filter-bar row g-2 align-items-end" method="get">
-  <div class="col-md-3"><label class="form-label">Search</label><input class="form-control" name="search" value="<%= query.search || '' %>" placeholder="Lesson title"></div>
-  <div class="col-6 col-md-2"><label class="form-label">Category</label><select class="form-select" name="category" data-autosubmit><option value="">All</option><% Object.keys(C.LESSON_CATEGORIES).forEach(function (k) { %><option value="<%= k %>" <%= selected(query.category, k) %>><%= C.LESSON_CATEGORIES[k] %></option><% }) %></select></div>
-  <div class="col-6 col-md-2"><label class="form-label">Class</label><select class="form-select" name="class" data-autosubmit><option value="">All</option><% classes.forEach(function (c) { %><option value="<%= c._id %>" <%= selected(query.class, c._id) %>><%= c.name %></option><% }) %></select></div>
-  <div class="col-6 col-md-2"><label class="form-label">From</label><input type="date" class="form-control" name="from" value="<%= query.from || '' %>"></div>
-  <div class="col-6 col-md-2"><label class="form-label">To</label><input type="date" class="form-control" name="to" value="<%= query.to || '' %>"></div>
-  <div class="col-md-1"><button class="btn btn-primary w-100" type="submit"><i class="bi bi-search"></i></button></div>
+  <div class="col-md-3"><label class="form-label"><%= t('Search') %></label><input class="form-control" name="search" value="<%= query.search || '' %>" placeholder="<%= t('Lesson title') %>"></div>
+  <div class="col-6 col-md-2"><label class="form-label"><%= t('Category') %></label><select class="form-select" name="category" data-autosubmit><option value=""><%= t('All') %></option><% Object.keys(C.LESSON_CATEGORIES).forEach(function (k) { %><option value="<%= k %>" <%= selected(query.category, k) %>><%= t(C.LESSON_CATEGORIES[k]) %></option><% }) %></select></div>
+  <div class="col-6 col-md-2"><label class="form-label"><%= t('Class') %></label><select class="form-select" name="class" data-autosubmit><option value=""><%= t('All') %></option><% classes.forEach(function (c) { %><option value="<%= c._id %>" <%= selected(query.class, c._id) %>><%= c.name %></option><% }) %></select></div>
+  <div class="col-6 col-md-2"><label class="form-label"><%= t('From') %></label><input type="date" class="form-control" name="from" value="<%= query.from || '' %>"></div>
+  <div class="col-6 col-md-2"><label class="form-label"><%= t('To') %></label><input type="date" class="form-control" name="to" value="<%= query.to || '' %>"></div>
+  <div class="col-md-1"><button class="btn btn-primary w-100" type="submit" title="<%= t('Search') %>" aria-label="<%= t('Search') %>"><i class="bi bi-search"></i></button></div>
 </form>
 
 <div class="card">
   <div class="table-responsive"><table class="table table-hover">
-    <thead><tr><th>Date</th><th>Lesson</th><th>Category</th><th>Class</th><th>Portion</th><th>Teacher</th><th>Status</th></tr></thead>
+    <thead><tr><th><%= t('Date') %></th><th><%= t('Lesson') %></th><th><%= t('Category') %></th><th><%= t('Class') %></th><th><%= t('Portion') %></th><th><%= t('Teacher') %></th><th><%= t('Status') %></th></tr></thead>
     <tbody>
-      <% if (!page.items.length) { %><tr><td colspan="7"><div class="empty-state"><i class="bi bi-book"></i>No lessons found.</div></td></tr><% } %>
+      <% if (!page.items.length) { %><tr><td colspan="7"><div class="empty-state"><i class="bi bi-book"></i><%= t('No lessons found.') %></div></td></tr><% } %>
       <% page.items.forEach(function (l) { %>
         <tr><td class="text-nowrap"><%= fmtDate(l.date) %></td><td><a class="row-link" href="/school/lessons/<%= l._id %>"><%= l.title %></a></td>
-          <td><%= C.LESSON_CATEGORIES[l.category] %></td><td><%= l.class ? l.class.name : '' %></td>
+          <td><%= t(C.LESSON_CATEGORIES[l.category]) %></td><td><%= l.class ? l.class.name : '' %></td>
           <td class="small"><%= l.surah ? surahName(l.surah) + ' ' + l.fromVerse + '–' + l.toVerse : '—' %></td>
           <td><%= l.teacher ? l.teacher.fullName : '' %></td><td><%- statusBadge(l.status) %></td></tr>
       <% }) %>

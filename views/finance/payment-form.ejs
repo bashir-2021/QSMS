@@ -3,36 +3,39 @@
 <div class="row g-3">
   <div class="col-lg-4">
     <div class="card"><div class="card-body">
-      <label class="form-label" for="studentSearch">Student</label>
-      <input id="studentSearch" class="form-control" placeholder="Search name or student ID…" autocomplete="off">
-      <div id="studentResults" class="list-group mt-2"></div>
+      <label class="form-label" for="studentSearch"><%= t('Student') %></label>
+      <input id="studentSearch" class="form-control" placeholder="<%= t('Search name or student ID…') %>" autocomplete="off">
+      <div id="studentResults" class="list-group mt-2" data-empty-text="<%= t('No students found') %>"></div>
       <% if (student) { %>
         <div class="mt-3 p-3 rounded-3" style="background:var(--q-emerald-50)">
           <div class="fw-bold"><%= student.fullName %></div>
-          <div class="small text-muted"><%= student.studentCode %> · <%= student.class ? student.class.name : 'No class' %></div>
-          <a class="small" href="/school/students/<%= student._id %>">Open profile</a>
+          <div class="small text-muted"><%= student.studentCode %> · <%= student.class ? student.class.name : t('No class') %></div>
+          <a class="small" href="/school/students/<%= student._id %>"><%= t('Open profile') %></a>
         </div>
       <% } %>
     </div></div>
   </div>
   <div class="col-lg-8">
     <% if (!student) { %>
-      <div class="card"><div class="empty-state"><i class="bi bi-search"></i>Search for a student to see their open invoices.</div></div>
+      <div class="card"><div class="empty-state"><i class="bi bi-search"></i><%= t('Search for a student to see their open invoices.') %></div></div>
     <% } else if (!open.length) { %>
-      <div class="card"><div class="empty-state"><i class="bi bi-check2-circle text-success"></i>This student has no open invoices.<% if (can('invoices.manage')) { %> <a href="/school/finance/invoices/new?student=<%= student._id %>">Create an invoice</a> first.<% } %></div></div>
+      <div class="card"><div class="empty-state"><i class="bi bi-check2-circle text-success"></i><%= t('This student has no open invoices.') %><% if (can('invoices.manage')) { %> <a href="/school/finance/invoices/new?student=<%= student._id %>"><%= t('Create an invoice') %></a> <%= t('first.') %><% } %></div></div>
     <% } else { %>
-    <form id="paymentForm" method="post" action="/school/finance/payments" class="needs-validation" novalidate data-currency="<%= currency %>">
+    <form id="paymentForm" method="post" action="/school/finance/payments" class="needs-validation" novalidate data-currency="<%= currency %>"
+      data-i18n-outstanding="<%= t('Outstanding on selected invoices: {amount}') %>" data-i18n-exceeds="<%= t('Amount exceeds the outstanding {amount}.') %>"
+      data-i18n-partial="<%= t('(partial, {amount} left)') %>" data-i18n-paid-full="<%= t('paid in full') %>" data-i18n-allocation="<%= t('Allocation') %>"
+      data-i18n-remaining="<%= t('Remaining on selected invoices after payment: {amount}') %>">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <input type="hidden" name="student" value="<%= student._id %>">
       <div class="card mb-3">
-        <div class="card-header">Open invoices <span class="small text-muted fw-normal">— tick to pay specific invoices, or leave all unticked to settle oldest first</span></div>
+        <div class="card-header"><%= t('Open invoices') %> <span class="small text-muted fw-normal">— <%= t('tick to pay specific invoices, or leave all unticked to settle oldest first') %></span></div>
         <div class="table-responsive"><table class="table">
-          <thead><tr><th style="width:40px"></th><th>Invoice</th><th>Description</th><th>Due</th><th class="num">Total</th><th class="num">Paid</th><th class="num">Balance</th></tr></thead>
+          <thead><tr><th style="width:40px"></th><th><%= t('Invoice') %></th><th><%= t('Description') %></th><th><%= t('Due') %></th><th class="num"><%= t('Total') %></th><th class="num"><%= t('Paid') %></th><th class="num"><%= t('Balance') %></th></tr></thead>
           <tbody>
             <% open.forEach(function (i) { var due = i.total - i.paid; var pre = preselect.indexOf(String(i._id)) >= 0 || (old.invoices && [].concat(old.invoices).indexOf(String(i._id)) >= 0); %>
               <tr>
                 <td><input class="form-check-input" type="checkbox" name="invoices" value="<%= i._id %>" data-due="<%= due %>" data-no="<%= i.invoiceNo %>" <%= pre ? 'checked' : '' %>></td>
-                <td class="font-monospace small"><%= i.invoiceNo %></td><td class="small"><%= i.description %> <%- i.status === 'overdue' ? statusBadge('overdue') : '' %></td><td class="small"><%= fmtDate(i.dueDate) %></td>
+                <td class="font-monospace small"><%= i.invoiceNo %></td><td class="small"><%= t(i.description) %> <%- i.status === 'overdue' ? statusBadge('overdue') : '' %></td><td class="small"><%= fmtDate(i.dueDate) %></td>
                 <td class="num"><%= money(i.total, currency) %></td><td class="num"><%= money(i.paid, currency) %></td><td class="num fw-semibold"><%= money(due, currency) %></td>
               </tr>
             <% }) %>
@@ -41,11 +44,11 @@
       </div>
       <div class="card"><div class="card-body row g-3">
         <div class="col-md-5">
-          <label class="form-label required" for="f_amount">Amount received</label>
+          <label class="form-label required" for="f_amount"><%= t('Amount received') %></label>
           <div class="input-group"><span class="input-group-text"><%= currency %></span>
             <input id="f_amount" class="form-control <%= formErrors.amount ? 'is-invalid' : '' %>" name="amount" inputmode="decimal" pattern="^\d{1,9}(\.\d{1,2})?$" required value="<%= old.amount || '' %>">
-            <button class="btn btn-light" type="button" id="fillDue" data-keep>Full balance</button></div>
-          <% if (formErrors.amount) { %><div class="invalid-feedback d-block"><%= formErrors.amount %></div><% } %>
+            <button class="btn btn-light" type="button" id="fillDue" data-keep><%= t('Full balance') %></button></div>
+          <% if (formErrors.amount) { %><div class="invalid-feedback d-block"><%= t(formErrors.amount) %></div><% } %>
         </div>
         <%- include('../partials/field', { name: 'method', label: 'Payment method', ftype: 'select', required: true, col: 'col-md-4', value: settings.paymentMethods[0], placeholder: false, options: settings.paymentMethods.map(function (m) { return { value: m, label: m }; }) }) %>
         <%- include('../partials/field', { name: 'paymentDate', label: 'Payment date', ftype: 'date', value: today, required: true, col: 'col-md-3', max: today }) %>
@@ -53,8 +56,8 @@
         <%- include('../partials/field', { name: 'notes', label: 'Notes', col: 'col-md-6' }) %>
         <div class="col-12"><div id="allocationPreview" class="p-3 rounded-3 border small"></div></div>
         <div class="col-12 d-flex justify-content-end gap-2">
-          <a class="btn btn-light" href="/school/students/<%= student._id %>">Cancel</a>
-          <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> Confirm payment &amp; issue receipt</button>
+          <a class="btn btn-light" href="/school/students/<%= student._id %>"><%= t('Cancel') %></a>
+          <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> <%= t('Confirm payment & issue receipt') %></button>
         </div>
       </div></div>
     </form>

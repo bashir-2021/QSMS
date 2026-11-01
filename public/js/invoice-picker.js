@@ -21,7 +21,12 @@
         a.textContent = `${s.name} · ${s.code}${s.className ? ` · ${s.className}` : ''}`;
         list.appendChild(a);
       });
-      if (!items.length) list.innerHTML = '<div class="list-group-item text-muted small">No students found</div>';
+      if (!items.length) {
+        const empty = document.createElement('div');
+        empty.className = 'list-group-item text-muted small';
+        empty.textContent = list.dataset.emptyText || 'No students found';
+        list.appendChild(empty);
+      }
     }, 250);
   });
 })();

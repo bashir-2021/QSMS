@@ -3,6 +3,7 @@ const { PlatformUser, SchoolUser, Tenant, SchoolSettings, Subscription } = requi
 const { schoolCan, platformCan, SCHOOL_ROLES, PLATFORM_ROLES } = require('../config/roles');
 const subscriptionService = require('../services/subscriptionService');
 const { forbidden } = require('../utils/errors');
+const C = require('../config/constants');
 const tenantContext = require('../utils/tenantContext');
 
 /**
@@ -82,10 +83,12 @@ function subscriptionGate(req, res, next) {
   if (open || req.access.mode === 'full') return next();
   if (req.access.mode === 'read_only') {
     if (req.method === 'GET') return next();
-    req.flash('warning', req.access.message);
+    req.flash('warning', req.t ? req.t(req.access.messageKey || req.access.message, req.access.messageVars) : req.access.message);
     return res.redirect(req.get('Referrer') || '/school/dashboard');
   }
-  return res.status(403).render('school/blocked', { title: 'Access restricted', message: req.access.message });
+  return res.status(403).render('school/blocked', {
+    title: 'Access restricted', message: req.access.message, messageKey: req.access.messageKey, messageVars: req.access.messageVars,
+  });
 }
 
 function requirePermission(perm) {
@@ -98,7 +101,10 @@ function requirePermission(perm) {
 function requireFeature(feature) {
   return (req, res, next) => {
     if (subscriptionService.hasFeature(req.subscription, feature)) return next();
-    return next(forbidden(`Your subscription plan does not include ${feature}. Upgrade your plan to use this module.`));
+    const err = forbidden('Your subscription plan does not include {feature}. Upgrade your plan to use this module.', { feature });
+    // Show the translated module name to non-English users (err.message stays the English text).
+    if (req.lang && req.lang !== 'en' && req.t) err.vars = { feature: req.t(C.PLAN_FEATURES[feature] || feature) };
+    return next(err);
   };
 }
 

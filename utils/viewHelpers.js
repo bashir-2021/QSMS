@@ -19,9 +19,9 @@ const STATUS_COLORS = {
   excellent: 'success', very_good: 'primary', good: 'info', fair: 'warning', needs_improvement: 'danger',
 };
 
-function statusBadge(status) {
+function statusBadge(status, t = (s) => s) {
   const color = STATUS_COLORS[status] || 'secondary';
-  return `<span class="badge badge-soft-${color}">${titleCase(status)}</span>`;
+  return `<span class="badge badge-soft-${color}">${t(titleCase(status))}</span>`;
 }
 
 /** Build a query string from the current query, overriding some keys (used by pagination & filters). */
@@ -42,19 +42,29 @@ const selected = (a, b) => (String(a) === String(b) ? 'selected' : '');
 const checked = (cond) => (cond ? 'checked' : '');
 
 /** Format one report cell for HTML (status cells become badges, returned as HTML). */
-function reportCell(value, type, currency) {
+function reportCell(value, type, currency, t) {
   if (value === undefined || value === null || value === '') return '';
   const esc = (x) => String(x).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   switch (type) {
     case 'money': return typeof value === 'number' ? esc(money.format(value, currency)) : esc(value);
     case 'date': return esc(dates.formatDate(value));
     case 'percent': return `${esc(value)}%`;
-    case 'status': return statusBadge(value);
+    case 'status': return statusBadge(value, t);
     default: return esc(value);
   }
 }
 
+/** Per-request versions of the label helpers that translate through t(). */
+function forLocale(t) {
+  return {
+    titleCase: (s) => t(titleCase(s)),
+    statusBadge: (s) => statusBadge(s, t),
+    reportCell: (value, type, currency) => reportCell(value, type, currency, t),
+  };
+}
+
 module.exports = {
+  forLocale,
   reportCell,
   money: money.format,
   moneyInput: money.toDecimalString,

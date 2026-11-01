@@ -1,9 +1,9 @@
 <section class="section">
   <div class="container">
     <div class="text-center mb-5">
-      <div class="small-caps mb-2">Features</div>
-      <h1>Everything a Quran school needs</h1>
-      <p class="text-muted mx-auto" style="max-width:40rem">One platform for the academic and financial life of your school, with the right access for every role.</p>
+      <div class="small-caps mb-2"><%= t('Features') %></div>
+      <h1><%= t('Everything a Quran school needs') %></h1>
+      <p class="text-muted mx-auto" style="max-width:40rem"><%= t('One platform for the academic and financial life of your school, with the right access for every role.') %></p>
     </div>
     <% var groups = [
       ['Students & teachers', 'people', [
@@ -42,12 +42,12 @@
         <div class="col-md-6 col-lg-4">
           <div class="feature-tile">
             <div class="stat-icon emerald"><i class="bi bi-<%= g[1] %>"></i></div>
-            <h2 class="h6"><%= g[0] %></h2>
-            <ul class="small text-muted ps-3 mb-0 d-grid gap-1"><% g[2].forEach(function (i) { %><li><%= i %></li><% }) %></ul>
+            <h2 class="h6"><%= t(g[0]) %></h2>
+            <ul class="small text-muted ps-3 mb-0 d-grid gap-1"><% g[2].forEach(function (i) { %><li><%= t(i) %></li><% }) %></ul>
           </div>
         </div>
       <% }) %>
     </div>
-    <div class="text-center mt-5"><a class="btn btn-primary btn-lg" href="/register">Start your free trial</a></div>
+    <div class="text-center mt-5"><a class="btn btn-primary btn-lg" href="/register"><%= t('Start your free trial') %></a></div>
   </div>
 </section>

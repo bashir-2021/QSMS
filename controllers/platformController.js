@@ -32,7 +32,7 @@ async function newSchoolForm(req, res) {
 async function createSchool(req, res) {
   const { tenant } = await tenantService.registerSchool(req.body, req.file);
   await audit.platform(req, 'school.create', { entity: 'Tenant', entityId: tenant._id, tenant: tenant._id });
-  req.flash('success', `${tenant.name} registered.`);
+  req.flash('success', req.t('{name} registered.', { name: tenant.name }));
   res.redirect(`/platform/schools/${tenant._id}`);
 }
 
@@ -55,7 +55,7 @@ async function setSchoolStatus(req, res) {
   if (!status) throw notFound('Action');
   const tenant = await tenantService.setStatus(req.params.id, status, req.body.reason);
   await audit.platform(req, `school.${req.params.action}`, { entity: 'Tenant', entityId: tenant._id, tenant: tenant._id, details: { reason: req.body.reason } });
-  req.flash('success', `${tenant.name} is now ${status}.`);
+  req.flash('success', req.t('{name} is now {status}.', { name: tenant.name, status: req.t(status.charAt(0).toUpperCase() + status.slice(1)).toLowerCase() }));
   res.redirect(`/platform/schools/${tenant._id}`);
 }
 
@@ -63,10 +63,11 @@ async function subscriptionAction(req, res) {
   const { id, action } = req.params;
   if (action === 'extend') {
     const sub = await subscriptionService.extend(id, req.body.days);
-    req.flash('success', `Subscription extended to ${dates.formatDate(sub.endDate)}.`);
+    req.flash('success', req.t('Subscription extended to {date}.', { date: dates.formatDate(sub.endDate) }));
   } else {
     await subscriptionService.setSubscriptionStatus(id, action);
-    req.flash('success', `Subscription ${action === 'reactivate' ? 'reactivated' : `${action}ed`}.`);
+    const done = { reactivate: 'Subscription reactivated.', suspend: 'Subscription suspended.', cancel: 'Subscription cancelled.' }[action];
+    req.flash('success', done ? req.t(done) : req.t('Subscription updated.'));
   }
   await audit.platform(req, `subscription.${action}`, { entity: 'Tenant', entityId: id, tenant: id, details: req.body });
   res.redirect(`/platform/schools/${id}`);
@@ -76,7 +77,7 @@ async function subscriptionAction(req, res) {
 async function recordPaymentForSchool(req, res) {
   const payment = await subscriptionService.submitPayment(req.params.id, req.body, { kind: 'platform', userId: req.user._id, name: req.user.name });
   await audit.platform(req, 'payment.record', { entity: 'SubscriptionPayment', entityId: payment._id, tenant: req.params.id });
-  req.flash('success', `Payment ${payment.reference} recorded as pending. Verify it to activate the subscription.`);
+  req.flash('success', req.t('Payment {ref} recorded as pending. Verify it to activate the subscription.', { ref: payment.reference }));
   res.redirect(`/platform/payments/${payment._id}`);
 }
 
@@ -87,12 +88,12 @@ async function plans(req, res) {
 async function planForm(req, res) {
   const plan = req.params.id ? await SubscriptionPlan.findById(req.params.id).lean() : null;
   if (req.params.id && !plan) throw notFound('Plan');
-  res.render('superadmin/plan-form', { title: plan ? `Edit ${plan.name}` : 'New plan', plan, nav: 'plans' });
+  res.render('superadmin/plan-form', { title: plan ? req.t('Edit {name}', { name: plan.name }) : 'New plan', plan, nav: 'plans' });
 }
 async function savePlan(req, res) {
   const plan = await platformService.savePlan(req.params.id, req.body);
   await audit.platform(req, req.params.id ? 'plan.update' : 'plan.create', { entity: 'SubscriptionPlan', entityId: plan._id, details: { name: plan.name, price: plan.price } });
-  req.flash('success', `Plan ${plan.name} saved. Existing subscriptions keep their terms until renewal.`);
+  req.flash('success', req.t('Plan {name} saved. Existing subscriptions keep their terms until renewal.', { name: plan.name }));
   res.redirect('/platform/plans');
 }
 
@@ -103,18 +104,19 @@ async function payments(req, res) {
 async function payment(req, res) {
   const p = await SubscriptionPayment.findById(req.params.id).populate('tenant').populate('plan').populate('verifiedBy', 'name').populate('subscription').lean();
   if (!p) throw notFound('Payment');
-  res.render('superadmin/payment', { title: `Payment ${p.reference}`, p, nav: 'payments' });
+  res.render('superadmin/payment', { title: req.t('Payment {ref}', { ref: p.reference }), p, nav: 'payments' });
 }
 async function verifyPayment(req, res) {
   const { payment: p, subscription } = await subscriptionService.verifyPayment(req.params.id, req.user, runInTransaction);
   await audit.platform(req, 'payment.verify', { entity: 'SubscriptionPayment', entityId: p._id, tenant: p.tenant, details: { amount: p.amount, endDate: subscription.endDate } });
-  req.flash('success', `Payment verified. Subscription active until ${dates.formatDate(subscription.endDate)}.`);
+  req.flash('success', req.t('Payment verified. Subscription active until {date}.', { date: dates.formatDate(subscription.endDate) }));
   res.redirect(`/platform/payments/${p._id}`);
 }
 async function setPaymentStatus(req, res) {
   const p = await subscriptionService.setPaymentStatus(req.params.id, req.params.status, req.user, req.body.notes);
   await audit.platform(req, `payment.${req.params.status}`, { entity: 'SubscriptionPayment', entityId: p._id, tenant: p.tenant, details: { notes: req.body.notes } });
-  req.flash('success', `Payment marked ${req.params.status}.`);
+  const marked = { failed: 'Payment marked failed.', cancelled: 'Payment marked cancelled.', refunded: 'Payment marked refunded.', paid: 'Payment marked paid.' }[req.params.status];
+  req.flash('success', marked ? req.t(marked) : req.t('Payment updated.'));
   res.redirect(`/platform/payments/${p._id}`);
 }
 
@@ -130,7 +132,7 @@ async function subscriptions(req, res) {
 async function runJobs(req, res) {
   const r = await jobService.runOnce();
   await audit.platform(req, 'jobs.run', { details: r });
-  req.flash('success', `Refreshed ${r.checked} subscriptions (${r.changed} updated), marked ${r.overdueMarked} overdue invoices.`);
+  req.flash('success', req.t('Refreshed {checked} subscriptions ({changed} updated), marked {overdue} overdue invoices.', { checked: r.checked, changed: r.changed, overdue: r.overdueMarked }));
   res.redirect('/platform/subscriptions');
 }
 
@@ -153,13 +155,13 @@ async function staff(req, res) {
 async function createStaff(req, res) {
   const u = await userService.createPlatformUser(req.body);
   await audit.platform(req, 'staff.create', { entity: 'PlatformUser', entityId: u._id, details: { email: u.email, role: u.role } });
-  req.flash('success', `${u.name} added.`);
+  req.flash('success', req.t('{name} added.', { name: u.name }));
   res.redirect('/platform/staff');
 }
 async function updateStaff(req, res) {
   const u = await userService.updatePlatformUser(req.user, req.params.id, req.body);
   await audit.platform(req, 'staff.update', { entity: 'PlatformUser', entityId: u._id, details: { role: u.role, isActive: u.isActive } });
-  req.flash('success', `${u.name} updated.`);
+  req.flash('success', req.t('{name} updated.', { name: u.name }));
   res.redirect('/platform/staff');
 }
 

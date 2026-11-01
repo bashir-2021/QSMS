@@ -24,13 +24,13 @@ async function users(req, res) {
 async function createUser(req, res) {
   const u = await userService.createSchoolUser(ctx(req), req.body);
   await audit.school(req, 'user.create', { entity: 'SchoolUser', entityId: u._id, details: { email: u.email, role: u.role } });
-  req.flash('success', `${u.name} can now sign in as ${SCHOOL_ROLES[u.role].label}.`);
+  req.flash('success', req.t('{name} can now sign in as {role}.', { name: u.name, role: req.t(SCHOOL_ROLES[u.role].label) }));
   res.redirect('/school/users');
 }
 async function updateUser(req, res) {
   const u = await userService.updateSchoolUser(ctx(req), req.params.id, req.body);
   await audit.school(req, 'user.update', { entity: 'SchoolUser', entityId: u._id, details: { role: u.role, isActive: u.isActive, passwordReset: Boolean(req.body.password) } });
-  req.flash('success', `${u.name} updated.`);
+  req.flash('success', req.t('{name} updated.', { name: u.name }));
   res.redirect('/school/users');
 }
 
@@ -79,7 +79,7 @@ async function subscription(req, res) {
 async function submitSubscriptionPayment(req, res) {
   const p = await subscriptionService.submitPayment(req.tenantId, req.body, { kind: 'school', userId: req.user._id, name: req.user.name });
   await audit.school(req, 'subscription.payment_submit', { entity: 'SubscriptionPayment', entityId: p._id, details: { reference: p.reference, amount: p.amount } });
-  req.flash('success', `Payment ${p.reference} submitted. Your subscription will be updated as soon as Quranic verifies it.`);
+  req.flash('success', req.t('Payment {reference} submitted. Your subscription will be updated as soon as Quranic verifies it.', { reference: p.reference }));
   res.redirect('/school/subscription');
 }
 

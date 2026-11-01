@@ -1,27 +1,27 @@
 <section class="section">
   <div class="container" style="max-width:920px">
     <div class="text-center mb-4">
-      <div class="small-caps mb-2">Get started</div>
-      <h1>Register your Quran school</h1>
-      <p class="text-muted">Your school gets its own private workspace, administrator account and subscription in under a minute.</p>
+      <div class="small-caps mb-2"><%= t('Get started') %></div>
+      <h1><%= t('Register your Quran school') %></h1>
+      <p class="text-muted"><%= t('Your school gets its own private workspace, administrator account and subscription in under a minute.') %></p>
     </div>
     <div class="card"><div class="card-body p-4">
       <form method="post" action="/register?_csrf=<%= csrfToken %>" enctype="multipart/form-data" class="row g-3 needs-validation" novalidate>
-        <div class="col-12"><div class="small-caps">School</div></div>
+        <div class="col-12"><div class="small-caps"><%= t('School') %></div></div>
         <%- include('../partials/field', { name: 'schoolName', label: 'School name', required: true, col: 'col-md-8' }) %>
         <%- include('../partials/field', { name: 'logo', label: 'Logo (optional)', ftype: 'file', col: 'col-md-4', help: 'PNG, JPG or WebP, max 2 MB' }) %>
         <%- include('../partials/field', { name: 'country', label: 'Country', required: true, col: 'col-md-4', value: 'Somalia' }) %>
         <%- include('../partials/field', { name: 'city', label: 'City', required: true, col: 'col-md-4' }) %>
         <%- include('../partials/field', { name: 'address', label: 'Address', col: 'col-md-4' }) %>
 
-        <div class="col-12 mt-4"><div class="small-caps">Administrator</div></div>
+        <div class="col-12 mt-4"><div class="small-caps"><%= t('Administrator') %></div></div>
         <%- include('../partials/field', { name: 'adminName', label: 'Full name', required: true, col: 'col-md-4' }) %>
         <%- include('../partials/field', { name: 'phone', label: 'Phone', ftype: 'tel', required: true, col: 'col-md-4', placeholder: '+252 61 000 0000' }) %>
         <%- include('../partials/field', { name: 'email', label: 'Email (used to sign in)', ftype: 'email', required: true, col: 'col-md-4' }) %>
         <%- include('../partials/field', { name: 'password', label: 'Password', ftype: 'password', required: true, col: 'col-md-6', help: 'At least 8 characters with a letter and a number', attrs: 'minlength="8" autocomplete="new-password"' }) %>
         <%- include('../partials/field', { name: 'confirmPassword', label: 'Confirm password', ftype: 'password', required: true, col: 'col-md-6', attrs: 'minlength="8" autocomplete="new-password"' }) %>
 
-        <div class="col-12 mt-4"><div class="small-caps">Subscription plan</div></div>
+        <div class="col-12 mt-4"><div class="small-caps"><%= t('Subscription plan') %></div></div>
         <div class="col-12">
           <div class="row g-2">
             <% var chosen = old.planId || selectedPlan || (plans[0] && String(plans[0]._id)); %>
@@ -30,24 +30,24 @@
                 <input type="radio" class="btn-check" name="planId" id="plan_<%= p._id %>" value="<%= p._id %>" <%= String(p._id) === String(chosen) ? 'checked' : '' %> required>
                 <label class="btn btn-outline-primary w-100 text-start p-3 h-100" for="plan_<%= p._id %>">
                   <span class="fw-bold d-block"><%= p.name %></span>
-                  <span class="small d-block"><%= money(p.price, p.currency) %> / <%= C.BILLING_CYCLES[p.billingCycle].label.toLowerCase() %></span>
-                  <span class="small d-block opacity-75"><%= p.trialDays ? p.trialDays + '-day free trial' : 'Activates after payment' %></span>
+                  <span class="small d-block"><%= money(p.price, p.currency) %> / <%= t(C.BILLING_CYCLES[p.billingCycle].label).toLowerCase() %></span>
+                  <span class="small d-block opacity-75"><%= p.trialDays ? t('{n}-day free trial', { n: p.trialDays }) : t('Activates after payment') %></span>
                 </label>
               </div>
             <% }) %>
           </div>
-          <% if (formErrors.planId) { %><div class="invalid-feedback d-block"><%= formErrors.planId %></div><% } %>
+          <% if (formErrors.planId) { %><div class="invalid-feedback d-block"><%= t(formErrors.planId) %></div><% } %>
         </div>
         <div class="col-12 mt-3">
           <div class="form-check">
             <input class="form-check-input" type="checkbox" name="terms" id="terms" required>
-            <label class="form-check-label small" for="terms">I confirm I am authorised to register this school and accept the terms of service.</label>
-            <% if (formErrors.terms) { %><div class="invalid-feedback d-block"><%= formErrors.terms %></div><% } %>
+            <label class="form-check-label small" for="terms"><%= t('I confirm I am authorised to register this school and accept the terms of service.') %></label>
+            <% if (formErrors.terms) { %><div class="invalid-feedback d-block"><%= t(formErrors.terms) %></div><% } %>
           </div>
         </div>
         <div class="col-12 d-flex justify-content-between align-items-center mt-2">
-          <span class="small text-muted">Already registered? <a href="/login">Log in</a></span>
-          <button class="btn btn-primary btn-lg px-4" type="submit">Create school account</button>
+          <span class="small text-muted"><%= t('Already registered?') %> <a href="/login"><%= t('Log in') %></a></span>
+          <button class="btn btn-primary btn-lg px-4" type="submit"><%= t('Create school account') %></button>
         </div>
       </form>
     </div></div>

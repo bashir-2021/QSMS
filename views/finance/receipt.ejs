@@ -1,35 +1,35 @@
 <% var s = r.snapshot; var cur = s.currency; %>
-<%- include('../partials/page-header', { heading: 'Receipt ' + r.receiptNo, crumbs: [['Receipts', '/school/finance/receipts'], [r.receiptNo, null]], sub: 'Printed ' + r.printCount + ' time(s)' + (r.lastPrintedAt ? ' · last on ' + fmtDate(r.lastPrintedAt) : ''),
-  actions: '<a class="btn btn-light btn-icon" href="/school/finance/receipts/' + r._id + '/pdf?download=1"><i class="bi bi-download"></i>Download PDF</a><a class="btn btn-primary btn-icon" href="/school/finance/receipts/' + r._id + '/pdf" target="_blank" rel="noopener"><i class="bi bi-printer"></i>Print / reprint</a>' }) %>
+<%- include('../partials/page-header', { heading: t('Receipt {no}', { no: r.receiptNo }), crumbs: [['Receipts', '/school/finance/receipts'], [r.receiptNo, null]], sub: (r.printCount === 1 ? t('Printed 1 time') : t('Printed {n} times', { n: r.printCount || 0 })) + (r.lastPrintedAt ? ' · ' + t('last on {date}', { date: fmtDate(r.lastPrintedAt) }) : ''),
+  actions: '<a class="btn btn-light btn-icon" href="/school/finance/receipts/' + r._id + '/pdf?download=1"><i class="bi bi-download"></i>' + t('Download PDF') + '</a><a class="btn btn-primary btn-icon" href="/school/finance/receipts/' + r._id + '/pdf" target="_blank" rel="noopener"><i class="bi bi-printer"></i>' + t('Print / reprint') + '</a>' }) %>
 
 <div class="card mx-auto position-relative" style="max-width:720px">
-  <% if (r.status === 'void') { %><div class="position-absolute top-50 start-50 translate-middle fw-bold text-danger" style="font-size:6rem;opacity:.12;transform:translate(-50%,-50%) rotate(-25deg)!important;pointer-events:none">VOID</div><% } %>
+  <% if (r.status === 'void') { %><div class="position-absolute top-50 start-50 translate-middle fw-bold text-danger" style="font-size:6rem;opacity:.12;transform:translate(-50%,-50%) rotate(-25deg)!important;pointer-events:none"><%= t('VOID') %></div><% } %>
   <div class="card-body p-4">
     <div class="d-flex gap-3 align-items-center mb-3">
       <% if (s.schoolLogo) { %><img src="/school/files/<%= s.schoolLogo.split('/').pop() %>" alt="" style="width:52px;height:52px;object-fit:contain"><% } %>
       <div><div class="fw-bold fs-5" style="color:var(--q-emerald)"><%= s.schoolName %></div><div class="small text-muted"><%= s.schoolAddress %><%= s.schoolPhone ? ' · ' + s.schoolPhone : '' %></div></div>
     </div>
-    <div class="d-flex justify-content-between align-items-center p-2 px-3 rounded-3 text-white mb-3" style="background:var(--q-emerald)"><span class="fw-bold">PAYMENT RECEIPT</span><span class="font-monospace"><%= r.receiptNo %></span></div>
+    <div class="d-flex justify-content-between align-items-center p-2 px-3 rounded-3 text-white mb-3" style="background:var(--q-emerald)"><span class="fw-bold"><%= t('PAYMENT RECEIPT') %></span><span class="font-monospace"><%= r.receiptNo %></span></div>
     <dl class="dl-grid mb-3">
-      <div><dt>Student</dt><dd><%= s.studentName %></dd></div>
-      <div><dt>Student ID</dt><dd class="font-monospace"><%= s.studentCode %></dd></div>
-      <div><dt>Class</dt><dd><%= s.className %></dd></div>
-      <div><dt>Category</dt><dd><%= titleCase(s.category) %></dd></div>
-      <div><dt>Billing period</dt><dd><%= (s.periods || []).map(periodLabel).join(', ') || '—' %></dd></div>
-      <div><dt>Payment date</dt><dd><%= fmtDate(s.paymentDate) %></dd></div>
-      <div><dt>Method</dt><dd><%= s.method %></dd></div>
-      <div><dt>Transaction ref.</dt><dd><%= s.transactionRef || '—' %></dd></div>
+      <div><dt><%= t('Student') %></dt><dd><%= s.studentName %></dd></div>
+      <div><dt><%= t('Student ID') %></dt><dd class="font-monospace"><%= s.studentCode %></dd></div>
+      <div><dt><%= t('Class') %></dt><dd><%= s.className %></dd></div>
+      <div><dt><%= t('Category') %></dt><dd><%= titleCase(s.category) %></dd></div>
+      <div><dt><%= t('Billing period') %></dt><dd><%= (s.periods || []).map(periodLabel).join(', ') || '—' %></dd></div>
+      <div><dt><%= t('Payment date') %></dt><dd><%= fmtDate(s.paymentDate) %></dd></div>
+      <div><dt><%= t('Method') %></dt><dd><%= s.method %></dd></div>
+      <div><dt><%= t('Transaction ref.') %></dt><dd><%= s.transactionRef || '—' %></dd></div>
     </dl>
     <table class="table table-sm">
-      <thead><tr><th>Invoice</th><th>Description</th><th class="num">Invoice total</th><th class="num">Applied</th><th class="num">Balance</th></tr></thead>
-      <tbody><% (s.lines || []).forEach(function (l) { %><tr><td class="font-monospace small"><%= l.invoiceNo %></td><td class="small"><%= l.description %></td><td class="num"><%= money(l.total, cur) %></td><td class="num"><%= money(l.applied, cur) %></td><td class="num"><%= money(l.balanceAfter, cur) %></td></tr><% }) %></tbody>
+      <thead><tr><th><%= t('Invoice') %></th><th><%= t('Description') %></th><th class="num"><%= t('Invoice total') %></th><th class="num"><%= t('Applied') %></th><th class="num"><%= t('Balance') %></th></tr></thead>
+      <tbody><% (s.lines || []).forEach(function (l) { %><tr><td class="font-monospace small"><%= l.invoiceNo %></td><td class="small"><%= t(l.description) %></td><td class="num"><%= money(l.total, cur) %></td><td class="num"><%= money(l.applied, cur) %></td><td class="num"><%= money(l.balanceAfter, cur) %></td></tr><% }) %></tbody>
     </table>
     <div class="ms-auto" style="max-width:300px">
-      <div class="d-flex justify-content-between py-1"><span>Total amount</span><span><%= money(s.totalAmount, cur) %></span></div>
-      <div class="d-flex justify-content-between py-1 fw-bold fs-5" style="color:var(--q-emerald)"><span>Amount paid</span><span><%= money(s.amountPaid, cur) %></span></div>
-      <div class="d-flex justify-content-between py-1"><span>Remaining balance</span><span class="<%= s.remainingBalance > 0 ? 'text-danger' : '' %>"><%= money(s.remainingBalance, cur) %></span></div>
+      <div class="d-flex justify-content-between py-1"><span><%= t('Total amount') %></span><span><%= money(s.totalAmount, cur) %></span></div>
+      <div class="d-flex justify-content-between py-1 fw-bold fs-5" style="color:var(--q-emerald)"><span><%= t('Amount paid') %></span><span><%= money(s.amountPaid, cur) %></span></div>
+      <div class="d-flex justify-content-between py-1"><span><%= t('Remaining balance') %></span><span class="<%= s.remainingBalance > 0 ? 'text-danger' : '' %>"><%= money(s.remainingBalance, cur) %></span></div>
     </div>
-    <div class="small text-muted mt-3">Received by <%= s.receivedBy %></div>
+    <div class="small text-muted mt-3"><%= t('Received by {name}', { name: s.receivedBy }) %></div>
     <% if (s.footer) { %><div class="small text-muted text-center mt-3"><%= s.footer %></div><% } %>
   </div>
 </div>

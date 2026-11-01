@@ -62,7 +62,7 @@ async function saveProgress(req, res) {
   const restrict = await classService.restrictedClassIds(req);
   const n = await lessonService.saveProgress(ctx(req), req.params.id, req.body.rows, restrict);
   await audit.school(req, 'lesson.progress', { entity: 'Lesson', entityId: req.params.id, details: { students: n } });
-  req.flash('success', `Progress saved for ${n} student(s).`);
+  req.flash('success', n === 1 ? req.t('Progress saved for 1 student.') : req.t('Progress saved for {n} students.', { n }));
   res.redirect(`/school/lessons/${req.params.id}`);
 }
 
@@ -84,7 +84,7 @@ async function activityForm(req, res) {
     req.params.id ? activityService.detail(req.tenantId, type, req.params.id).then((d) => d.activity) : null,
     classService.all(req.tenantId, restrict), teacherService.all(req.tenantId),
   ]);
-  res.render('activities/form', { title: `${activity ? 'Edit' : 'New'} ${C.ACTIVITY_TYPES[type]}`, type, activity, classes, teachers, nav: type });
+  res.render('activities/form', { title: req.t(activity ? 'Edit {type}' : 'New {type}', { type: req.t(C.ACTIVITY_TYPES[type]) }), type, activity, classes, teachers, nav: type });
 }
 async function createActivity(req, res) {
   const type = typeOf(req);
@@ -115,7 +115,7 @@ async function activityDetail(req, res) {
 async function saveParticipation(req, res) {
   const type = typeOf(req);
   const n = await activityService.saveParticipation(ctx(req), type, req.params.id, req.body.rows, await classService.restrictedClassIds(req));
-  req.flash('success', `Saved ${n} participant record(s).`);
+  req.flash('success', n === 1 ? req.t('Saved 1 participant record.') : req.t('Saved {n} participant records.', { n }));
   res.redirect(`/school/activities/${type}/${req.params.id}`);
 }
 
@@ -131,7 +131,7 @@ async function saveAttendance(req, res) {
   const restrict = await classService.restrictedClassIds(req);
   const r = await attendanceService.saveStudentSheet(ctx(req), req.body.class, req.body.date, req.body.att, restrict);
   await audit.school(req, 'attendance.students', { entity: 'Class', entityId: r.cls._id, details: { date: dates.toISODate(r.date), saved: r.saved } });
-  req.flash('success', `Attendance saved for ${r.saved} student(s) in ${r.cls.name}.`);
+  req.flash('success', r.saved === 1 ? req.t('Attendance saved for 1 student in {cls}.', { cls: r.cls.name }) : req.t('Attendance saved for {n} students in {cls}.', { n: r.saved, cls: r.cls.name }));
   res.redirect(`/school/attendance?class=${r.cls._id}&date=${dates.toISODate(r.date)}`);
 }
 async function teacherAttendance(req, res) {
@@ -141,30 +141,32 @@ async function teacherAttendance(req, res) {
 async function saveTeacherAttendance(req, res) {
   const r = await attendanceService.saveTeacherSheet(ctx(req), req.body.date, req.body.att);
   await audit.school(req, 'attendance.teachers', { details: { date: dates.toISODate(r.date), saved: r.saved } });
-  req.flash('success', `Teacher attendance saved (${r.saved}).`);
+  req.flash('success', req.t('Teacher attendance saved ({n}).', { n: r.saved }));
   res.redirect(`/school/attendance/teachers?date=${dates.toISODate(r.date)}`);
 }
 async function attendanceReport(req, res) {
   const restrict = await classService.restrictedClassIds(req);
   const data = await attendanceService.report(req.tenantId, req.query, restrict);
   const isTeacher = data.scope === 'teacher';
+  const titleParts = String(data.title || '').split(' — ');
+  const reportTitle = titleParts.length > 1 ? req.t('{report} — {name}', { report: req.t(titleParts[0]), name: titleParts.slice(1).join(' — ') }) : req.t(data.title);
   const report = {
-    title: data.title, subtitle: data.label,
+    title: reportTitle, subtitle: data.label,
     summary: [
-      { label: 'Records', value: data.totals.total, type: 'number' }, { label: 'Present', value: data.totals.present, type: 'number' },
-      { label: 'Absent', value: data.totals.absent, type: 'number' }, { label: 'Late', value: data.totals.late, type: 'number' },
-      { label: 'Excused', value: data.totals.excused, type: 'number' }, { label: 'Attendance rate', value: data.totals.rate == null ? '—' : `${data.totals.rate}%`, type: 'text' },
+      { label: req.t('Records'), value: data.totals.total, type: 'number' }, { label: req.t('Present'), value: data.totals.present, type: 'number' },
+      { label: req.t('Absent'), value: data.totals.absent, type: 'number' }, { label: req.t('Late'), value: data.totals.late, type: 'number' },
+      { label: req.t('Excused'), value: data.totals.excused, type: 'number' }, { label: req.t('Attendance rate'), value: data.totals.rate == null ? '—' : `${data.totals.rate}%`, type: 'text' },
     ],
     sections: [{
-      title: isTeacher ? 'By teacher' : 'By student',
-      columns: [{ key: 'code', label: 'ID' }, { key: 'name', label: 'Name' }, ...(isTeacher ? [] : [{ key: 'className', label: 'Class' }]),
-        { key: 'present', label: 'Present', type: 'number' }, { key: 'absent', label: 'Absent', type: 'number' }, { key: 'late', label: 'Late', type: 'number' },
-        { key: 'excused', label: 'Excused', type: 'number' }, { key: 'total', label: 'Days', type: 'number' }, { key: 'rate', label: 'Rate', type: 'percent' }],
+      title: isTeacher ? req.t('By teacher') : req.t('By student'),
+      columns: [{ key: 'code', label: req.t('ID') }, { key: 'name', label: req.t('Name') }, ...(isTeacher ? [] : [{ key: 'className', label: req.t('Class') }]),
+        { key: 'present', label: req.t('Present'), type: 'number' }, { key: 'absent', label: req.t('Absent'), type: 'number' }, { key: 'late', label: req.t('Late'), type: 'number' },
+        { key: 'excused', label: req.t('Excused'), type: 'number' }, { key: 'total', label: req.t('Days'), type: 'number' }, { key: 'rate', label: req.t('Rate'), type: 'percent' }],
       rows: data.rows,
-      totals: { code: 'Total', present: data.totals.present, absent: data.totals.absent, late: data.totals.late, excused: data.totals.excused, total: data.totals.total, rate: data.totals.rate },
+      totals: { code: req.t('Total'), present: data.totals.present, absent: data.totals.absent, late: data.totals.late, excused: data.totals.excused, total: data.totals.total, rate: data.totals.rate },
     }, {
-      title: 'By day',
-      columns: [{ key: 'day', label: 'Date', type: 'date' }, { key: 'present', label: 'Present', type: 'number' }, { key: 'absent', label: 'Absent', type: 'number' }, { key: 'late', label: 'Late', type: 'number' }, { key: 'excused', label: 'Excused', type: 'number' }, { key: 'rate', label: 'Rate', type: 'percent' }],
+      title: req.t('By day'),
+      columns: [{ key: 'day', label: req.t('Date'), type: 'date' }, { key: 'present', label: req.t('Present'), type: 'number' }, { key: 'absent', label: req.t('Absent'), type: 'number' }, { key: 'late', label: req.t('Late'), type: 'number' }, { key: 'excused', label: req.t('Excused'), type: 'number' }, { key: 'rate', label: req.t('Rate'), type: 'percent' }],
       rows: data.daily,
     }],
     chart: { labels: data.daily.map((d) => d.day.slice(5)), rate: data.daily.map((d) => d.rate) },

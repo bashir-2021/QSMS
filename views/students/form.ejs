@@ -4,7 +4,7 @@
 <form method="post" action="<%= editing ? '/school/students/' + s._id : '/school/students' %>?_csrf=<%= csrfToken %>" enctype="multipart/form-data" class="needs-validation" novalidate>
   <div class="row g-3">
     <div class="col-lg-8">
-      <div class="card mb-3"><div class="card-header">Student details</div><div class="card-body row g-3">
+      <div class="card mb-3"><div class="card-header"><%= t('Student details') %></div><div class="card-body row g-3">
         <%- include('../partials/field', { name: 'fullName', label: 'Full name', value: s.fullName, required: true, col: 'col-md-8' }) %>
         <%- include('../partials/field', { name: 'gender', label: 'Gender', ftype: 'select', value: s.gender, required: true, col: 'col-md-4', options: C.GENDERS.map(function (g) { return { value: g, label: titleCase(g) }; }) }) %>
         <%- include('../partials/field', { name: 'dateOfBirth', label: 'Date of birth', ftype: 'date', value: isoDate(s.dateOfBirth), col: 'col-md-4' }) %>
@@ -13,34 +13,60 @@
         <%- include('../partials/field', { name: 'address', label: 'Address', value: s.address }) %>
       </div></div>
 
-      <div class="card mb-3"><div class="card-header">Guardian</div><div class="card-body row g-3">
+      <div class="card mb-3"><div class="card-header"><%= t('Guardian') %></div><div class="card-body row g-3">
         <%- include('../partials/field', { name: 'guardianName', label: 'Guardian name', value: s.guardianName, col: 'col-md-5' }) %>
         <%- include('../partials/field', { name: 'guardianRelation', label: 'Relationship', value: s.guardianRelation, col: 'col-md-3', placeholder: 'Father, Mother…' }) %>
         <%- include('../partials/field', { name: 'guardianPhone', label: 'Guardian phone', ftype: 'tel', value: s.guardianPhone, col: 'col-md-4' }) %>
       </div></div>
 
-      <div class="card mb-3"><div class="card-header">Class placement &amp; fees</div><div class="card-body row g-3">
-        <%- include('../partials/field', { name: 'class', label: 'Class', ftype: 'select', value: s.class, col: 'col-md-6', placeholder: '— Not assigned —', options: classes.map(function (c) { return { value: c._id, label: c.name + ' (' + c.level + ')' }; }), help: editing ? 'Changing the class records a transfer in the enrolment history.' : '' }) %>
-        <%- include('../partials/field', { name: 'teacher', label: 'Teacher', ftype: 'select', value: s.teacher, col: 'col-md-6', placeholder: '— Class teacher —', options: teachers.map(function (t) { return { value: t._id, label: t.fullName }; }) }) %>
-        <%- include('../partials/field', { name: 'feeOverride', label: 'Custom monthly fee (optional)', ftype: 'money', value: s.feeOverride != null ? moneyInput(s.feeOverride) : '', col: 'col-md-6', help: 'Leave empty to use the class fee or the school fee (' + money(settings.monthlyFee, currency) + ').' }) %>
-        <% if (!editing && settings.registrationFee > 0 && can('invoices.manage')) { %>
-          <div class="col-md-6 d-flex align-items-end"><div class="form-check form-switch mb-2">
-            <input class="form-check-input" type="checkbox" name="chargeRegistration" id="chargeRegistration" checked>
-            <label class="form-check-label" for="chargeRegistration">Create registration fee invoice (<%= money(settings.registrationFee, currency) %>)</label>
-          </div></div>
-        <% } %>
+      <div class="card mb-3"><div class="card-header"><%= t('Class placement & fees') %></div><div class="card-body row g-3">
+        <%- include('../partials/field', { name: 'class', label: 'Class', ftype: 'select', value: s.class, col: 'col-md-6', placeholder: '— Not assigned —', options: classes.map(function (c) { return { value: c._id, label: c.name + ' (' + t(c.level) + ')' }; }), help: editing ? 'Changing the class records a transfer in the enrolment history.' : '' }) %>
+        <%- include('../partials/field', { name: 'teacher', label: 'Teacher', ftype: 'select', value: s.teacher, col: 'col-md-6', placeholder: '— Class teacher —', options: teachers.map(function (tc) { return { value: tc._id, label: tc.fullName }; }) }) %>
+        <%- include('../partials/field', { name: 'feeOverride', label: 'Custom monthly fee (optional)', ftype: 'money', value: s.feeOverride != null ? moneyInput(s.feeOverride) : '', col: 'col-md-6', help: t('Leave empty to use the class fee or the school fee ({fee}).', { fee: money(settings.monthlyFee, currency) }) }) %>
         <%- include('../partials/field', { name: 'notes', label: 'Notes', ftype: 'textarea', value: s.notes, rows: 2, max: 500 }) %>
       </div></div>
+
+      <% if (!editing && hasFeature('finance') && (can('invoices.manage') || can('payments.create'))) {
+           var o = locals.old || {}; var posted = Object.keys(o).length > 0;
+           var charge = posted ? o.chargeRegistration === 'on' : settings.registrationFee > 0;
+           var collect = posted && o.collectRegistration === 'on'; %>
+      <div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-person-plus me-1"></i><%= t('Registration fee') %></span><span class="badge badge-soft-info"><%= t('One-time') %></span>
+      </div><div class="card-body row g-3">
+        <div class="col-12"><div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" name="chargeRegistration" id="chargeRegistration" data-toggle-target="#regFeeFields" <%= charge ? 'checked' : '' %>>
+          <label class="form-check-label" for="chargeRegistration"><%= t('Charge the registration fee for this student') %></label>
+        </div>
+        <div class="form-text"><%= t('Charged only once per student. The student cannot be billed a second registration fee.') %></div></div>
+        <div id="regFeeFields" class="col-12 row g-3 m-0 p-0 <%= charge ? '' : 'd-none' %>">
+          <% if (can('invoices.manage')) { %>
+            <%- include('../partials/field', { name: 'registrationFee', label: 'Registration fee amount', ftype: 'money', value: settings.registrationFee > 0 ? moneyInput(settings.registrationFee) : '', col: 'col-md-6', help: settings.registrationFee > 0 ? t('School fee: {fee}. Change it to give a discount.', { fee: money(settings.registrationFee, currency) }) : t('No default registration fee is set in School Settings.') }) %>
+          <% } else { %>
+            <div class="col-md-6"><label class="form-label"><%= t('Registration fee amount') %></label><div class="form-control-plaintext fw-semibold"><%= money(settings.registrationFee, currency) %></div></div>
+          <% } %>
+          <% if (can('payments.create')) { %>
+            <div class="col-md-6 d-flex align-items-end"><div class="form-check form-switch mb-2">
+              <input class="form-check-input" type="checkbox" name="collectRegistration" id="collectRegistration" data-toggle-target="#regPayFields" <%= collect ? 'checked' : '' %>>
+              <label class="form-check-label" for="collectRegistration"><%= t('Paid now — record the payment and issue a receipt') %></label>
+            </div></div>
+            <div id="regPayFields" class="col-12 row g-3 m-0 p-0 <%= collect ? '' : 'd-none' %>">
+              <%- include('../partials/field', { name: 'paymentMethod', label: 'Payment method', ftype: 'select', col: 'col-md-6', placeholder: false, options: (settings.paymentMethods || []).map(function (pm) { return { value: pm, label: pm }; }) }) %>
+              <%- include('../partials/field', { name: 'transactionRef', label: 'Transaction reference', col: 'col-md-6', placeholder: 'EVC / Zaad reference (optional)' }) %>
+            </div>
+          <% } %>
+        </div>
+      </div></div>
+      <% } %>
     </div>
     <div class="col-lg-4">
-      <div class="card mb-3"><div class="card-header">Photo</div><div class="card-body text-center">
+      <div class="card mb-3"><div class="card-header"><%= t('Photo') %></div><div class="card-body text-center">
         <img id="photoPreview" class="rounded-4 mb-3 <%= s.photo ? '' : 'd-none' %>" style="width:140px;height:140px;object-fit:cover" src="<%= s.photo ? '/school/files/' + s.photo.split('/').pop() : '' %>" alt="">
         <input type="file" class="form-control" name="photo" accept="image/png,image/jpeg,image/webp" data-preview="#photoPreview">
-        <div class="form-text">JPG, PNG or WebP · max 2 MB</div>
+        <div class="form-text"><%= t('JPG, PNG or WebP · max 2 MB') %></div>
       </div></div>
       <div class="card"><div class="card-body d-grid gap-2">
-        <button class="btn btn-primary" type="submit"><%= editing ? 'Save changes' : 'Register student' %></button>
-        <a class="btn btn-light" href="<%= editing ? '/school/students/' + s._id : '/school/students' %>">Cancel</a>
+        <button class="btn btn-primary" type="submit"><%= t(editing ? 'Save changes' : 'Register student') %></button>
+        <a class="btn btn-light" href="<%= editing ? '/school/students/' + s._id : '/school/students' %>"><%= t('Cancel') %></a>
       </div></div>
     </div>
   </div>
