@@ -1,0 +1,55 @@
+<%- include('../partials/page-header', { heading: 'Expenses', sub: 'Recorded expenses reduce the net balance. Cancelled expenses are kept for audit.',
+  actions: (can('salaries.view') ? '<a class="btn btn-light btn-icon" href="/school/finance/salaries"><i class="bi bi-person-workspace"></i>Salaries</a>' : '') +
+    (can('expenses.manage') ? '<a class="btn btn-primary btn-icon" href="/school/finance/expenses/new"><i class="bi bi-plus-lg"></i>Record expense</a>' : '') }) %>
+
+<% if (due.length && can('expenses.manage')) { %>
+<div class="card mb-3 border-warning-subtle"><div class="card-header"><i class="bi bi-arrow-repeat text-warning"></i> Recurring expenses due</div>
+  <div class="table-responsive"><table class="table">
+    <tbody>
+      <% due.forEach(function (e) { %>
+        <tr><td><div class="fw-semibold"><%= e.description %></div><div class="small text-muted"><%= e.category ? e.category.name : '' %> · <%= titleCase(e.recurring.frequency) %> · due <%= fmtDate(e.recurring.nextDueDate) %></div></td>
+          <td class="num"><%= money(e.amount, currency) %></td>
+          <td class="text-end"><form method="post" action="/school/finance/expenses/<%= e._id %>/recur" class="d-inline-flex gap-2" data-confirm="Record this recurring expense again with the chosen date?" data-confirm-variant="btn-primary" data-confirm-button="Record">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="date" class="form-control form-control-sm" name="date" value="<%= today %>" max="<%= today %>"><button class="btn btn-sm btn-primary text-nowrap" type="submit">Record now</button></form></td></tr>
+      <% }) %>
+    </tbody>
+  </table></div>
+</div>
+<% } %>
+
+<form class="filter-bar row g-2 align-items-end" method="get">
+  <div class="col-md-3"><label class="form-label">Search</label><input class="form-control" name="search" value="<%= query.search || '' %>" placeholder="Description, recipient, #"></div>
+  <div class="col-6 col-md-2"><label class="form-label">Category</label><select class="form-select" name="category" data-autosubmit><option value="">All</option><% categories.forEach(function (c) { %><option value="<%= c._id %>" <%= selected(query.category, c._id) %>><%= c.name %></option><% }) %></select></div>
+  <div class="col-6 col-md-2"><label class="form-label">Status</label><select class="form-select" name="status" data-autosubmit><option value="">All</option><option value="recorded" <%= selected(query.status, 'recorded') %>>Recorded</option><option value="cancelled" <%= selected(query.status, 'cancelled') %>>Cancelled</option></select></div>
+  <div class="col-6 col-md-2"><label class="form-label">From</label><input type="date" class="form-control" name="from" value="<%= query.from || '' %>"></div>
+  <div class="col-6 col-md-2"><label class="form-label">To</label><input type="date" class="form-control" name="to" value="<%= query.to || '' %>"></div>
+  <div class="col-md-1"><button class="btn btn-primary w-100" type="submit"><i class="bi bi-search"></i></button></div>
+</form>
+
+<div class="card">
+  <div class="table-responsive"><table class="table table-hover">
+    <thead><tr><th>Date</th><th>Expense</th><th>Category</th><th>Recipient</th><th>Method / ref.</th><th class="num">Amount</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      <% if (!page.items.length) { %><tr><td colspan="8"><div class="empty-state"><i class="bi bi-wallet2"></i>No expenses found.</div></td></tr><% } %>
+      <% page.items.forEach(function (e) { %>
+        <tr>
+          <td class="text-nowrap"><%= fmtDate(e.expenseDate) %></td>
+          <td><div class="fw-semibold"><%= e.description %></div><div class="small text-muted font-monospace"><%= e.expenseNo %> · by <%= e.recordedByName %><%= e.recurring && e.recurring.enabled ? ' · ↻ ' + e.recurring.frequency : '' %></div></td>
+          <td><%= e.category ? e.category.name : '' %></td><td><%= e.recipient || '—' %></td><td class="small"><%= e.method || '' %><div class="text-muted"><%= e.reference || '' %></div></td>
+          <td class="num fw-semibold <%= e.status === 'cancelled' ? 'text-decoration-line-through text-muted' : '' %>"><%= money(e.amount, currency) %></td>
+          <td><%- statusBadge(e.status) %><% if (e.cancelled && e.cancelled.reason) { %><div class="small text-muted" title="<%= e.cancelled.reason %>">by <%= e.cancelled.byName %></div><% } %></td>
+          <td class="text-end text-nowrap">
+            <% if (e.attachment) { %><a class="btn btn-sm btn-light" href="/school/finance/expenses/<%= e._id %>/attachment" target="_blank" rel="noopener" title="Attachment"><i class="bi bi-paperclip"></i></a><% } %>
+            <% if (can('expenses.manage') && e.status === 'recorded' && !e.salaryPayment) { %>
+              <a class="btn btn-sm btn-light" href="/school/finance/expenses/<%= e._id %>/edit" title="Edit"><i class="bi bi-pencil"></i></a>
+              <form method="post" action="/school/finance/expenses/<%= e._id %>/cancel" class="d-inline" data-confirm="Cancel expense <%= e.expenseNo %> (<%= money(e.amount, currency) %>)?" data-confirm-reason="true" data-confirm-button="Cancel expense">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-sm btn-light text-danger" type="submit" title="Cancel"><i class="bi bi-x-circle"></i></button></form>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+    <% if (page.items.length) { %><tfoot><tr><td colspan="5">Recorded total on this page</td><td class="num"><%= money(total, currency) %></td><td colspan="2"></td></tr></tfoot><% } %>
+  </table></div>
+  <%- include('../partials/pagination', { page: page }) %>
+</div>

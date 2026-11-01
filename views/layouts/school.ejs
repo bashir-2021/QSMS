@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+</head>
+<body>
+<div class="app-shell">
+  <%- include('../partials/school-sidebar') %>
+  <div class="sidebar-backdrop"></div>
+  <div class="main">
+    <%- include('../partials/topbar', { accountUrl: '/school/account', notifUrl: '/school/notifications' }) %>
+    <div class="content">
+      <% if (locals.access && access.message) { %>
+        <div class="sub-banner <%= access.mode === 'full' && !access.inGrace ? 'warning' : 'danger' %>">
+          <i class="bi bi-<%= access.mode === 'full' ? 'hourglass-split' : 'lock' %> fs-5"></i>
+          <div class="flex-grow-1"><%= access.message %></div>
+          <a class="btn btn-sm btn-light" href="/school/subscription">Manage subscription</a>
+        </div>
+      <% } %>
+      <%- include('../partials/flash') %>
+      <%- body %>
+    </div>
+  </div>
+</div>
+<%- include('../partials/confirm-modal') %>
+<%- include('../partials/scripts') %>
+<%- locals.script || '' %>
+</body>
+</html>

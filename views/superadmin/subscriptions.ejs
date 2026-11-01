@@ -1,0 +1,17 @@
+<%- include('../partials/page-header', { heading: 'Subscriptions', sub: 'Statuses are refreshed automatically; you can also run the refresh now.',
+  actions: can('subscriptions.manage') ? '<form method="post" action="/platform/subscriptions/refresh"><input type="hidden" name="_csrf" value="' + csrfToken + '"><button class="btn btn-light btn-icon" type="submit"><i class="bi bi-arrow-repeat"></i>Refresh statuses &amp; send reminders</button></form>' : '' }) %>
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a class="btn btn-sm <%= !query.status ? 'btn-primary' : 'btn-light' %>" href="/platform/subscriptions">All</a>
+  <% summary.forEach(function (s) { var key = s.label.replace(' ', '_'); %><a class="btn btn-sm <%= query.status === key ? 'btn-primary' : 'btn-light' %>" href="?status=<%= key %>"><span class="text-capitalize"><%= s.label %></span> <span class="badge bg-white text-dark ms-1"><%= s.value %></span></a><% }) %>
+</div>
+<div class="card"><div class="table-responsive"><table class="table table-hover">
+  <thead><tr><th>School</th><th>Account</th><th>Plan</th><th>Status</th><th>Start</th><th>End</th><th class="num">Days left</th><th class="num">Plan price</th></tr></thead>
+  <tbody>
+    <% if (!rows.length) { %><tr><td colspan="8" class="empty-state">No subscriptions</td></tr><% } %>
+    <% rows.forEach(function (r) { %>
+      <tr><td><a class="row-link" href="/platform/schools/<%= r.id %>"><%= r.school %></a></td><td><%- statusBadge(r.schoolStatus) %></td><td><%= r.plan %></td><td><%- statusBadge(r.status) %></td>
+        <td><%= fmtDate(r.start) %></td><td><%= fmtDate(r.end) %></td><td class="num <%= r.daysLeft != null && r.daysLeft < 0 ? 'text-danger' : '' %>"><%= r.daysLeft == null ? '' : r.daysLeft %></td><td class="num"><%= money(r.price) %></td></tr>
+    <% }) %>
+  </tbody>
+</table></div></div>

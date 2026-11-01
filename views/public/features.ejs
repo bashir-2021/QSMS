@@ -1,0 +1,53 @@
+<section class="section">
+  <div class="container">
+    <div class="text-center mb-5">
+      <div class="small-caps mb-2">Features</div>
+      <h1>Everything a Quran school needs</h1>
+      <p class="text-muted mx-auto" style="max-width:40rem">One platform for the academic and financial life of your school, with the right access for every role.</p>
+    </div>
+    <% var groups = [
+      ['Students & teachers', 'people', [
+        'Student registration with unique IDs, photos and guardian contacts',
+        'Status tracking: active, inactive, graduated, suspended',
+        'Teacher profiles, qualifications, salaries and payment history',
+        'Search, filter, print and export to PDF or Excel']],
+      ['Classes & learning', 'book', [
+        'Classes with levels, schedules, capacity and class-specific fees',
+        'Enrol and transfer students with full history',
+        'Quran lessons by category with surah and verse range',
+        'Per-student performance, scores and teacher remarks']],
+      ['Subac, Duruus & attendance', 'calendar-check', [
+        'Subac (سبع) and Duruus (دروس) sessions with participants',
+        'Daily student and teacher registers: present, absent, late, excused',
+        'Daily, weekly, monthly, class, student and teacher reports',
+        'Attendance rates on profiles and class pages']],
+      ['Fees & receipts', 'receipt', [
+        'Registration and monthly fees — global, per class or per student',
+        'One-click monthly billing with duplicate prevention',
+        'Full and partial payments, discounts and adjustments',
+        'Numbered receipts with balances — view, print, download, reprint']],
+      ['Expenses & reports', 'bar-chart-line', [
+        'Expense categories, attachments and recurring expenses',
+        'Teacher salary payroll linked to expenses',
+        'Ten financial reports from daily to annual net balance',
+        'Income is confirmed payments only — never unpaid invoices']],
+      ['Security & administration', 'shield-lock', [
+        'Roles: administrator, finance officer, teacher, receptionist',
+        'Complete tenant isolation enforced on every query',
+        'Audit trail for logins, payments, reversals and settings',
+        'In-app notifications for renewals and overdue fees']]
+    ]; %>
+    <div class="row g-3">
+      <% groups.forEach(function (g) { %>
+        <div class="col-md-6 col-lg-4">
+          <div class="feature-tile">
+            <div class="stat-icon emerald"><i class="bi bi-<%= g[1] %>"></i></div>
+            <h2 class="h6"><%= g[0] %></h2>
+            <ul class="small text-muted ps-3 mb-0 d-grid gap-1"><% g[2].forEach(function (i) { %><li><%= i %></li><% }) %></ul>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+    <div class="text-center mt-5"><a class="btn btn-primary btn-lg" href="/register">Start your free trial</a></div>
+  </div>
+</section>

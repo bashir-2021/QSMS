@@ -1,0 +1,20 @@
+<%- include('../partials/page-header', { heading: 'Subscription payments', sub: 'Only verified payments activate or extend subscriptions.' }) %>
+<form class="filter-bar row g-2 align-items-end" method="get">
+  <div class="col-md-6"><label class="form-label">Search</label><input class="form-control" name="search" value="<%= query.search || '' %>" placeholder="School, reference or transaction ref."></div>
+  <div class="col-md-3"><label class="form-label">Status</label><select class="form-select" name="status" data-autosubmit><option value="">All</option><% C.SUBSCRIPTION_PAYMENT_STATUSES.forEach(function (s) { %><option value="<%= s %>" <%= selected(query.status, s) %>><%= titleCase(s) %></option><% }) %></select></div>
+  <div class="col-md-3"><button class="btn btn-primary w-100" type="submit">Search</button></div>
+</form>
+<div class="card">
+  <div class="table-responsive"><table class="table table-hover">
+    <thead><tr><th>Reference</th><th>School</th><th>Plan</th><th>Submitted</th><th>Method / txn</th><th class="num">Amount</th><th>Status</th><th>Verified by</th></tr></thead>
+    <tbody>
+      <% if (!page.items.length) { %><tr><td colspan="8" class="empty-state">No payments</td></tr><% } %>
+      <% page.items.forEach(function (p) { %>
+        <tr><td><a class="row-link font-monospace small" href="/platform/payments/<%= p._id %>"><%= p.reference %></a></td><td><%= p.tenant ? p.tenant.name : '' %></td><td><%= p.plan ? p.plan.name : '' %> × <%= p.periods %></td>
+          <td><%= fmtDate(p.createdAt) %><div class="small text-muted">by <%= p.submittedBy ? p.submittedBy.name : '' %></div></td><td class="small"><%= titleCase(p.method) %><div class="text-muted"><%= p.transactionRef %></div></td>
+          <td class="num fw-semibold"><%= money(p.amount, p.currency) %></td><td><%- statusBadge(p.status) %></td><td class="small"><%= p.verifiedBy ? p.verifiedBy.name : '' %></td></tr>
+      <% }) %>
+    </tbody>
+  </table></div>
+  <%- include('../partials/pagination', { page: page }) %>
+</div>

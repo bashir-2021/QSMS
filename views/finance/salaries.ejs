@@ -1,0 +1,57 @@
+<%- include('../partials/page-header', { heading: 'Teacher salaries', sub: 'Payroll for ' + periodLabel(period) + ' · each payment is also recorded as a “Teacher salaries” expense.',
+  actions: can('reports.finance') ? '<a class="btn btn-light btn-icon" href="/school/reports/salaries"><i class="bi bi-bar-chart-line"></i>Salary report</a>' : '' }) %>
+
+<form class="filter-bar row g-2 align-items-end" method="get">
+  <div class="col-md-3"><label class="form-label">Salary month</label><input type="month" class="form-control" name="period" value="<%= period %>" data-autosubmit></div>
+  <div class="col-md-9 d-flex gap-4 justify-content-md-end small">
+    <div><div class="text-muted">Paid this month</div><div class="fw-bold fs-5 text-success"><%= money(paidTotal, currency) %></div></div>
+    <div><div class="text-muted">Still due (base salaries)</div><div class="fw-bold fs-5 text-danger"><%= money(dueTotal, currency) %></div></div>
+  </div>
+</form>
+
+<div class="card mb-3">
+  <div class="card-header">Payroll — <%= periodLabel(period) %></div>
+  <div class="table-responsive"><table class="table">
+    <thead><tr><th>Teacher</th><th class="num">Monthly salary</th><th>Status</th><% if (can('salaries.manage')) { %><th style="min-width:560px">Pay</th><% } %></tr></thead>
+    <tbody>
+      <% if (!sheet.length) { %><tr><td colspan="4" class="empty-state">No active teachers</td></tr><% } %>
+      <% sheet.forEach(function (row) { var t = row.teacher; var p = row.payment; %>
+        <tr>
+          <td><a class="row-link" href="/school/teachers/<%= t._id %>"><%= t.fullName %></a><div class="small text-muted"><%= t.teacherCode %></div></td>
+          <td class="num"><%= money(t.monthlySalary, currency) %></td>
+          <td><% if (p) { %><%- statusBadge('paid') %><div class="small text-muted"><%= money(p.amount, currency) %> on <%= fmtDate(p.paymentDate) %></div><% } else { %><%- statusBadge('unpaid') %><% } %></td>
+          <% if (can('salaries.manage')) { %><td>
+            <% if (!p) { %>
+              <form method="post" action="/school/finance/salaries" class="d-flex flex-wrap gap-1 align-items-center" data-confirm="Pay <%= t.fullName %> for <%= periodLabel(period) %>? This also records a salary expense." data-confirm-variant="btn-primary" data-confirm-button="Pay salary">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="teacher" value="<%= t._id %>"><input type="hidden" name="period" value="<%= period %>">
+                <input class="form-control form-control-sm" style="width:100px" name="baseSalary" value="<%= moneyInput(t.monthlySalary) %>" title="Base" pattern="^\d{1,9}(\.\d{1,2})?$" required>
+                <input class="form-control form-control-sm" style="width:80px" name="bonus" placeholder="Bonus" pattern="^\d{1,9}(\.\d{1,2})?$">
+                <input class="form-control form-control-sm" style="width:95px" name="deductions" placeholder="Deduct." pattern="^\d{1,9}(\.\d{1,2})?$">
+                <select class="form-select form-select-sm" style="width:120px" name="method"><% settings.paymentMethods.forEach(function (m) { %><option><%= m %></option><% }) %></select>
+                <input type="date" class="form-control form-control-sm" style="width:140px" name="paymentDate" value="<%= today %>" max="<%= today %>" required>
+                <button class="btn btn-sm btn-primary" type="submit">Pay</button>
+              </form>
+            <% } else { %>
+              <form method="post" action="/school/finance/salaries/<%= p._id %>/cancel" data-confirm="Cancel this salary payment? The linked expense will be cancelled too." data-confirm-reason="true" data-confirm-button="Cancel payment">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-sm btn-light text-danger" type="submit"><i class="bi bi-x-circle"></i> Cancel payment</button></form>
+            <% } %>
+          </td><% } %>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table></div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between"><span>Salary payment history</span><a class="small" href="<%= qs(query, { history: query.history === 'all' ? '' : 'all', page: '' }) %>"><%= query.history === 'all' ? 'Only ' + periodLabel(period) : 'Show all months' %></a></div>
+  <div class="table-responsive"><table class="table table-hover">
+    <thead><tr><th>Month</th><th>Teacher</th><th>Paid on</th><th>Method</th><th class="num">Net</th><th>Status</th><th>Recorded by</th></tr></thead>
+    <tbody>
+      <% if (!history.items.length) { %><tr><td colspan="7" class="empty-state">No salary payments</td></tr><% } %>
+      <% history.items.forEach(function (s) { %>
+        <tr><td><%= periodLabel(s.period) %></td><td><%= s.teacher ? s.teacher.fullName : '' %></td><td><%= fmtDate(s.paymentDate) %></td><td><%= s.method %></td><td class="num fw-semibold"><%= money(s.amount, currency) %></td><td><%- statusBadge(s.status) %></td><td class="small"><%= s.recordedByName %></td></tr>
+      <% }) %>
+    </tbody>
+  </table></div>
+  <%- include('../partials/pagination', { page: history }) %>
+</div>

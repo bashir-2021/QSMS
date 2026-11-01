@@ -1,0 +1,37 @@
+<% var scope = query.scope === 'teacher' ? 'teacher' : 'student'; var period = query.period || 'monthly'; %>
+<%- include('../partials/page-header', { heading: 'Attendance reports', sub: report.title + ' · ' + report.subtitle,
+  actions: (hasFeature('exports') ? '<a class="btn btn-light btn-icon" href="/school/attendance/reports' + qs(query, { format: 'xlsx' }) + '"><i class="bi bi-file-earmark-excel"></i>Excel</a><a class="btn btn-light btn-icon" href="/school/attendance/reports' + qs(query, { format: 'pdf' }) + '"><i class="bi bi-file-earmark-pdf"></i>PDF</a>' : '') +
+    '<button class="btn btn-light btn-icon" type="button" data-print><i class="bi bi-printer"></i>Print</button>' }) %>
+
+<form class="filter-bar row g-2 align-items-end" method="get">
+  <div class="col-6 col-md-2"><label class="form-label">Report for</label><select class="form-select" name="scope" data-autosubmit><option value="student" <%= selected(scope, 'student') %>>Students</option><option value="teacher" <%= selected(scope, 'teacher') %>>Teachers</option></select></div>
+  <div class="col-6 col-md-2"><label class="form-label">Period</label><select class="form-select" name="period" data-autosubmit><% ['daily', 'weekly', 'monthly', 'custom'].forEach(function (p) { %><option value="<%= p %>" <%= selected(period, p) %>><%= titleCase(p) %></option><% }) %></select></div>
+  <% if (period === 'monthly') { %>
+    <div class="col-6 col-md-2"><label class="form-label">Month</label><input type="month" class="form-control" name="month" value="<%= query.month || '' %>"></div>
+  <% } else if (period === 'custom') { %>
+    <div class="col-6 col-md-2"><label class="form-label">From</label><input type="date" class="form-control" name="from" value="<%= query.from || '' %>"></div>
+    <div class="col-6 col-md-2"><label class="form-label">To</label><input type="date" class="form-control" name="to" value="<%= query.to || '' %>"></div>
+  <% } else { %>
+    <div class="col-6 col-md-2"><label class="form-label"><%= period === 'weekly' ? 'Week ending' : 'Date' %></label><input type="date" class="form-control" name="date" value="<%= query.date || isoDate(new Date()) %>"></div>
+  <% } %>
+  <% if (scope === 'student') { %>
+    <div class="col-6 col-md-2"><label class="form-label">Class</label><select class="form-select" name="class"><option value="">All classes</option><% classes.forEach(function (c) { %><option value="<%= c._id %>" <%= selected(query.class, c._id) %>><%= c.name %></option><% }) %></select></div>
+    <% if (student) { %><input type="hidden" name="student" value="<%= query.student %>"><div class="col-6 col-md-2"><label class="form-label">Student</label><div class="form-control bg-light text-truncate"><%= student.fullName %></div></div><% } %>
+  <% } else { %>
+    <div class="col-6 col-md-3"><label class="form-label">Teacher</label><select class="form-select" name="teacher"><option value="">All teachers</option><% teachers.forEach(function (t) { %><option value="<%= t._id %>" <%= selected(query.teacher, t._id) %>><%= t.fullName %></option><% }) %></select></div>
+  <% } %>
+  <div class="col-6 col-md-2 d-flex gap-2"><button class="btn btn-primary flex-fill" type="submit">Run</button><a class="btn btn-light" href="/school/attendance/reports">Reset</a></div>
+</form>
+
+<div class="row g-3 mb-3">
+  <% report.summary.forEach(function (s) { %>
+    <div class="col-6 col-md-4 col-xl-2"><div class="card stat-card"><div class="label"><%= s.label %></div><div class="value fs-4"><%= s.value %></div></div></div>
+  <% }) %>
+</div>
+
+<% if (report.chart.labels.length > 1) { %>
+<div class="card mb-3"><div class="card-header">Attendance rate by day</div><div class="card-body"><div class="chart-box" style="height:220px"><canvas data-chart="attChart"></canvas></div></div></div>
+<script type="application/json" id="attChart"><%- JSON.stringify({ type: 'line', percent: true, max: 100, labels: report.chart.labels, series: [{ label: 'Attendance rate %', data: report.chart.rate }] }).replace(/</g, '\\u003c') %></script>
+<% } %>
+
+<%- include('../reports/sections', { report: report, currencyCode: currency }) %>

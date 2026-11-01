@@ -1,0 +1,39 @@
+<%- include('../partials/page-header', { heading: 'Payment ' + p.reference, crumbs: [['Payments', '/platform/payments'], [p.reference, null]] }) %>
+<div class="row g-3">
+  <div class="col-lg-8"><div class="card"><div class="card-body">
+    <dl class="dl-grid mb-0">
+      <div><dt>School</dt><dd><a href="/platform/schools/<%= p.tenant._id %>"><%= p.tenant.name %></a></dd></div>
+      <div><dt>Plan</dt><dd><%= p.plan.name %> × <%= p.periods %> period(s)</dd></div>
+      <div><dt>Amount</dt><dd class="fs-5"><%= money(p.amount, p.currency) %></dd></div>
+      <div><dt>Status</dt><dd><%- statusBadge(p.status) %></dd></div>
+      <div><dt>Method</dt><dd><%= titleCase(p.method) %></dd></div>
+      <div><dt>Transaction reference</dt><dd class="font-monospace"><%= p.transactionRef || '—' %></dd></div>
+      <div><dt>Payer</dt><dd><%= p.payerName || '—' %></dd></div>
+      <div><dt>Paid on</dt><dd><%= fmtDate(p.paidAt) %></dd></div>
+      <div><dt>Submitted</dt><dd><%= fmtDate(p.createdAt) %> by <%= p.submittedBy ? p.submittedBy.name + ' (' + p.submittedBy.kind + ')' : '' %></dd></div>
+      <% if (p.verifiedAt) { %><div><dt>Reviewed</dt><dd><%= fmtDate(p.verifiedAt) %> by <%= p.verifiedBy ? p.verifiedBy.name : '' %></dd></div><% } %>
+      <% if (p.periodEnd) { %><div><dt>Subscription period</dt><dd><%= fmtDate(p.periodStart) %> – <%= fmtDate(p.periodEnd) %></dd></div><% } %>
+    </dl>
+    <% if (p.notes) { %><div class="alert alert-light small mt-3 mb-0"><%= p.notes %></div><% } %>
+  </div></div></div>
+  <div class="col-lg-4">
+    <% if (can('payments.verify')) { %>
+      <% if (p.status === 'pending') { %>
+        <div class="card"><div class="card-body d-grid gap-2">
+          <p class="small text-muted mb-1">Confirm the money was received (check the mobile money / bank statement for reference <strong><%= p.transactionRef %></strong>) before verifying.</p>
+          <form method="post" action="/platform/payments/<%= p._id %>/verify" data-confirm="Verify <%= money(p.amount, p.currency) %> from <%= p.tenant.name %>? This activates/extends their subscription." data-confirm-variant="btn-success" data-confirm-button="Verify payment">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-success w-100" type="submit"><i class="bi bi-patch-check"></i> Verify payment</button></form>
+          <form method="post" action="/platform/payments/<%= p._id %>/status/failed" data-confirm="Mark this payment as failed (money not received)?">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="notes" value="Payment not found on statement"><button class="btn btn-outline-danger w-100" type="submit">Mark failed</button></form>
+          <form method="post" action="/platform/payments/<%= p._id %>/status/cancelled" data-confirm="Cancel this payment request?">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-light w-100" type="submit">Cancel</button></form>
+        </div></div>
+      <% } else if (p.status === 'paid') { %>
+        <div class="card"><div class="card-body">
+          <form method="post" action="/platform/payments/<%= p._id %>/status/refunded" data-confirm="Mark this payment as refunded? The subscription period is not changed automatically — suspend or cancel it separately if needed." data-confirm-button="Mark refunded">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>"><label class="form-label">Refund note</label><input class="form-control mb-2" name="notes" maxlength="200"><button class="btn btn-outline-secondary w-100" type="submit">Mark refunded</button></form>
+        </div></div>
+      <% } %>
+    <% } %>
+  </div>
+</div>

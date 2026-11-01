@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+</head>
+<body>
+<div class="app-shell">
+  <%- include('../partials/platform-sidebar') %>
+  <div class="sidebar-backdrop"></div>
+  <div class="main">
+    <%- include('../partials/topbar', { accountUrl: '/platform/account', notifUrl: '/platform/notifications' }) %>
+    <div class="content">
+      <%- include('../partials/flash') %>
+      <%- body %>
+    </div>
+  </div>
+</div>
+<%- include('../partials/confirm-modal') %>
+<%- include('../partials/scripts') %>
+<%- locals.script || '' %>
+</body>
+</html>

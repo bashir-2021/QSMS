@@ -1,0 +1,20 @@
+<%- include('../partials/page-header', { heading: 'Plans & pricing', sub: 'Changes apply to new subscriptions and renewals; current subscriptions keep their purchased terms.',
+  actions: can('plans.manage') ? '<a class="btn btn-primary btn-icon" href="/platform/plans/new"><i class="bi bi-plus-lg"></i>New plan</a>' : '' }) %>
+<div class="card">
+  <div class="table-responsive"><table class="table table-hover">
+    <thead><tr><th>Plan</th><th class="num">Price</th><th>Cycle</th><th>Limits (students / teachers / classes / users)</th><th>Trial · grace</th><th>Modules</th><th>Visibility</th><th></th></tr></thead>
+    <tbody>
+      <% if (!plans.length) { %><tr><td colspan="8" class="empty-state">No plans yet</td></tr><% } %>
+      <% plans.forEach(function (p) { var lim = function (v) { return v || '∞'; }; %>
+        <tr><td><div class="fw-semibold"><%= p.name %></div><div class="small text-muted font-monospace"><%= p.code %></div></td>
+          <td class="num fw-semibold"><%= money(p.price, p.currency) %></td>
+          <td><%= p.billingCycle === 'custom' ? p.customDays + ' days' : C.BILLING_CYCLES[p.billingCycle].label %></td>
+          <td class="small"><%= lim(p.limits.students) %> / <%= lim(p.limits.teachers) %> / <%= lim(p.limits.classes) %> / <%= lim(p.limits.users) %></td>
+          <td class="small"><%= p.trialDays %>d · <%= p.graceDays %>d</td>
+          <td class="small"><%= p.features.length %> of <%= Object.keys(C.PLAN_FEATURES).length %></td>
+          <td><%- statusBadge(p.isActive ? 'active' : 'inactive') %> <% if (!p.isPublic) { %><span class="badge badge-soft-secondary">Hidden</span><% } %></td>
+          <td class="text-end"><% if (can('plans.manage')) { %><a class="btn btn-sm btn-light" href="/platform/plans/<%= p._id %>/edit">Edit</a><% } %></td></tr>
+      <% }) %>
+    </tbody>
+  </table></div>
+</div>

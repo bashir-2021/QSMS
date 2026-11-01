@@ -1,0 +1,16 @@
+<div class="<%= locals.currentUser ? '' : 'container' %> py-5">
+  <div class="card mx-auto" style="max-width:560px">
+    <div class="card-body p-4 text-center">
+      <div class="stat-icon <%= status >= 500 ? 'red' : 'gold' %> mx-auto mb-3" style="width:56px;height:56px;font-size:1.5rem">
+        <i class="bi bi-<%= status === 404 ? 'signpost-split' : status === 403 ? 'shield-lock' : status === 429 ? 'hourglass' : 'exclamation-triangle' %>"></i>
+      </div>
+      <div class="small-caps mb-1">Error <%= status %></div>
+      <h1 class="h4"><%= title %></h1>
+      <p class="text-muted mb-4"><%= message %></p>
+      <div class="d-flex gap-2 justify-content-center">
+        <a class="btn btn-primary" href="<%= locals.auth && auth.kind === 'platform' ? '/platform/dashboard' : locals.auth ? '/school/dashboard' : '/' %>">Home</a>
+      </div>
+      <% if (locals.stack) { %><pre class="text-start small mt-4 p-3 bg-light rounded" style="max-height:240px;overflow:auto"><%= stack %></pre><% } %>
+    </div>
+  </div>
+</div>

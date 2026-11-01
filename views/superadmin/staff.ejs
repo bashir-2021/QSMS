@@ -1,0 +1,35 @@
+<%- include('../partials/page-header', { heading: 'Platform staff', sub: 'Super admins, finance officers and support officers of the Quranic platform.' }) %>
+<div class="row g-3">
+  <div class="col-xl-8"><div class="card"><div class="table-responsive"><table class="table">
+    <thead><tr><th>Name</th><th>Role</th><th>Last login</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      <% users.forEach(function (u) { %>
+        <tr><td><div class="fw-semibold"><%= u.name %><%= String(u._id) === String(currentUser._id) ? ' (you)' : '' %></div><div class="small text-muted"><%= u.email %></div></td><td><%= roles[u.role].label %></td>
+          <td class="small"><%= u.lastLoginAt ? fmtDate(u.lastLoginAt) : 'Never' %></td><td><%- statusBadge(u.isActive ? 'active' : 'inactive') %></td>
+          <td class="text-end"><button class="btn btn-sm btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#s_<%= u._id %>">Edit</button></td></tr>
+        <tr class="collapse" id="s_<%= u._id %>"><td colspan="5" class="bg-light">
+          <form method="post" action="/platform/staff/<%= u._id %>" class="row g-2">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="col-md-4"><label class="form-label">Name</label><input class="form-control form-control-sm" name="name" value="<%= u.name %>" required></div>
+            <div class="col-md-4"><label class="form-label">Email</label><input type="email" class="form-control form-control-sm" name="email" value="<%= u.email %>" required></div>
+            <div class="col-md-4"><label class="form-label">Phone</label><input class="form-control form-control-sm" name="phone" value="<%= u.phone || '' %>"></div>
+            <div class="col-md-4"><label class="form-label">Role</label><select class="form-select form-select-sm" name="role"><% Object.keys(roles).forEach(function (r) { %><option value="<%= r %>" <%= selected(u.role, r) %>><%= roles[r].label %></option><% }) %></select></div>
+            <div class="col-md-4"><label class="form-label">New password</label><input type="password" class="form-control form-control-sm" name="password" minlength="8" placeholder="Leave blank to keep"></div>
+            <div class="col-md-4 d-flex align-items-end justify-content-between"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="isActive" id="sa_<%= u._id %>" <%= u.isActive ? 'checked' : '' %>><label class="form-check-label" for="sa_<%= u._id %>">Active</label></div><button class="btn btn-sm btn-primary" type="submit">Save</button></div>
+          </form>
+        </td></tr>
+      <% }) %>
+    </tbody>
+  </table></div></div></div>
+  <div class="col-xl-4"><div class="card"><div class="card-header">Add staff member</div><div class="card-body">
+    <form method="post" action="/platform/staff" class="row g-2 needs-validation" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- include('../partials/field', { name: 'name', label: 'Full name', required: true }) %>
+      <%- include('../partials/field', { name: 'email', label: 'Email', ftype: 'email', required: true }) %>
+      <%- include('../partials/field', { name: 'phone', label: 'Phone', ftype: 'tel' }) %>
+      <%- include('../partials/field', { name: 'role', label: 'Role', ftype: 'select', required: true, options: Object.keys(roles).map(function (r) { return { value: r, label: roles[r].label }; }) }) %>
+      <%- include('../partials/field', { name: 'password', label: 'Temporary password', ftype: 'password', required: true, attrs: 'minlength="8" autocomplete="new-password"' }) %>
+      <div class="col-12"><button class="btn btn-primary w-100" type="submit">Add staff</button></div>
+    </form>
+  </div></div></div>
+</div>

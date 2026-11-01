@@ -1,0 +1,15 @@
+<% report.sections.forEach(function (sec) { var right = function (c) { return ['money', 'number', 'percent'].indexOf(c.type) >= 0; }; %>
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between"><span><%= sec.title %></span><span class="small text-muted"><%= sec.rows.length %> row<%= sec.rows.length === 1 ? '' : 's' %></span></div>
+  <div class="table-responsive"><table class="table table-hover table-sm">
+    <thead><tr><% sec.columns.forEach(function (c) { %><th class="<%= right(c) ? 'num' : '' %>"><%= c.label %></th><% }) %></tr></thead>
+    <tbody>
+      <% if (!sec.rows.length) { %><tr><td colspan="<%= sec.columns.length %>" class="empty-state">No records for this selection</td></tr><% } %>
+      <% sec.rows.forEach(function (r) { %><tr><% sec.columns.forEach(function (c) { %><td class="<%= right(c) ? 'num' : '' %>"><%- reportCell(r[c.key], c.type, currencyCode) %></td><% }) %></tr><% }) %>
+    </tbody>
+    <% if (sec.totals && sec.rows.length) { %>
+      <tfoot><tr><% sec.columns.forEach(function (c) { %><td class="<%= right(c) ? 'num' : '' %>"><%- reportCell(sec.totals[c.key], c.type, currencyCode) %></td><% }) %></tr></tfoot>
+    <% } %>
+  </table></div>
+</div>
+<% }) %>

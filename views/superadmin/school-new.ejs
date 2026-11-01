@@ -1,0 +1,20 @@
+<%- include('../partials/page-header', { heading: 'Register a school', crumbs: [['Schools', '/platform/schools'], ['New', null]], sub: 'Creates the tenant, its administrator account, default settings and the initial subscription.' }) %>
+<form method="post" action="/platform/schools?_csrf=<%= csrfToken %>" enctype="multipart/form-data" class="needs-validation" novalidate style="max-width:900px">
+  <input type="hidden" name="terms" value="on">
+  <div class="card mb-3"><div class="card-header">School</div><div class="card-body row g-3">
+    <%- include('../partials/field', { name: 'schoolName', label: 'School name', required: true, col: 'col-md-8' }) %>
+    <%- include('../partials/field', { name: 'logo', label: 'Logo', ftype: 'file', col: 'col-md-4' }) %>
+    <%- include('../partials/field', { name: 'country', label: 'Country', required: true, col: 'col-md-4', value: 'Somalia' }) %>
+    <%- include('../partials/field', { name: 'city', label: 'City', required: true, col: 'col-md-4' }) %>
+    <%- include('../partials/field', { name: 'address', label: 'Address', col: 'col-md-4' }) %>
+  </div></div>
+  <div class="card mb-3"><div class="card-header">Administrator &amp; plan</div><div class="card-body row g-3">
+    <%- include('../partials/field', { name: 'adminName', label: 'Administrator name', required: true, col: 'col-md-4' }) %>
+    <%- include('../partials/field', { name: 'phone', label: 'Phone', ftype: 'tel', required: true, col: 'col-md-4' }) %>
+    <%- include('../partials/field', { name: 'email', label: 'Email', ftype: 'email', required: true, col: 'col-md-4' }) %>
+    <%- include('../partials/field', { name: 'password', label: 'Initial password', ftype: 'password', required: true, col: 'col-md-4', attrs: 'minlength="8" autocomplete="new-password"' }) %>
+    <%- include('../partials/field', { name: 'confirmPassword', label: 'Confirm password', ftype: 'password', required: true, col: 'col-md-4', attrs: 'minlength="8" autocomplete="new-password"' }) %>
+    <%- include('../partials/field', { name: 'planId', label: 'Plan', ftype: 'select', required: true, col: 'col-md-4', options: plans.filter(function (p) { return p.isActive; }).map(function (p) { return { value: p._id, label: p.name + ' (' + money(p.price, p.currency) + ')' }; }) }) %>
+  </div></div>
+  <div class="text-end"><button class="btn btn-primary" type="submit">Create school</button></div>
+</form>

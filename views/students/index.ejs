@@ -1,0 +1,38 @@
+<%- include('../partials/page-header', { heading: 'Students', sub: page.total + ' students match your filters',
+  actions: (hasFeature('exports') ? '<a class="btn btn-light btn-icon" href="/school/students' + qs(query, { format: 'xlsx', page: '' }) + '"><i class="bi bi-file-earmark-excel"></i>Excel</a><a class="btn btn-light btn-icon" href="/school/students' + qs(query, { format: 'pdf', page: '' }) + '"><i class="bi bi-file-earmark-pdf"></i>PDF</a>' : '') +
+    '<button class="btn btn-light btn-icon" type="button" data-print><i class="bi bi-printer"></i>Print</button>' +
+    (can('students.manage') ? '<a class="btn btn-primary btn-icon" href="/school/students/new"><i class="bi bi-person-plus"></i>Register student</a>' : '') }) %>
+
+<form class="filter-bar row g-2 align-items-end" method="get">
+  <div class="col-md-4"><label class="form-label">Search</label><input class="form-control" name="search" value="<%= query.search || '' %>" placeholder="Name, ID, guardian or phone"></div>
+  <div class="col-6 col-md-2"><label class="form-label">Class</label>
+    <select class="form-select" name="class" data-autosubmit><option value="">All classes</option><% classes.forEach(function (c) { %><option value="<%= c._id %>" <%= selected(query.class, c._id) %>><%= c.name %></option><% }) %></select></div>
+  <div class="col-6 col-md-2"><label class="form-label">Status</label>
+    <select class="form-select" name="status" data-autosubmit><option value="">All</option><% C.STUDENT_STATUSES.forEach(function (s) { %><option value="<%= s %>" <%= selected(query.status, s) %>><%= titleCase(s) %></option><% }) %></select></div>
+  <div class="col-6 col-md-2"><label class="form-label">Gender</label>
+    <select class="form-select" name="gender" data-autosubmit><option value="">All</option><% C.GENDERS.forEach(function (g) { %><option value="<%= g %>" <%= selected(query.gender, g) %>><%= titleCase(g) %></option><% }) %></select></div>
+  <div class="col-6 col-md-2 d-flex gap-2"><button class="btn btn-primary flex-fill" type="submit"><i class="bi bi-search"></i></button><a class="btn btn-light" href="/school/students">Reset</a></div>
+</form>
+
+<div class="card">
+  <div class="table-responsive"><table class="table table-hover">
+    <thead><tr><th>Student</th><th>ID</th><th>Class</th><th>Guardian</th><th>Registered</th><th>Status</th></tr></thead>
+    <tbody>
+      <% if (!page.items.length) { %><tr><td colspan="6"><div class="empty-state"><i class="bi bi-people"></i>No students found.<% if (can('students.manage')) { %> <a href="/school/students/new">Register the first student</a>.<% } %></div></td></tr><% } %>
+      <% page.items.forEach(function (s) { %>
+        <tr>
+          <td><div class="d-flex align-items-center gap-2">
+            <span class="avatar"><% if (s.photo) { %><img src="/school/files/<%= s.photo.split('/').pop() %>" alt=""><% } else { %><%= initials(s.fullName) %><% } %></span>
+            <div><a class="row-link" href="/school/students/<%= s._id %>"><%= s.fullName %></a><div class="small text-muted"><%= titleCase(s.gender) %><%= s.dateOfBirth ? ' · ' + fmtDate(s.dateOfBirth) : '' %></div></div>
+          </div></td>
+          <td class="font-monospace small"><%= s.studentCode %></td>
+          <td><%= s.class ? s.class.name : '—' %><div class="small text-muted"><%= s.teacher ? s.teacher.fullName : '' %></div></td>
+          <td><%= s.guardianName || '—' %><div class="small text-muted"><%= s.guardianPhone || '' %></div></td>
+          <td><%= fmtDate(s.registrationDate) %></td>
+          <td><%- statusBadge(s.status) %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table></div>
+  <%- include('../partials/pagination', { page: page }) %>
+</div>

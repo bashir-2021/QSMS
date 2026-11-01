@@ -1,0 +1,28 @@
+<%- include('../partials/page-header', { heading: 'Classes', sub: page.total + ' classes', actions: can('classes.manage') ? '<a class="btn btn-primary btn-icon" href="/school/classes/new"><i class="bi bi-plus-lg"></i>New class</a>' : '' }) %>
+
+<form class="filter-bar row g-2 align-items-end" method="get">
+  <div class="col-md-5"><label class="form-label">Search</label><input class="form-control" name="search" value="<%= query.search || '' %>" placeholder="Class name"></div>
+  <div class="col-6 col-md-3"><label class="form-label">Level</label>
+    <select class="form-select" name="level" data-autosubmit><option value="">All levels</option><% C.CLASS_LEVELS.forEach(function (l) { %><option <%= selected(query.level, l) %>><%= l %></option><% }) %></select></div>
+  <div class="col-6 col-md-2"><label class="form-label">State</label>
+    <select class="form-select" name="active" data-autosubmit><option value="">All</option><option value="yes" <%= selected(query.active, 'yes') %>>Active</option><option value="no" <%= selected(query.active, 'no') %>>Inactive</option></select></div>
+  <div class="col-md-2 d-flex gap-2"><button class="btn btn-primary flex-fill" type="submit"><i class="bi bi-search"></i></button><a class="btn btn-light" href="/school/classes">Reset</a></div>
+</form>
+
+<div class="row g-3">
+  <% if (!page.items.length) { %><div class="col-12"><div class="card"><div class="empty-state"><i class="bi bi-easel"></i>No classes yet.<% if (can('classes.manage')) { %> <a href="/school/classes/new">Create the first class</a>.<% } %></div></div></div><% } %>
+  <% page.items.forEach(function (c) { var pct = Math.min(100, Math.round((c.studentCount / c.capacity) * 100)); %>
+    <div class="col-md-6 col-xl-4">
+      <a class="card h-100 text-decoration-none text-reset" href="/school/classes/<%= c._id %>"><div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div><div class="fw-bold fs-6" style="color:var(--q-ink)"><%= c.name %></div><div class="small text-muted"><%= c.level %> · <%= c.teacher ? c.teacher.fullName : 'No teacher' %></div></div>
+          <%- c.isActive ? statusBadge('active') : statusBadge('inactive') %>
+        </div>
+        <div class="small text-muted mb-2"><i class="bi bi-clock me-1"></i><%= (c.schedule && c.schedule.days && c.schedule.days.length) ? c.schedule.days.join(', ') : 'No schedule' %><%= c.schedule && c.schedule.startTime ? ' · ' + c.schedule.startTime + '–' + (c.schedule.endTime || '') : '' %></div>
+        <div class="d-flex justify-content-between small mb-1"><span><%= c.studentCount %> / <%= c.capacity %> students</span><span class="fw-semibold"><%= money(c.monthlyFee != null ? c.monthlyFee : settings.monthlyFee, currency) %>/mo</span></div>
+        <div class="progress"><div class="progress-bar" style="width:<%= pct %>%"></div></div>
+      </div></a>
+    </div>
+  <% }) %>
+</div>
+<div class="card mt-3"><%- include('../partials/pagination', { page: page }) %></div>

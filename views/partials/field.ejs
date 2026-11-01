@@ -1,0 +1,43 @@
+<%
+  /* Reusable form field.
+     params: name, label, ftype (text|email|tel|date|month|time|number|password|select|textarea|file|money),
+             value, options [{value,label}], required, help, col, placeholder, min, max, step, rows, accept, disabled, attrs */
+  var t = locals.ftype || 'text';
+  var err = (locals.formErrors || {})[name];
+  var oldVal = (locals.old || {})[name];
+  var val = oldVal !== undefined ? oldVal : (locals.value === undefined || locals.value === null ? '' : locals.value);
+  var id = 'f_' + String(name).replace(/[^a-zA-Z0-9_]/g, '_');
+%>
+<div class="<%= locals.col || 'col-12' %>">
+  <% if (t !== 'checkbox') { %><label class="form-label <%= locals.required ? 'required' : '' %>" for="<%= id %>"><%= label %></label><% } %>
+  <% if (t === 'select') { %>
+    <select class="form-select <%= err ? 'is-invalid' : '' %>" id="<%= id %>" name="<%= name %>" <%= locals.required ? 'required' : '' %> <%= locals.disabled ? 'disabled' : '' %> <%- locals.attrs || '' %>>
+      <% if (locals.placeholder !== false) { %><option value=""><%= locals.placeholder || '— Select —' %></option><% } %>
+      <% (locals.options || []).forEach(function (o) { %>
+        <option value="<%= o.value %>" <%= String(o.value) === String(val) ? 'selected' : '' %> <%- o.attrs || '' %>><%= o.label %></option>
+      <% }) %>
+    </select>
+  <% } else if (t === 'textarea') { %>
+    <textarea class="form-control <%= err ? 'is-invalid' : '' %>" id="<%= id %>" name="<%= name %>" rows="<%= locals.rows || 3 %>" placeholder="<%= locals.placeholder || '' %>" <%= locals.required ? 'required' : '' %> maxlength="<%= locals.max || 2000 %>"><%= val %></textarea>
+  <% } else if (t === 'checkbox') { %>
+    <div class="form-check form-switch mt-2">
+      <input class="form-check-input" type="checkbox" id="<%= id %>" name="<%= name %>" <%= (oldVal !== undefined ? oldVal === 'on' : locals.value) ? 'checked' : '' %> <%- locals.attrs || '' %>>
+      <label class="form-check-label" for="<%= id %>"><%= label %></label>
+    </div>
+  <% } else if (t === 'money') { %>
+    <div class="input-group has-validation">
+      <span class="input-group-text"><%= locals.currency || 'USD' %></span>
+      <input type="text" inputmode="decimal" pattern="^\d{1,9}(\.\d{1,2})?$" class="form-control <%= err ? 'is-invalid' : '' %>" id="<%= id %>" name="<%= name %>" value="<%= val %>" placeholder="<%= locals.placeholder || '0.00' %>" <%= locals.required ? 'required' : '' %> <%- locals.attrs || '' %>>
+      <div class="invalid-feedback"><%= err || 'Enter an amount like 25 or 25.50' %></div>
+    </div>
+  <% } else if (t === 'file') { %>
+    <input type="file" class="form-control <%= err ? 'is-invalid' : '' %>" id="<%= id %>" name="<%= name %>" accept="<%= locals.accept || 'image/png,image/jpeg,image/webp' %>" <%- locals.attrs || '' %>>
+  <% } else { %>
+    <input type="<%= t %>" class="form-control <%= err ? 'is-invalid' : '' %>" id="<%= id %>" name="<%= name %>" value="<%= t === 'password' ? '' : val %>"
+      placeholder="<%= locals.placeholder || '' %>" <%= locals.required ? 'required' : '' %> <%= locals.disabled ? 'disabled' : '' %>
+      <% if (locals.min !== undefined) { %>min="<%= locals.min %>"<% } %> <% if (locals.max !== undefined) { %>max="<%= locals.max %>"<% } %>
+      <% if (locals.step !== undefined) { %>step="<%= locals.step %>"<% } %> <%- locals.attrs || '' %>>
+  <% } %>
+  <% if (err && t !== 'money') { %><div class="invalid-feedback d-block"><%= err %></div><% } %>
+  <% if (locals.help) { %><div class="form-text"><%= help %></div><% } %>
+</div>

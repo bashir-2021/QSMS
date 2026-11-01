@@ -1,0 +1,13 @@
+<%- include('../partials/page-header', { heading: 'Financial reports', sub: 'Income is confirmed payments; expenses are recorded expenses; net balance is income minus expenses.' }) %>
+<% var icons = { daily: 'calendar-day', monthly: 'calendar-month', annual: 'calendar3', 'student-payments': 'cash-coin', 'registration-fees': 'person-plus', outstanding: 'exclamation-diamond', salaries: 'person-workspace', 'expenses-by-category': 'pie-chart', 'income-expenditure': 'arrow-left-right', 'net-balance': 'graph-up' }; %>
+<div class="row g-3">
+  <% Object.keys(reports).forEach(function (k) { %>
+    <div class="col-md-6 col-xl-4">
+      <a class="card h-100 text-decoration-none text-reset" href="/school/reports/<%= k %>"><div class="card-body d-flex gap-3 align-items-center">
+        <div class="stat-icon emerald"><i class="bi bi-<%= icons[k] %>"></i></div>
+        <div><div class="fw-bold" style="color:var(--q-ink)"><%= reports[k] %></div><div class="small text-muted">View, print, PDF &amp; Excel</div></div>
+        <i class="bi bi-chevron-right ms-auto text-muted"></i>
+      </div></a>
+    </div>
+  <% }) %>
+</div>

@@ -1,0 +1,43 @@
+<%- include('../partials/page-header', { heading: 'Invoices & billing', sub: 'Invoices are amounts owed — only confirmed payments count as income.',
+  actions: can('invoices.manage') ? '<a class="btn btn-light btn-icon" href="/school/finance/invoices/new"><i class="bi bi-plus-lg"></i>New invoice</a>' : '' }) %>
+
+<% if (can('invoices.manage')) { %>
+<div class="card mb-3"><div class="card-body">
+  <form method="post" action="/school/finance/invoices/generate" class="row g-2 align-items-end" data-confirm="Generate monthly bills for all active students in the selected scope? Students already billed for that month are skipped automatically." data-confirm-variant="btn-primary" data-confirm-button="Generate bills">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="col-12 col-md-3"><div class="fw-bold" style="color:var(--q-ink)"><i class="bi bi-lightning-charge text-warning"></i> Monthly billing</div><div class="small text-muted">Uses student, class or school fee</div></div>
+    <div class="col-6 col-md-3"><label class="form-label">Billing month</label><input type="month" class="form-control" name="period" value="<%= thisPeriod %>" required></div>
+    <div class="col-6 col-md-3"><label class="form-label">Class</label><select class="form-select" name="class"><option value="">All active students</option><% classes.forEach(function (c) { %><option value="<%= c._id %>"><%= c.name %></option><% }) %></select></div>
+    <div class="col-md-3"><button class="btn btn-primary w-100" type="submit">Generate bills</button></div>
+  </form>
+</div></div>
+<% } %>
+
+<form class="filter-bar row g-2 align-items-end" method="get">
+  <div class="col-md-3"><label class="form-label">Search</label><input class="form-control" name="search" value="<%= query.search || '' %>" placeholder="Student, ID or invoice #"></div>
+  <div class="col-6 col-md-2"><label class="form-label">Status</label><select class="form-select" name="status" data-autosubmit><option value="">All</option><option value="open" <%= selected(query.status, 'open') %>>Open (unpaid/partial/overdue)</option><% C.INVOICE_STATUSES.forEach(function (s) { %><option value="<%= s %>" <%= selected(query.status, s) %>><%= titleCase(s) %></option><% }) %></select></div>
+  <div class="col-6 col-md-2"><label class="form-label">Type</label><select class="form-select" name="type" data-autosubmit><option value="">All</option><% Object.keys(C.INVOICE_TYPES).forEach(function (t) { %><option value="<%= t %>" <%= selected(query.type, t) %>><%= C.INVOICE_TYPES[t] %></option><% }) %></select></div>
+  <div class="col-6 col-md-2"><label class="form-label">Month</label><input type="month" class="form-control" name="period" value="<%= query.period || '' %>"></div>
+  <div class="col-6 col-md-2"><label class="form-label">Class</label><select class="form-select" name="class" data-autosubmit><option value="">All</option><% classes.forEach(function (c) { %><option value="<%= c._id %>" <%= selected(query.class, c._id) %>><%= c.name %></option><% }) %></select></div>
+  <div class="col-md-1"><button class="btn btn-primary w-100" type="submit"><i class="bi bi-search"></i></button></div>
+</form>
+
+<div class="card">
+  <div class="table-responsive"><table class="table table-hover">
+    <thead><tr><th>Invoice</th><th>Student</th><th>Description</th><th>Due</th><th class="num">Total</th><th class="num">Paid</th><th class="num">Balance</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      <% if (!page.items.length) { %><tr><td colspan="9"><div class="empty-state"><i class="bi bi-receipt"></i>No invoices match.</div></td></tr><% } %>
+      <% page.items.forEach(function (i) { %>
+        <tr>
+          <td><a class="row-link font-monospace small" href="/school/finance/invoices/<%= i._id %>"><%= i.invoiceNo %></a></td>
+          <td><% if (i.student) { %><a class="row-link" href="/school/students/<%= i.student._id %>"><%= i.student.fullName %></a><div class="small text-muted"><%= i.student.studentCode %><%= i.class ? ' · ' + i.class.name : '' %></div><% } %></td>
+          <td class="small"><%= i.description %></td><td class="text-nowrap"><%= fmtDate(i.dueDate) %></td>
+          <td class="num"><%= money(i.total, currency) %></td><td class="num"><%= money(i.paid, currency) %></td>
+          <td class="num fw-semibold"><%= i.status === 'cancelled' ? '—' : money(i.total - i.paid, currency) %></td><td><%- statusBadge(i.status) %></td>
+          <td class="text-end"><% if (can('payments.create') && ['unpaid', 'partial', 'overdue'].indexOf(i.status) >= 0 && i.student) { %><a class="btn btn-sm btn-outline-primary" href="/school/finance/payments/new?student=<%= i.student._id %>&invoice=<%= i._id %>">Pay</a><% } %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table></div>
+  <%- include('../partials/pagination', { page: page }) %>
+</div>

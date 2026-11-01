@@ -1,0 +1,28 @@
+<%- include('../partials/page-header', { heading: 'Student payments', sub: 'Confirmed payments are school income. Reversed payments are kept for the audit trail.',
+  actions: can('payments.create') ? '<a class="btn btn-primary btn-icon" href="/school/finance/payments/new"><i class="bi bi-cash-coin"></i>Receive payment</a>' : '' }) %>
+
+<form class="filter-bar row g-2 align-items-end" method="get">
+  <div class="col-md-3"><label class="form-label">Search</label><input class="form-control" name="search" value="<%= query.search || '' %>" placeholder="Student, payment # or reference"></div>
+  <div class="col-6 col-md-2"><label class="form-label">Method</label><select class="form-select" name="method" data-autosubmit><option value="">All</option><% settings.paymentMethods.forEach(function (m) { %><option <%= selected(query.method, m) %>><%= m %></option><% }) %></select></div>
+  <div class="col-6 col-md-2"><label class="form-label">Status</label><select class="form-select" name="status" data-autosubmit><option value="">All</option><option value="confirmed" <%= selected(query.status, 'confirmed') %>>Confirmed</option><option value="reversed" <%= selected(query.status, 'reversed') %>>Reversed</option></select></div>
+  <div class="col-6 col-md-2"><label class="form-label">From</label><input type="date" class="form-control" name="from" value="<%= query.from || '' %>"></div>
+  <div class="col-6 col-md-2"><label class="form-label">To</label><input type="date" class="form-control" name="to" value="<%= query.to || '' %>"></div>
+  <div class="col-md-1"><button class="btn btn-primary w-100" type="submit"><i class="bi bi-search"></i></button></div>
+</form>
+
+<div class="card">
+  <div class="table-responsive"><table class="table table-hover">
+    <thead><tr><th>Date</th><th>Payment</th><th>Student</th><th>Category</th><th>Method</th><th>Receipt</th><th class="num">Amount</th><th>Status</th></tr></thead>
+    <tbody>
+      <% if (!page.items.length) { %><tr><td colspan="8"><div class="empty-state"><i class="bi bi-cash"></i>No payments found.</div></td></tr><% } %>
+      <% page.items.forEach(function (p) { %>
+        <tr><td class="text-nowrap"><%= fmtDate(p.paymentDate) %></td><td><a class="row-link font-monospace small" href="/school/finance/payments/<%= p._id %>"><%= p.paymentNo %></a></td>
+          <td><%= p.student ? p.student.fullName : '' %><div class="small text-muted"><%= p.student ? p.student.studentCode : '' %></div></td>
+          <td><%= titleCase(p.category) %></td><td><%= p.method %><div class="small text-muted"><%= p.transactionRef || '' %></div></td>
+          <td><% if (p.receipt) { %><a class="small" href="/school/finance/receipts/<%= p.receipt._id %>"><%= p.receipt.receiptNo %></a><% } %></td>
+          <td class="num fw-semibold <%= p.status === 'reversed' ? 'text-decoration-line-through text-muted' : '' %>"><%= money(p.amount, currency) %></td><td><%- statusBadge(p.status) %></td></tr>
+      <% }) %>
+    </tbody>
+  </table></div>
+  <%- include('../partials/pagination', { page: page }) %>
+</div>

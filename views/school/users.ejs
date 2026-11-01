@@ -1,0 +1,55 @@
+<%- include('../partials/page-header', { heading: 'Users & roles', sub: usage.users.max ? (usage.users.used + ' of ' + usage.users.max + ' user accounts used') : (usage.users.used + ' active users') }) %>
+
+<div class="row g-3">
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="table-responsive"><table class="table">
+        <thead><tr><th>User</th><th>Role</th><th>Last login</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          <% users.forEach(function (u) { %>
+            <tr>
+              <td><div class="d-flex gap-2 align-items-center"><span class="avatar"><%= initials(u.name) %></span><div><div class="fw-semibold"><%= u.name %><%= String(u._id) === String(currentUser._id) ? ' (you)' : '' %></div><div class="small text-muted"><%= u.email %><%= u.phone ? ' · ' + u.phone : '' %></div></div></div></td>
+              <td><%= roles[u.role].label %><% if (u.teacher) { %><div class="small text-muted">Linked: <%= u.teacher.fullName %></div><% } %></td>
+              <td class="small"><%= u.lastLoginAt ? fmtDate(u.lastLoginAt) : 'Never' %></td>
+              <td><%- statusBadge(u.isActive ? 'active' : 'inactive') %></td>
+              <td class="text-end"><button class="btn btn-sm btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#edit_<%= u._id %>">Edit</button></td>
+            </tr>
+            <tr class="collapse" id="edit_<%= u._id %>"><td colspan="5" class="bg-light">
+              <form method="post" action="/school/users/<%= u._id %>" class="row g-2">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <div class="col-md-4"><label class="form-label">Name</label><input class="form-control form-control-sm" name="name" value="<%= u.name %>" required></div>
+                <div class="col-md-4"><label class="form-label">Email</label><input type="email" class="form-control form-control-sm" name="email" value="<%= u.email %>" required></div>
+                <div class="col-md-4"><label class="form-label">Phone</label><input class="form-control form-control-sm" name="phone" value="<%= u.phone || '' %>"></div>
+                <div class="col-md-4"><label class="form-label">Role</label><select class="form-select form-select-sm" name="role" data-role-select><% Object.keys(roles).forEach(function (r) { %><option value="<%= r %>" <%= selected(u.role, r) %>><%= roles[r].label %></option><% }) %></select></div>
+                <div class="col-md-4" data-teacher-wrap><label class="form-label">Teacher profile</label><select class="form-select form-select-sm" name="teacher"><option value="">— None —</option><% teachers.forEach(function (t) { %><option value="<%= t._id %>" <%= selected(u.teacher && u.teacher._id, t._id) %>><%= t.fullName %></option><% }) %></select></div>
+                <div class="col-md-4"><label class="form-label">New password</label><input type="password" class="form-control form-control-sm" name="password" minlength="8" placeholder="Leave blank to keep" autocomplete="new-password"></div>
+                <div class="col-md-6 d-flex align-items-end"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="isActive" id="act_<%= u._id %>" <%= u.isActive ? 'checked' : '' %>><label class="form-check-label" for="act_<%= u._id %>">Account active</label></div></div>
+                <div class="col-md-6 text-end"><button class="btn btn-sm btn-primary" type="submit">Save user</button></div>
+              </form>
+            </td></tr>
+          <% }) %>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="card mb-3"><div class="card-header">Add user</div><div class="card-body">
+      <form method="post" action="/school/users" class="row g-2 needs-validation" novalidate>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <%- include('../partials/field', { name: 'name', label: 'Full name', required: true }) %>
+        <%- include('../partials/field', { name: 'email', label: 'Email', ftype: 'email', required: true }) %>
+        <%- include('../partials/field', { name: 'phone', label: 'Phone', ftype: 'tel' }) %>
+        <%- include('../partials/field', { name: 'role', label: 'Role', ftype: 'select', required: true, attrs: 'data-role-select', options: Object.keys(roles).map(function (r) { return { value: r, label: roles[r].label }; }) }) %>
+        <div class="col-12" data-teacher-wrap><label class="form-label">Teacher profile</label><select class="form-select" name="teacher"><option value="">— None —</option><% teachers.forEach(function (t) { %><option value="<%= t._id %>"><%= t.fullName %></option><% }) %></select><div class="form-text">Teachers linked to a profile only see their own classes.</div></div>
+        <%- include('../partials/field', { name: 'password', label: 'Temporary password', ftype: 'password', required: true, attrs: 'minlength="8" autocomplete="new-password"', help: 'At least 8 characters with a letter and a number.' }) %>
+        <div class="col-12"><button class="btn btn-primary w-100" type="submit">Create user</button></div>
+      </form>
+    </div></div>
+    <div class="card"><div class="card-header">What each role can do</div><div class="card-body small">
+      <p class="mb-2"><strong>School Administrator</strong> — everything, including users, settings and subscription.</p>
+      <p class="mb-2"><strong>Finance Officer</strong> — invoices, payments, receipts, reversals, expenses, salaries and financial reports.</p>
+      <p class="mb-2"><strong>Teacher</strong> — lessons and progress, Subac/Duruus, attendance and academic reports.</p>
+      <p class="mb-0"><strong>Receptionist</strong> — register students, take payments and print receipts.</p>
+    </div></div>
+  </div>
+</div>

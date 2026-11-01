@@ -1,0 +1,83 @@
+<% var t = tenant; var sub = t.currentSubscription; %>
+<%- include('../partials/page-header', { heading: t.name, crumbs: [['Schools', '/platform/schools'], [t.name, null]], sub: [t.city, t.country].filter(Boolean).join(', ') + ' · registered ' + fmtDate(t.createdAt) }) %>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">School</div><div class="card-body">
+    <dl class="dl-grid mb-0">
+      <div><dt>Account</dt><dd><%- statusBadge(t.status) %></dd></div>
+      <div><dt>Access now</dt><dd><%= titleCase(access.mode) %></dd></div>
+      <div><dt>Workspace</dt><dd class="font-monospace small"><%= t.slug %></dd></div>
+      <div><dt>Email</dt><dd><%= t.email %></dd></div>
+      <div><dt>Phone</dt><dd><%= t.phone %></dd></div>
+      <div><dt>Address</dt><dd><%= t.address || '—' %></dd></div>
+    </dl>
+    <% if (t.statusReason) { %><div class="alert alert-warning small mt-3 mb-0"><%= t.statusReason %></div><% } %>
+    <div class="small-caps mt-3 mb-1">Administrators</div>
+    <% admins.forEach(function (a) { %><div class="small"><%= a.name %> · <%= a.email %> <span class="text-muted">· last login <%= a.lastLoginAt ? fmtDate(a.lastLoginAt) : 'never' %></span></div><% }) %>
+  </div></div></div>
+
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">Usage <span class="small text-muted fw-normal">(totals only)</span></div><div class="card-body">
+    <% [['students', usage.students, limits.students], ['teachers', usage.teachers, limits.teachers], ['classes', usage.classes, limits.classes], ['users', usage.users, limits.users]].forEach(function (u) { var pct = u[2] ? Math.min(100, Math.round(u[1] / u[2] * 100)) : 0; %>
+      <div class="mb-3"><div class="d-flex justify-content-between small mb-1"><span class="fw-semibold"><%= titleCase(u[0]) %></span><span><%= u[1] %> / <%= u[2] || '∞' %></span></div><div class="progress"><div class="progress-bar" style="width:<%= u[2] ? pct : 4 %>%"></div></div></div>
+    <% }) %>
+    <div class="small text-muted"><%= usage.activeStudents %> active students · <%= usage.paymentsRecorded %> fee payments · <%= usage.expensesRecorded %> expenses recorded</div>
+  </div></div></div>
+
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">Current subscription</div><div class="card-body">
+    <% if (sub) { %>
+      <div class="d-flex justify-content-between"><div class="fs-5 fw-bold"><%= sub.planSnapshot.name %></div><%- statusBadge(sub.status) %></div>
+      <div class="small text-muted mb-2"><%= money(sub.planSnapshot.price, sub.planSnapshot.currency) %> / <%= sub.planSnapshot.billingCycle.replace('_', ' ') %></div>
+      <dl class="dl-grid mb-3"><div><dt>Start</dt><dd><%= fmtDate(sub.startDate) %></dd></div><div><dt>End</dt><dd><%= fmtDate(sub.endDate) %></dd></div><div><dt>Grace until</dt><dd><%= fmtDate(sub.graceEndDate) %></dd></div></dl>
+    <% } else { %><p class="text-muted">No subscription.</p><% } %>
+    <% if (can('subscriptions.manage') && sub) { %>
+      <form method="post" action="/platform/schools/<%= t._id %>/subscription/extend" class="d-flex gap-2 mb-2" data-confirm="Extend this subscription?" data-confirm-variant="btn-primary">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="number" class="form-control form-control-sm" name="days" min="1" max="365" value="7" style="max-width:90px"><button class="btn btn-sm btn-light" type="submit">Extend days</button></form>
+      <div class="d-flex flex-wrap gap-2">
+        <% if (sub.status !== 'suspended') { %><form method="post" action="/platform/schools/<%= t._id %>/subscription/suspend" data-confirm="Suspend this school's subscription? The school will lose access until reactivated."><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-sm btn-outline-danger" type="submit">Suspend subscription</button></form><% } %>
+        <% if (['suspended', 'cancelled'].indexOf(sub.status) >= 0) { %><form method="post" action="/platform/schools/<%= t._id %>/subscription/reactivate" data-confirm="Reactivate this subscription?" data-confirm-variant="btn-primary"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-sm btn-outline-primary" type="submit">Reactivate subscription</button></form><% } %>
+        <% if (sub.status !== 'cancelled') { %><form method="post" action="/platform/schools/<%= t._id %>/subscription/cancel" data-confirm="Cancel this subscription? School data is kept."><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-sm btn-light text-danger" type="submit">Cancel</button></form><% } %>
+      </div>
+    <% } %>
+  </div></div></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card mb-3"><div class="card-header">Subscription payments</div><div class="table-responsive"><table class="table table-hover">
+      <thead><tr><th>Reference</th><th>Plan</th><th>Date</th><th>Method</th><th class="num">Amount</th><th>Status</th></tr></thead>
+      <tbody>
+        <% if (!payments.length) { %><tr><td colspan="6" class="empty-state">No payments</td></tr><% } %>
+        <% payments.forEach(function (p) { %><tr><td><a class="font-monospace small" href="/platform/payments/<%= p._id %>"><%= p.reference %></a></td><td><%= p.plan ? p.plan.name : '' %> × <%= p.periods %></td><td><%= fmtDate(p.createdAt) %></td><td><%= titleCase(p.method) %></td><td class="num"><%= money(p.amount, p.currency) %></td><td><%- statusBadge(p.status) %></td></tr><% }) %>
+      </tbody>
+    </table></div></div>
+    <div class="card"><div class="card-header">Subscription history</div><div class="table-responsive"><table class="table">
+      <thead><tr><th>Plan</th><th>Start</th><th>End</th><th>Status</th><th>Notes</th></tr></thead>
+      <tbody><% history.forEach(function (h) { %><tr><td><%= h.planSnapshot ? h.planSnapshot.name : '' %></td><td><%= fmtDate(h.startDate) %></td><td><%= fmtDate(h.endDate) %></td><td><%- statusBadge(h.status) %></td><td class="small text-muted"><%= h.notes %></td></tr><% }) %></tbody>
+    </table></div></div>
+  </div>
+  <div class="col-lg-4">
+    <% if (can('schools.status')) { %>
+    <div class="card mb-3"><div class="card-header">School account status</div><div class="card-body d-grid gap-2">
+      <% if (t.status !== 'active') { %>
+        <form method="post" action="/platform/schools/<%= t._id %>/status/reactivate" data-confirm="Reactivate <%= t.name %>?" data-confirm-variant="btn-primary"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-primary w-100" type="submit">Activate / reactivate</button></form>
+      <% } else { %>
+        <form method="post" action="/platform/schools/<%= t._id %>/status/suspend" data-confirm="Suspend <%= t.name %>? All its users lose access; data is kept." data-confirm-reason="true" data-confirm-button="Suspend school"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-outline-danger w-100" type="submit">Suspend school</button></form>
+        <form method="post" action="/platform/schools/<%= t._id %>/status/deactivate" data-confirm="Deactivate <%= t.name %>?" data-confirm-reason="true" data-confirm-button="Deactivate"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-light w-100" type="submit">Deactivate</button></form>
+      <% } %>
+    </div></div>
+    <% } %>
+    <% if (can('payments.verify')) { %>
+    <div class="card"><div class="card-header">Record a payment received</div><div class="card-body">
+      <form method="post" action="/platform/schools/<%= t._id %>/payments" class="row g-2">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <%- include('../partials/field', { name: 'planId', label: 'Plan', ftype: 'select', required: true, value: sub ? sub.plan && sub.plan._id : '', options: plans.filter(function (p) { return p.isActive; }).map(function (p) { return { value: p._id, label: p.name + ' (' + money(p.price, p.currency) + ')' }; }) }) %>
+        <%- include('../partials/field', { name: 'periods', label: 'Periods', ftype: 'number', value: 1, min: 1, max: 24, col: 'col-4', required: true }) %>
+        <%- include('../partials/field', { name: 'method', label: 'Method', ftype: 'select', col: 'col-8', required: true, options: C.PLATFORM_PAYMENT_METHODS.map(function (m) { return { value: m, label: titleCase(m) }; }) }) %>
+        <%- include('../partials/field', { name: 'transactionRef', label: 'Transaction ref.', required: true, col: 'col-7' }) %>
+        <%- include('../partials/field', { name: 'paidAt', label: 'Paid on', ftype: 'date', value: isoDate(new Date()), required: true, col: 'col-5' }) %>
+        <div class="col-12"><button class="btn btn-primary w-100" type="submit">Record as pending</button></div>
+      </form>
+    </div></div>
+    <% } %>
+  </div>
+</div>

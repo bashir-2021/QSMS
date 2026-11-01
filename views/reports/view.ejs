@@ -1,0 +1,26 @@
+<% var canExport = !locals.hasFeature || hasFeature('exports'); %>
+<%- include('../partials/page-header', { heading: report.title, sub: report.subtitle, crumbs: [['Reports', base], [report.title, null]],
+  actions: (canExport ? '<a class="btn btn-light btn-icon" href="' + base + '/' + reportKey + qs(query, { format: 'xlsx' }) + '"><i class="bi bi-file-earmark-excel"></i>Excel</a><a class="btn btn-light btn-icon" href="' + base + '/' + reportKey + qs(query, { format: 'pdf' }) + '"><i class="bi bi-file-earmark-pdf"></i>PDF</a>' : '') +
+    '<button class="btn btn-light btn-icon" type="button" data-print><i class="bi bi-printer"></i>Print</button>' }) %>
+
+<%- include('../' + filterView, { reportKey: reportKey, f: report.filters || {} }) %>
+
+<% if (report.summary && report.summary.length) { %>
+<div class="row g-3 mb-3">
+  <% report.summary.forEach(function (s) { %>
+    <div class="col-6 col-md-4 col-xl-3"><div class="card stat-card"><div class="label text-capitalize"><%= s.label %></div>
+      <div class="value fs-4 <%= s.type === 'money' && s.value < 0 ? 'text-danger' : '' %>"><%- reportCell(s.value, s.type === 'percent' ? 'text' : s.type, currencyCode) %></div></div></div>
+  <% }) %>
+</div>
+<% } %>
+
+<% if (report.chart && report.chart.labels && report.chart.labels.length) { %>
+<div class="card mb-3"><div class="card-header">Income vs expenses</div><div class="card-body"><div class="chart-box"><canvas data-chart="reportChart"></canvas></div></div></div>
+<script type="application/json" id="reportChart"><%- JSON.stringify({ type: 'bar', money: true, currency: currencyCode, labels: report.chart.labels, series: [{ label: 'Income', data: report.chart.income }, { label: 'Expenses', data: report.chart.expenses }] }).replace(/</g, '\\u003c') %></script>
+<% } %>
+<% if (report.pie && report.pie.values.length) { %>
+<div class="card mb-3"><div class="card-header">Share by category</div><div class="card-body"><div class="chart-box"><canvas data-chart="reportPie"></canvas></div></div></div>
+<script type="application/json" id="reportPie"><%- JSON.stringify({ type: 'doughnut', money: true, currency: currencyCode, labels: report.pie.labels, values: report.pie.values }).replace(/</g, '\\u003c') %></script>
+<% } %>
+
+<%- include('sections', { report: report, currencyCode: currencyCode }) %>

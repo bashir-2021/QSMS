@@ -1,0 +1,32 @@
+<% var l = lesson || { date: new Date(), status: 'planned', class: presetClass }; var editing = Boolean(lesson); %>
+<%- include('../partials/page-header', { heading: editing ? 'Edit lesson' : 'New lesson', crumbs: [['Lessons', '/school/lessons'], [editing ? l.title : 'New', null]] }) %>
+
+<form method="post" action="<%= editing ? '/school/lessons/' + l._id : '/school/lessons' %>" class="needs-validation" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="card mb-3"><div class="card-header">Lesson</div><div class="card-body row g-3">
+        <%- include('../partials/field', { name: 'title', label: 'Title', value: l.title, required: true, col: 'col-md-8', placeholder: 'e.g. Hifz — Surah Al-Mulk 1–10' }) %>
+        <%- include('../partials/field', { name: 'category', label: 'Category', ftype: 'select', value: l.category, required: true, col: 'col-md-4', options: Object.keys(C.LESSON_CATEGORIES).map(function (k) { return { value: k, label: C.LESSON_CATEGORIES[k] }; }) }) %>
+        <%- include('../partials/field', { name: 'class', label: 'Class', ftype: 'select', value: l.class, required: true, col: 'col-md-4', options: classes.map(function (c) { return { value: c._id, label: c.name }; }) }) %>
+        <%- include('../partials/field', { name: 'teacher', label: 'Teacher', ftype: 'select', value: l.teacher, col: 'col-md-4', placeholder: '— Class teacher —', options: teachers.map(function (t) { return { value: t._id, label: t.fullName }; }) }) %>
+        <%- include('../partials/field', { name: 'date', label: 'Date', ftype: 'date', value: isoDate(l.date), required: true, col: 'col-md-4' }) %>
+      </div></div>
+      <div class="card mb-3"><div class="card-header">Quran portion</div><div class="card-body row g-3">
+        <%- include('../partials/field', { name: 'surah', label: 'Surah', ftype: 'select', value: l.surah, col: 'col-md-6', placeholder: '— Not applicable —', options: surahs.map(function (s) { return { value: s.number, label: s.number + '. ' + s.name + ' (' + s.verses + ' verses)', attrs: 'data-verses="' + s.verses + '"' }; }) }) %>
+        <%- include('../partials/field', { name: 'fromVerse', label: 'From verse', ftype: 'number', value: l.fromVerse, min: 1, col: 'col-md-3' }) %>
+        <%- include('../partials/field', { name: 'toVerse', label: 'To verse', ftype: 'number', value: l.toVerse, min: 1, col: 'col-md-3' }) %>
+        <%- include('../partials/field', { name: 'objectives', label: 'Objectives', ftype: 'textarea', value: l.objectives, rows: 2, max: 1000 }) %>
+        <%- include('../partials/field', { name: 'description', label: 'Description', ftype: 'textarea', value: l.description, rows: 3, max: 2000 }) %>
+      </div></div>
+    </div>
+    <div class="col-lg-4"><div class="card"><div class="card-body row g-3">
+      <%- include('../partials/field', { name: 'status', label: 'Completion status', ftype: 'select', value: l.status, placeholder: false, required: true, options: C.LESSON_STATUSES.map(function (s) { return { value: s, label: titleCase(s) }; }) }) %>
+      <%- include('../partials/field', { name: 'remarks', label: 'Teacher remarks', ftype: 'textarea', value: l.remarks, rows: 3, max: 1000 }) %>
+      <div class="col-12 d-grid gap-2">
+        <button class="btn btn-primary" type="submit"><%= editing ? 'Save lesson' : 'Create lesson' %></button>
+        <a class="btn btn-light" href="<%= editing ? '/school/lessons/' + l._id : '/school/lessons' %>">Cancel</a>
+      </div>
+    </div></div></div>
+  </div>
+</form>

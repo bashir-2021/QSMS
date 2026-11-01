@@ -1,0 +1,94 @@
+<% var cur = currency; var showFin = can('payments.view') && hasFeature('finance'); %>
+<%- include('../partials/page-header', { heading: 'Assalamu alaikum, ' + currentUser.name.split(' ')[0], sub: 'Here is how ' + tenant.name + ' is doing in ' + periodLabel(data.period) + '.',
+  actions: (can('students.manage') ? '<a class="btn btn-light btn-icon" href="/school/students/new"><i class="bi bi-person-plus"></i>Add student</a>' : '') +
+           (can('attendance.manage') && hasFeature('attendance') ? '<a class="btn btn-light btn-icon" href="/school/attendance"><i class="bi bi-calendar-check"></i>Take attendance</a>' : '') +
+           (can('payments.create') && hasFeature('finance') ? '<a class="btn btn-primary btn-icon" href="/school/finance/payments/new"><i class="bi bi-cash-coin"></i>Receive payment</a>' : '') }) %>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-xl-3"><div class="card stat-card">
+    <div class="d-flex justify-content-between"><div class="label">Students</div><div class="stat-icon emerald"><i class="bi bi-people"></i></div></div>
+    <div class="value"><%= data.counts.activeStudents %></div>
+    <div class="meta"><%= data.counts.totalStudents %> registered in total</div>
+  </div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-card">
+    <div class="d-flex justify-content-between"><div class="label">Teachers &amp; classes</div><div class="stat-icon gold"><i class="bi bi-person-badge"></i></div></div>
+    <div class="value"><%= data.counts.activeTeachers %> <span class="fs-6 text-muted fw-semibold">/ <%= data.counts.totalClasses %> classes</span></div>
+    <div class="meta"><%= data.counts.totalTeachers %> teachers on record</div>
+  </div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-card">
+    <div class="d-flex justify-content-between"><div class="label">Today's attendance</div><div class="stat-icon blue"><i class="bi bi-calendar-check"></i></div></div>
+    <div class="value"><%= data.today.students.rate == null ? '—' : data.today.students.rate + '%' %></div>
+    <div class="meta"><%= data.today.students.present + data.today.students.late %> present of <%= data.today.students.total %> marked · <%= data.today.students.absent %> absent</div>
+  </div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-card">
+    <div class="d-flex justify-content-between"><div class="label">Subscription</div><div class="stat-icon <%= access.status === 'active' || access.status === 'trial' ? 'emerald' : 'red' %>"><i class="bi bi-stars"></i></div></div>
+    <div class="value fs-5 mt-2"><%- statusBadge(access.status) %></div>
+    <div class="meta"><%= subscription ? (subscription.planSnapshot.name + ' · until ' + fmtDate(subscription.endDate)) : 'No subscription' %></div>
+  </div></div>
+</div>
+
+<% if (showFin) { %>
+<div class="row g-3 mb-3">
+  <div class="col-6 col-xl-3"><div class="card stat-card">
+    <div class="label">Monthly fee collections</div><div class="value"><%= money(data.finance.monthlyFees, cur) %></div>
+    <div class="meta">Registration fees: <strong><%= money(data.finance.registrationFees, cur) %></strong></div>
+  </div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-card">
+    <div class="label">Outstanding balances</div><div class="value text-danger"><%= money(data.finance.outstanding, cur) %></div>
+    <div class="meta"><%= data.finance.studentsOwing %> students · <%= data.finance.overdueCount %> overdue invoices</div>
+  </div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-card">
+    <div class="label">Income vs expenses (month)</div><div class="value"><%= money(data.finance.income, cur) %></div>
+    <div class="meta">Expenses: <strong><%= money(data.finance.expenses, cur) %></strong></div>
+  </div></div>
+  <div class="col-6 col-xl-3"><div class="card stat-card">
+    <div class="label">Net balance (month)</div><div class="value <%= data.finance.net < 0 ? 'text-danger' : 'text-success' %>"><%= money(data.finance.net, cur) %></div>
+    <div class="meta">Confirmed income − recorded expenses</div>
+  </div></div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-8"><div class="card h-100">
+    <div class="card-header d-flex justify-content-between"><span>Income &amp; expenses — last 6 months</span><a class="small" href="/school/reports/net-balance">Net balance report</a></div>
+    <div class="card-body"><div class="chart-box"><canvas data-chart="chartTrend" aria-label="Income and expenses chart"></canvas></div></div>
+    <script type="application/json" id="chartTrend"><%- JSON.stringify({ type: 'bar', money: true, currency: cur, labels: data.chart.labels, series: [{ label: 'Income', data: data.chart.income }, { label: 'Expenses', data: data.chart.expenses }] }).replace(/</g, '\\u003c') %></script>
+  </div></div>
+  <div class="col-lg-4"><div class="card h-100">
+    <div class="card-header d-flex justify-content-between"><span>Recent payments</span><a class="small" href="/school/finance/payments">All</a></div>
+    <div class="list-group list-group-flush">
+      <% if (!data.recentPayments.length) { %><div class="empty-state small"><i class="bi bi-cash"></i>No payments yet</div><% } %>
+      <% data.recentPayments.forEach(function (p) { %>
+        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="/school/finance/payments/<%= p._id %>">
+          <div class="min-w-0"><div class="fw-semibold small text-truncate"><%= p.student ? p.student.fullName : '—' %></div><div class="text-muted" style="font-size:.74rem"><%= fmtDate(p.paymentDate) %> · <%= p.method %></div></div>
+          <div class="text-end"><div class="fw-bold small <%= p.status === 'reversed' ? 'text-decoration-line-through text-muted' : '' %>"><%= money(p.amount, cur) %></div></div>
+        </a>
+      <% }) %>
+    </div>
+  </div></div>
+</div>
+<% } %>
+
+<div class="row g-3">
+  <div class="col-lg-<%= showFin && data.dueRecurring.length && can('expenses.view') ? '6' : '12' %>"><div class="card h-100">
+    <div class="card-header d-flex justify-content-between"><span>Latest lessons</span><% if (can('lessons.view')) { %><a class="small" href="/school/lessons">All lessons</a><% } %></div>
+    <div class="table-responsive"><table class="table table-hover">
+      <thead><tr><th>Date</th><th>Lesson</th><th>Class</th><th>Status</th></tr></thead>
+      <tbody>
+        <% if (!data.recentLessons.length) { %><tr><td colspan="4" class="empty-state">No lessons recorded yet</td></tr><% } %>
+        <% data.recentLessons.forEach(function (l) { %>
+          <tr><td><%= fmtDate(l.date) %></td><td><a class="row-link" href="/school/lessons/<%= l._id %>"><%= l.title %></a><div class="small text-muted"><%= C.LESSON_CATEGORIES[l.category] %></div></td><td><%= l.class ? l.class.name : '' %></td><td><%- statusBadge(l.status) %></td></tr>
+        <% }) %>
+      </tbody>
+    </table></div>
+  </div></div>
+  <% if (showFin && data.dueRecurring.length && can('expenses.view')) { %>
+  <div class="col-lg-6"><div class="card h-100">
+    <div class="card-header">Recurring expenses due</div>
+    <div class="list-group list-group-flush">
+      <% data.dueRecurring.forEach(function (e) { %>
+        <div class="list-group-item d-flex justify-content-between"><div><div class="fw-semibold small"><%= e.description %></div><div class="text-muted" style="font-size:.74rem"><%= e.category ? e.category.name : '' %> · due <%= fmtDate(e.recurring.nextDueDate) %></div></div><div class="fw-bold small"><%= money(e.amount, cur) %></div></div>
+      <% }) %>
+    </div>
+  </div></div>
+  <% } %>
+</div>

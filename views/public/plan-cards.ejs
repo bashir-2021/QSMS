@@ -1,0 +1,25 @@
+<div class="row g-3 justify-content-center">
+  <% if (!plans.length) { %><div class="col-12"><div class="empty-state">Plans will be published soon.</div></div><% } %>
+  <% plans.forEach(function (p, i) { var featured = plans.length > 2 && i === 1; %>
+    <div class="col-md-6 col-xl-3">
+      <div class="plan-card <%= featured ? 'featured' : '' %>">
+        <div class="d-flex justify-content-between align-items-center">
+          <h3 class="h5 mb-0"><%= p.name %></h3>
+          <% if (featured) { %><span class="badge badge-soft-primary">Most popular</span><% } %>
+        </div>
+        <p class="text-muted small mt-2 mb-3"><%= p.description %></p>
+        <div><span class="price"><%= money(p.price, p.currency) %></span>
+          <span class="text-muted">/ <%= p.billingCycle === 'custom' ? p.customDays + ' days' : (C.BILLING_CYCLES[p.billingCycle].label).toLowerCase().replace('six months', '6 months').replace('monthly', 'month').replace('quarterly', 'quarter').replace('annual', 'year') %></span></div>
+        <% if (p.trialDays) { %><div class="small text-success fw-semibold mt-1"><%= p.trialDays %>-day free trial</div><% } %>
+        <ul class="small">
+          <li><i class="bi bi-people"></i><%= p.limits.students ? 'Up to ' + p.limits.students + ' students' : 'Unlimited students' %></li>
+          <li><i class="bi bi-person-badge"></i><%= p.limits.teachers ? 'Up to ' + p.limits.teachers + ' teachers' : 'Unlimited teachers' %></li>
+          <li><i class="bi bi-easel"></i><%= p.limits.classes ? 'Up to ' + p.limits.classes + ' classes' : 'Unlimited classes' %></li>
+          <li><i class="bi bi-shield-lock"></i><%= p.limits.users ? p.limits.users + ' user accounts' : 'Unlimited users' %></li>
+          <% p.features.forEach(function (f) { %><li><i class="bi bi-check2"></i><%= C.PLAN_FEATURES[f] %></li><% }) %>
+        </ul>
+        <a class="btn <%= featured ? 'btn-primary' : 'btn-outline-primary' %> w-100" href="/register?plan=<%= p._id %>">Choose <%= p.name %></a>
+      </div>
+    </div>
+  <% }) %>
+</div>

@@ -1,0 +1,44 @@
+<%
+  var n = locals.nav || '';
+  var link = function (key, href, icon, label, show) {
+    if (show === false) return '';
+    return '<a class="nav-link ' + (n === key ? 'active' : '') + '" href="' + href + '"><i class="bi bi-' + icon + '"></i><span>' + label + '</span></a>';
+  };
+  var f = hasFeature;
+%>
+<aside class="sidebar" aria-label="School navigation">
+  <a class="brand" href="/school/dashboard"><%- include('brand', { dark: true }) %><span>Quranic<small>School</small></span></a>
+  <div class="school-chip">
+    <% if (tenant.logo) { %><img src="/school/files/<%= tenant.logo.split('/').pop() %>" alt=""><% } else { %><span class="avatar"><%= initials(tenant.name) %></span><% } %>
+    <div class="min-w-0"><div class="name text-truncate"><%= tenant.name %></div><div style="font-size:.7rem;opacity:.7"><%= subscription && subscription.planSnapshot ? subscription.planSnapshot.name : 'No plan' %> · <%= titleCase(access.status) %></div></div>
+  </div>
+  <nav>
+    <%- link('dashboard', '/school/dashboard', 'grid-1x2', 'Dashboard', can('dashboard.view')) %>
+
+    <div class="nav-section">People</div>
+    <%- link('students', '/school/students', 'people', 'Students', can('students.view') && f('students')) %>
+    <%- link('teachers', '/school/teachers', 'person-badge', 'Teachers', can('teachers.view') && f('teachers')) %>
+    <%- link('classes', '/school/classes', 'easel', 'Classes', can('classes.view') && f('classes')) %>
+
+    <% if (can('lessons.view') || can('attendance.view')) { %><div class="nav-section">Learning</div><% } %>
+    <%- link('lessons', '/school/lessons', 'book', 'Quran lessons', can('lessons.view') && f('lessons')) %>
+    <%- link('subac', '/school/activities/subac', 'journal-check', 'Subac (سبع)', can('activities.view') && f('activities')) %>
+    <%- link('duruus', '/school/activities/duruus', 'mortarboard', 'Duruus (دروس)', can('activities.view') && f('activities')) %>
+    <%- link('attendance', '/school/attendance', 'calendar-check', 'Attendance', can('attendance.view') && f('attendance')) %>
+    <%- link('attendance-report', '/school/attendance/reports', 'clipboard-data', 'Attendance reports', can('attendance.view') && f('attendance')) %>
+
+    <% if (can('invoices.view') || can('expenses.view')) { %><div class="nav-section">Finance</div><% } %>
+    <%- link('invoices', '/school/finance/invoices', 'receipt-cutoff', 'Invoices & billing', can('invoices.view') && f('finance')) %>
+    <%- link('payments', '/school/finance/payments', 'cash-coin', 'Payments', can('payments.view') && f('finance')) %>
+    <%- link('receipts', '/school/finance/receipts', 'receipt', 'Receipts', can('receipts.view') && f('finance')) %>
+    <%- link('expenses', '/school/finance/expenses', 'wallet2', 'Expenses', can('expenses.view') && f('expenses')) %>
+    <%- link('salaries', '/school/finance/salaries', 'person-workspace', 'Teacher salaries', can('salaries.view') && f('expenses')) %>
+    <%- link('reports', '/school/reports', 'bar-chart-line', 'Financial reports', can('reports.finance') && f('reports')) %>
+
+    <div class="nav-section">Administration</div>
+    <%- link('users', '/school/users', 'shield-lock', 'Users & roles', can('users.manage')) %>
+    <%- link('settings', '/school/settings', 'gear', 'School settings', can('settings.manage')) %>
+    <%- link('subscription', '/school/subscription', 'stars', 'Subscription') %>
+    <%- link('audit', '/school/audit', 'clock-history', 'Audit log', can('audit.view')) %>
+  </nav>
+</aside>

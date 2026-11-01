@@ -1,0 +1,35 @@
+<% var t = teacher || {}; var editing = Boolean(teacher); %>
+<%- include('../partials/page-header', { heading: editing ? 'Edit teacher' : 'Add teacher', crumbs: [['Teachers', '/school/teachers'], [editing ? t.fullName : 'New', null]] }) %>
+
+<form method="post" action="<%= editing ? '/school/teachers/' + t._id : '/school/teachers' %>?_csrf=<%= csrfToken %>" enctype="multipart/form-data" class="needs-validation" novalidate>
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="card mb-3"><div class="card-header">Personal information</div><div class="card-body row g-3">
+        <%- include('../partials/field', { name: 'fullName', label: 'Full name', value: t.fullName, required: true, col: 'col-md-8' }) %>
+        <%- include('../partials/field', { name: 'gender', label: 'Gender', ftype: 'select', value: t.gender, col: 'col-md-4', options: C.GENDERS.map(function (g) { return { value: g, label: titleCase(g) }; }) }) %>
+        <%- include('../partials/field', { name: 'phone', label: 'Phone', ftype: 'tel', value: t.phone, required: true, col: 'col-md-4' }) %>
+        <%- include('../partials/field', { name: 'email', label: 'Email', ftype: 'email', value: t.email, col: 'col-md-4' }) %>
+        <%- include('../partials/field', { name: 'dateOfBirth', label: 'Date of birth', ftype: 'date', value: isoDate(t.dateOfBirth), col: 'col-md-4' }) %>
+        <%- include('../partials/field', { name: 'address', label: 'Address', value: t.address }) %>
+      </div></div>
+      <div class="card mb-3"><div class="card-header">Employment</div><div class="card-body row g-3">
+        <%- include('../partials/field', { name: 'qualification', label: 'Qualification', value: t.qualification, col: 'col-md-6', placeholder: 'e.g. Hafiz, Ijazah in Hafs' }) %>
+        <%- include('../partials/field', { name: 'specialization', label: 'Specialization', value: t.specialization, col: 'col-md-6', placeholder: 'e.g. Tajweed, Hifz' }) %>
+        <%- include('../partials/field', { name: 'employmentDate', label: 'Employment date', ftype: 'date', value: isoDate(t.employmentDate), col: 'col-md-4' }) %>
+        <%- include('../partials/field', { name: 'monthlySalary', label: 'Monthly salary', ftype: 'money', value: t.monthlySalary != null ? moneyInput(t.monthlySalary) : '', col: 'col-md-4' }) %>
+        <%- include('../partials/field', { name: 'status', label: 'Employment status', ftype: 'select', value: t.status || 'active', placeholder: false, col: 'col-md-4', options: C.TEACHER_STATUSES.map(function (x) { return { value: x, label: titleCase(x) }; }) }) %>
+        <%- include('../partials/field', { name: 'notes', label: 'Notes', ftype: 'textarea', value: t.notes, rows: 2, max: 500 }) %>
+      </div></div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card mb-3"><div class="card-header">Photo</div><div class="card-body text-center">
+        <img id="photoPreview" class="rounded-4 mb-3 <%= t.photo ? '' : 'd-none' %>" style="width:140px;height:140px;object-fit:cover" src="<%= t.photo ? '/school/files/' + t.photo.split('/').pop() : '' %>" alt="">
+        <input type="file" class="form-control" name="photo" accept="image/png,image/jpeg,image/webp" data-preview="#photoPreview">
+      </div></div>
+      <div class="card"><div class="card-body d-grid gap-2">
+        <button class="btn btn-primary" type="submit"><%= editing ? 'Save changes' : 'Add teacher' %></button>
+        <a class="btn btn-light" href="<%= editing ? '/school/teachers/' + t._id : '/school/teachers' %>">Cancel</a>
+      </div></div>
+    </div>
+  </div>
+</form>

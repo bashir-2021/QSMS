@@ -1,0 +1,8 @@
+<div class="page-header">
+  <div>
+    <% if (locals.crumbs) { %><div class="crumbs"><% crumbs.forEach(function (c, i) { %><% if (i) { %> / <% } %><% if (c[1]) { %><a href="<%= c[1] %>"><%= c[0] %></a><% } else { %><%= c[0] %><% } %><% }) %></div><% } %>
+    <h1><%= heading %></h1>
+    <% if (locals.sub) { %><div class="text-muted small mt-1"><%= sub %></div><% } %>
+  </div>
+  <% if (locals.actions) { %><div class="actions"><%- actions %></div><% } %>
+</div>

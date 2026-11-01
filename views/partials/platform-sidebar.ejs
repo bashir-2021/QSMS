@@ -1,0 +1,23 @@
+<%
+  var n = locals.nav || '';
+  var link = function (key, href, icon, label, show) {
+    if (show === false) return '';
+    return '<a class="nav-link ' + (n === key ? 'active' : '') + '" href="' + href + '"><i class="bi bi-' + icon + '"></i><span>' + label + '</span></a>';
+  };
+%>
+<aside class="sidebar platform" aria-label="Platform navigation">
+  <a class="brand" href="/platform/dashboard"><%- include('brand', { dark: true }) %><span>Quranic<small>Platform console</small></span></a>
+  <nav>
+    <%- link('dashboard', '/platform/dashboard', 'speedometer2', 'Overview', can('platform.dashboard')) %>
+    <div class="nav-section">SaaS operations</div>
+    <%- link('schools', '/platform/schools', 'buildings', 'Schools', can('schools.view')) %>
+    <%- link('subscriptions', '/platform/subscriptions', 'arrow-repeat', 'Subscriptions', can('subscriptions.view')) %>
+    <%- link('payments', '/platform/payments', 'credit-card-2-front', 'Payments', can('payments.view')) %>
+    <%- link('plans', '/platform/plans', 'layers', 'Plans & pricing', can('plans.view')) %>
+    <%- link('reports', '/platform/reports', 'graph-up-arrow', 'Reports', can('reports.view')) %>
+    <div class="nav-section">Administration</div>
+    <%- link('staff', '/platform/staff', 'people', 'Platform staff', can('staff.manage')) %>
+    <%- link('audit', '/platform/audit', 'clock-history', 'Audit log', can('audit.view')) %>
+    <%- link('notifications', '/platform/notifications', 'bell', 'Notifications') %>
+  </nav>
+</aside>

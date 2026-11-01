@@ -1,0 +1,24 @@
+<form class="filter-bar row g-2 align-items-end no-print" method="get">
+  <% if (reportKey === 'daily') { %>
+    <div class="col-md-3"><label class="form-label">Date</label><input type="date" class="form-control" name="date" value="<%= f.date %>"></div>
+  <% } else if (reportKey === 'monthly') { %>
+    <div class="col-md-3"><label class="form-label">Month</label><input type="month" class="form-control" name="month" value="<%= f.month %>"></div>
+  <% } else if (reportKey === 'annual' || reportKey === 'net-balance') { %>
+    <div class="col-md-3"><label class="form-label">Year</label><input type="number" class="form-control" name="year" min="2000" max="2100" value="<%= f.year %>"></div>
+  <% } else if (reportKey === 'salaries') { %>
+    <div class="col-md-3"><label class="form-label">From month</label><input type="month" class="form-control" name="fromMonth" value="<%= f.fromMonth %>"></div>
+    <div class="col-md-3"><label class="form-label">To month</label><input type="month" class="form-control" name="toMonth" value="<%= f.toMonth %>"></div>
+  <% } else if (reportKey === 'registration-fees') { %>
+    <div class="col-md-3"><label class="form-label">Show</label><select class="form-select" name="status"><option value="">All</option><option value="open" <%= selected(f.status, 'open') %>>Unpaid / partial</option><option value="paid" <%= selected(f.status, 'paid') %>>Fully paid</option></select></div>
+  <% } else if (reportKey === 'outstanding') { %>
+    <div class="col-md-3"><label class="form-label">Class</label><select class="form-select" name="class"><option value="">All classes</option><% classes.forEach(function (c) { %><option value="<%= c._id %>" <%= selected(f.class, c._id) %>><%= c.name %></option><% }) %></select></div>
+  <% } else { %>
+    <div class="col-md-3"><label class="form-label">From</label><input type="date" class="form-control" name="from" value="<%= f.from %>"></div>
+    <div class="col-md-3"><label class="form-label">To</label><input type="date" class="form-control" name="to" value="<%= f.to %>"></div>
+    <% if (reportKey === 'student-payments') { %>
+      <div class="col-md-2"><label class="form-label">Method</label><select class="form-select" name="method"><option value="">All</option><% methods.forEach(function (m) { %><option <%= selected(f.method, m) %>><%= m %></option><% }) %></select></div>
+      <div class="col-md-2"><label class="form-label">Class</label><select class="form-select" name="class"><option value="">All</option><% classes.forEach(function (c) { %><option value="<%= c._id %>" <%= selected(f.class, c._id) %>><%= c.name %></option><% }) %></select></div>
+    <% } %>
+  <% } %>
+  <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Run report</button></div>
+</form>

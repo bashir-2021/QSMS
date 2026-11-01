@@ -1,0 +1,79 @@
+<%- include('../partials/page-header', { heading: 'School settings' }) %>
+
+<ul class="nav nav-tabs mb-3">
+  <% [['profile', 'School profile'], ['fees', 'Fees & payments'], ['numbering', 'Numbering & receipts'], ['categories', 'Expense categories']].forEach(function (t) { %>
+    <li class="nav-item"><a class="nav-link <%= tab === t[0] ? 'active' : '' %>" href="?tab=<%= t[0] %>"><%= t[1] %></a></li>
+  <% }) %>
+</ul>
+
+<% if (tab === 'profile') { %>
+<form method="post" action="/school/settings/profile?_csrf=<%= csrfToken %>" enctype="multipart/form-data" class="needs-validation" novalidate>
+  <div class="row g-3">
+    <div class="col-lg-8"><div class="card"><div class="card-body row g-3">
+      <%- include('../partials/field', { name: 'name', label: 'School name', value: tenant.name, required: true }) %>
+      <%- include('../partials/field', { name: 'country', label: 'Country', value: tenant.country, col: 'col-md-6' }) %>
+      <%- include('../partials/field', { name: 'city', label: 'City', value: tenant.city, col: 'col-md-6' }) %>
+      <%- include('../partials/field', { name: 'address', label: 'Address', value: tenant.address }) %>
+      <%- include('../partials/field', { name: 'phone', label: 'Phone', ftype: 'tel', value: tenant.phone, col: 'col-md-6' }) %>
+      <%- include('../partials/field', { name: 'email', label: 'Email', ftype: 'email', value: tenant.email, col: 'col-md-6' }) %>
+    </div></div></div>
+    <div class="col-lg-4"><div class="card"><div class="card-header">Logo</div><div class="card-body text-center">
+      <img id="logoPreview" class="mb-3 <%= tenant.logo ? '' : 'd-none' %>" style="max-width:140px;max-height:140px" src="<%= tenant.logo ? '/school/files/' + tenant.logo.split('/').pop() : '' %>" alt="">
+      <input type="file" class="form-control" name="logo" accept="image/png,image/jpeg,image/webp" data-preview="#logoPreview">
+      <div class="form-text">Shown on the sidebar, receipts and PDF reports (PNG or JPG recommended).</div>
+      <button class="btn btn-primary w-100 mt-3" type="submit">Save profile</button>
+    </div></div></div>
+  </div>
+</form>
+<% } else if (tab === 'fees' || tab === 'numbering') { %>
+<form method="post" action="/school/settings" class="needs-validation" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <input type="hidden" name="tab" value="<%= tab %>">
+  <div class="card"><div class="card-body row g-3">
+    <div class="<%= tab === 'fees' ? '' : 'd-none' %> col-12"><div class="row g-3">
+      <%- include('../partials/field', { name: 'academicYear', label: 'Academic year', value: s.academicYear, required: true, col: 'col-md-3' }) %>
+      <%- include('../partials/field', { name: 'currency', label: 'Currency (ISO code)', value: s.currency, required: true, col: 'col-md-3', attrs: 'maxlength="3" style="text-transform:uppercase"', help: 'Default USD. Changing it does not convert existing amounts.' }) %>
+      <%- include('../partials/field', { name: 'registrationFee', label: 'Registration fee', ftype: 'money', value: moneyInput(s.registrationFee), required: true, col: 'col-md-3', currency: s.currency }) %>
+      <%- include('../partials/field', { name: 'monthlyFee', label: 'Global monthly fee', ftype: 'money', value: moneyInput(s.monthlyFee), required: true, col: 'col-md-3', currency: s.currency, help: 'Classes can override this.' }) %>
+      <%- include('../partials/field', { name: 'billingDueDay', label: 'Monthly bills due on day', ftype: 'number', value: s.billingDueDay, min: 1, max: 28, required: true, col: 'col-md-3' }) %>
+      <%- include('../partials/field', { name: 'paymentMethods', label: 'Payment methods (one per line)', ftype: 'textarea', rows: 5, value: (s.paymentMethods || []).join('\n'), required: true, col: 'col-md-9' }) %>
+    </div></div>
+    <div class="<%= tab === 'numbering' ? '' : 'd-none' %> col-12"><div class="row g-3">
+      <div class="col-12 small text-muted">Tokens: <code>{YYYY}</code> year, <code>{YY}</code>, <code>{MM}</code> month, <code>{SEQ:5}</code> sequence padded to 5 digits. Formats with a year restart numbering every year.</div>
+      <% ['student', 'teacher', 'invoice', 'receipt', 'payment', 'expense'].forEach(function (k) { %>
+        <%- include('../partials/field', { name: 'numbering_' + k, label: titleCase(k) + ' number format', value: s.numbering[k], col: 'col-md-4' }) %>
+      <% }) %>
+      <%- include('../partials/field', { name: 'receiptFooter', label: 'Receipt footer text', ftype: 'textarea', value: s.receiptFooter, rows: 2, max: 300 }) %>
+    </div></div>
+    <div class="col-12 text-end"><button class="btn btn-primary" type="submit">Save settings</button></div>
+  </div></div>
+</form>
+<% } else { %>
+<div class="row g-3">
+  <div class="col-lg-8"><div class="card"><div class="table-responsive"><table class="table">
+    <thead><tr><th>Category</th><th>Description</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      <% categories.forEach(function (c) { %>
+        <tr>
+          <td class="fw-semibold"><%= c.name %><% if (c.isSystem) { %> <span class="badge badge-soft-info">System</span><% } %></td>
+          <td class="small text-muted"><%= c.description || '' %></td><td><%- statusBadge(c.isActive ? 'active' : 'inactive') %></td>
+          <td class="text-end text-nowrap">
+            <% if (!c.isSystem) { %>
+              <form method="post" action="/school/settings/categories/<%= c._id %>" class="d-inline"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="name" value="<%= c.name %>"><input type="hidden" name="description" value="<%= c.description || '' %>"><input type="hidden" name="isActive" value="<%= c.isActive ? '' : 'on' %>"><button class="btn btn-sm btn-light" type="submit"><%= c.isActive ? 'Deactivate' : 'Activate' %></button></form>
+              <form method="post" action="/school/settings/categories/<%= c._id %>/delete" class="d-inline" data-confirm="Delete category <%= c.name %>? Categories with expenses cannot be deleted."><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-sm btn-light text-danger" type="submit"><i class="bi bi-trash"></i></button></form>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table></div></div></div>
+  <div class="col-lg-4"><div class="card"><div class="card-header">Add category</div><div class="card-body">
+    <form method="post" action="/school/settings/categories" class="row g-2">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- include('../partials/field', { name: 'name', label: 'Name', required: true }) %>
+      <%- include('../partials/field', { name: 'description', label: 'Description' }) %>
+      <div class="col-12"><button class="btn btn-primary w-100" type="submit">Add category</button></div>
+    </form>
+  </div></div></div>
+</div>
+<% } %>

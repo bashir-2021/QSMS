@@ -1,0 +1,25 @@
+<%- include('../partials/page-header', { heading: 'Receipts', sub: 'Search, view, print, download and reprint student receipts.' }) %>
+
+<form class="filter-bar row g-2 align-items-end" method="get">
+  <div class="col-md-4"><label class="form-label">Search</label><input class="form-control" name="search" value="<%= query.search || '' %>" placeholder="Receipt #, student, ID or reference"></div>
+  <div class="col-6 col-md-2"><label class="form-label">Status</label><select class="form-select" name="status" data-autosubmit><option value="">All</option><option value="valid" <%= selected(query.status, 'valid') %>>Valid</option><option value="void" <%= selected(query.status, 'void') %>>Void</option></select></div>
+  <div class="col-6 col-md-2"><label class="form-label">From</label><input type="date" class="form-control" name="from" value="<%= query.from || '' %>"></div>
+  <div class="col-6 col-md-2"><label class="form-label">To</label><input type="date" class="form-control" name="to" value="<%= query.to || '' %>"></div>
+  <div class="col-6 col-md-2"><button class="btn btn-primary w-100" type="submit"><i class="bi bi-search"></i> Search</button></div>
+</form>
+
+<div class="card">
+  <div class="table-responsive"><table class="table table-hover">
+    <thead><tr><th>Receipt</th><th>Date</th><th>Student</th><th>Category</th><th class="num">Paid</th><th class="num">Balance after</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      <% if (!page.items.length) { %><tr><td colspan="8"><div class="empty-state"><i class="bi bi-receipt"></i>No receipts found.</div></td></tr><% } %>
+      <% page.items.forEach(function (r) { var s = r.snapshot; %>
+        <tr><td><a class="row-link font-monospace small" href="/school/finance/receipts/<%= r._id %>"><%= r.receiptNo %></a></td><td><%= fmtDate(s.paymentDate) %></td>
+          <td><%= s.studentName %><div class="small text-muted"><%= s.studentCode %> · <%= s.className %></div></td><td><%= titleCase(s.category) %></td>
+          <td class="num fw-semibold"><%= money(s.amountPaid, s.currency) %></td><td class="num"><%= money(s.remainingBalance, s.currency) %></td><td><%- statusBadge(r.status) %></td>
+          <td class="text-end text-nowrap"><a class="btn btn-sm btn-light" href="/school/finance/receipts/<%= r._id %>/pdf" target="_blank" rel="noopener" title="Print"><i class="bi bi-printer"></i></a> <a class="btn btn-sm btn-light" href="/school/finance/receipts/<%= r._id %>/pdf?download=1" title="Download PDF"><i class="bi bi-download"></i></a></td></tr>
+      <% }) %>
+    </tbody>
+  </table></div>
+  <%- include('../partials/pagination', { page: page }) %>
+</div>
