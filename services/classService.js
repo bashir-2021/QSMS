@@ -1,5 +1,5 @@
 'use strict';
-const { Class, Teacher, Student, StudentAttendance, LessonProgress, Lesson, StudentEnrollment } = require('../models');
+const { Class, Teacher, Student, StudentAttendance, LessonProgress, Lesson, StudentLesson, StudentEnrollment } = require('../models');
 const C = require('../config/constants');
 const dates = require('../utils/dates');
 const money = require('../utils/money');
@@ -108,7 +108,10 @@ async function detail(tenantId, id) {
     StudentEnrollment.find({ tenantId, class: cls._id }).sort({ startDate: -1 }).limit(20).populate('student', 'fullName studentCode').lean(),
   ]);
   const lessonIds = (await Lesson.find({ tenantId, class: cls._id, date: { $gte: dates.addDays(new Date(), -90) } }).select('_id').lean()).map((l) => l._id);
-  const progress = await LessonProgress.find({ tenantId, lesson: { $in: lessonIds } }).select('student performance score').lean();
+  const [progress, passedLessons] = await Promise.all([
+    LessonProgress.find({ tenantId, lesson: { $in: lessonIds } }).select('student performance score').lean(),
+    StudentLesson.find({ tenantId, student: { $in: students.map((s) => s._id) }, status: 'passed', passedAt: { $gte: dates.addDays(new Date(), -90) } }).select('student score').lean(),
+  ]);
 
   const perStudent = {};
   students.forEach((s) => { perStudent[String(s._id)] = { present: 0, total: 0, scores: [] }; });
@@ -124,6 +127,7 @@ async function detail(tenantId, id) {
     const score = pr.score != null ? pr.score : PERF_SCORE[pr.performance];
     if (score != null) p.scores.push(score);
   });
+  passedLessons.forEach((l) => { perStudent[String(l.student)].scores.push(l.score); });
   const avg = (arr) => (arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null);
   students.forEach((s) => {
     const p = perStudent[String(s._id)];

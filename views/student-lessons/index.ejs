@@ -1,0 +1,54 @@
+<% var editable = can('lessons.manage'); var grades = C.STUDENT_LESSON_GRADES; var gradeButton = { excellent: 'btn-success', very_good: 'btn-primary', acceptable: 'btn-info', not_accepted: 'btn-danger' }; %>
+<%- include('../partials/page-header', { heading: 'Student lessons', sub: 'Give each student a lesson, listen to it, then grade it. A lesson that is not accepted stays open until the student passes.' }) %>
+
+<form class="filter-bar row g-2 align-items-end" method="get">
+  <div class="col-md-4"><label class="form-label"><%= t('Search') %></label><input class="form-control" name="search" value="<%= query.search || '' %>" placeholder="<%= t('Name, ID, guardian or phone') %>"></div>
+  <div class="col-6 col-md-3"><label class="form-label"><%= t('Class') %></label><select class="form-select" name="class" data-autosubmit><option value=""><%= t('All classes') %></option><% classes.forEach(function (c) { %><option value="<%= c._id %>" <%= selected(query.class, c._id) %>><%= c.name %></option><% }) %></select></div>
+  <div class="col-6 col-md-3"><label class="form-label"><%= t('Quran category') %></label><select class="form-select" name="program" data-autosubmit><option value=""><%= t('All') %></option><% Object.keys(C.STUDENT_PROGRAMS).forEach(function (k) { %><option value="<%= k %>" <%= selected(query.program, k) %>><%= titleCase(k) %></option><% }) %></select></div>
+  <div class="col-md-2 d-flex gap-2"><button class="btn btn-primary flex-fill" type="submit" aria-label="<%= t('Search') %>"><i class="bi bi-search"></i></button><a class="btn btn-light" href="/school/student-lessons"><%= t('Reset') %></a></div>
+</form>
+
+<div class="card">
+  <div class="table-responsive"><table class="table align-middle">
+    <thead><tr><th><%= t('Student') %></th><th><%= t('Current lesson') %></th><th><%= t('Last passed') %></th><% if (editable) { %><th><%= t('Listen and grade') %></th><% } %></tr></thead>
+    <tbody>
+      <% if (!page.items.length) { %><tr><td colspan="4"><div class="empty-state"><i class="bi bi-card-checklist"></i><%= t('No students found.') %></div></td></tr><% } %>
+      <% page.items.forEach(function (s) { var l = s.openLesson; var done = s.lastPassed; %>
+        <tr>
+          <td>
+            <a class="row-link" href="/school/students/<%= s._id %>"><%= s.fullName %></a>
+            <div class="small text-muted"><%= s.program ? titleCase(s.program) : t('Category not set') %><%= s.class ? ' · ' + s.class.name : '' %></div>
+          </td>
+          <td>
+            <% if (l) { %>
+              <div class="fw-semibold small"><%= lessonPortion(l) %></div>
+              <div class="small text-muted"><%= fmtDate(l.assignedDate) %> <%- statusBadge(l.status) %><% if (l.reviews && l.reviews.length) { %> · <%= l.reviews.length === 1 ? t('1 attempt') : t('{n} attempts', { n: l.reviews.length }) %><% } %></div>
+            <% } else { %><span class="text-muted small"><%= t('No open lesson') %></span><% } %>
+          </td>
+          <td>
+            <% if (done) { %><div class="small"><%= lessonPortion(done) %></div><div class="small"><%- statusBadge(done.grade) %> <span class="text-muted"><%= done.score %>%</span></div><% } else { %><span class="text-muted">—</span><% } %>
+          </td>
+          <% if (editable) { %>
+          <td>
+            <% if (l) { %>
+              <form method="post" action="/school/student-lessons/<%= l._id %>/review">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="back" value="<%= path %>">
+                <div class="d-flex flex-wrap gap-1 mb-1">
+                  <% Object.keys(grades).forEach(function (g) { %>
+                    <button class="btn btn-sm <%= gradeButton[g] %>" type="submit" name="grade" value="<%= g %>" data-keep><%= t(grades[g].label) %><%= grades[g].passed ? ' ' + grades[g].score + '%' : '' %></button>
+                  <% }) %>
+                </div>
+                <input class="form-control form-control-sm" name="remarks" maxlength="500" placeholder="<%= t('Remarks') %>" aria-label="<%= t('Remarks') %>">
+              </form>
+            <% } else { %>
+              <a class="btn btn-sm btn-light" href="/school/student-lessons/new?student=<%= s._id %>"><i class="bi bi-plus-lg"></i> <%= t('Give a lesson') %></a>
+            <% } %>
+          </td>
+          <% } %>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table></div>
+  <%- include('../partials/pagination', { page: page }) %>
+</div>

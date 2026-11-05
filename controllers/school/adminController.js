@@ -51,6 +51,12 @@ async function saveSettings(req, res) {
   req.flash('success', 'Settings saved.');
   res.redirect(`/school/settings?tab=${req.body.tab || 'fees'}`);
 }
+async function saveSubacDeductions(req, res) {
+  await settingsService.updateSubacDeductions(req.tenantId, req.body);
+  await audit.school(req, 'settings.subac');
+  req.flash('success', 'Settings saved.');
+  res.redirect('/school/settings?tab=subac');
+}
 async function createCategory(req, res) {
   await settingsService.createCategory(req.tenantId, req.body);
   req.flash('success', 'Category added.');
@@ -103,6 +109,6 @@ async function auditLog(req, res) {
 }
 
 module.exports = {
-  users, createUser, updateUser, settings, saveProfile, saveSettings, createCategory, updateCategory, deleteCategory,
+  users, createUser, updateUser, settings, saveProfile, saveSettings, saveSubacDeductions, createCategory, updateCategory, deleteCategory,
   subscription, submitSubscriptionPayment, notificationsPage, markNotifications, auditLog,
 };

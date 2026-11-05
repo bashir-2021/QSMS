@@ -22,6 +22,7 @@
 
     <% if (can('lessons.view') || can('attendance.view')) { %><div class="nav-section"><%= t('Learning') %></div><% } %>
     <%- link('lessons', '/school/lessons', 'book', 'Quran lessons', can('lessons.view') && f('lessons')) %>
+    <%- link('student-lessons', '/school/student-lessons', 'card-checklist', 'Student lessons', can('lessons.view') && f('lessons')) %>
     <%- link('subac', '/school/activities/subac', 'journal-check', 'Subac (سبع)', can('activities.view') && f('activities')) %>
     <%- link('duruus', '/school/activities/duruus', 'mortarboard', 'Duruus (دروس)', can('activities.view') && f('activities')) %>
     <%- link('attendance', '/school/attendance', 'calendar-check', 'Attendance', can('attendance.view') && f('attendance')) %>

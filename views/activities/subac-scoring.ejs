@@ -1,0 +1,57 @@
+<%
+  var rates = a.deductionRates;
+  var keys = Object.keys(C.SUBAC_DEDUCTIONS);
+  var fmtPoints = function (n) { return n === 1 ? t('1 point') : t('{n} points', { n: n }); };
+%>
+<form method="post" action="<%= base %>/<%= a._id %>/participation">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><%= t('Participants ({n})', { n: roster.length }) %></span>
+      <% if (editable && roster.length) { %><button class="btn btn-primary btn-sm" type="submit"><%= t('Save participation') %></button><% } %>
+    </div>
+    <div class="card-body small text-muted border-bottom"><%= t('Each student starts at {base} points. Count each error with − and +, or type the number. Use manual points to add or remove points by hand.', { base: C.SUBAC_BASE_SCORE }) %></div>
+    <% if (!roster.length) { %><div class="empty-state"><%= t('No students in this session') %></div><% } %>
+    <div class="list-group list-group-flush">
+      <% roster.forEach(function (r) {
+           var p = r.part || {}; var counts = p.deductions || {}; var k = 'rows[' + r.student._id + ']'; %>
+        <div class="list-group-item" data-subac-row data-base="<%= C.SUBAC_BASE_SCORE %>">
+          <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-2">
+            <div>
+              <a class="row-link" href="/school/students/<%= r.student._id %>"><%= r.student.fullName %></a>
+              <span class="small text-muted font-monospace"><%= r.student.studentCode %></span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <select class="form-select form-select-sm subac-attendance" name="<%= k %>[attendance]" data-subac-attendance aria-label="<%= t('Attendance') %>" <%= editable ? '' : 'disabled' %>>
+                <% C.ATTENDANCE_STATUSES.forEach(function (s) { %><option value="<%= s %>" <%= selected(p.attendance || 'present', s) %>><%= titleCase(s) %></option><% }) %>
+              </select>
+              <span class="badge badge-soft-primary subac-score" data-subac-score title="<%= t('Score') %>"><%= p.score != null ? p.score : '—' %></span>
+            </div>
+          </div>
+          <div class="subac-grid" data-subac-inputs>
+            <% keys.forEach(function (key) { var label = t(C.SUBAC_DEDUCTIONS[key].label); %>
+              <div>
+                <label class="form-label" for="d_<%= r.student._id %>_<%= key %>"><%= label %> <span class="text-muted">(−<%= fmtPoints(rates[key]) %>)</span></label>
+                <div class="input-group input-group-sm stepper">
+                  <% if (editable) { %><button class="btn btn-light" type="button" data-step="-1" aria-label="<%= t('Remove one: {name}', { name: label }) %>"><i class="bi bi-dash-lg"></i></button><% } %>
+                  <input class="form-control" type="number" min="0" max="999" step="1" id="d_<%= r.student._id %>_<%= key %>" name="<%= k %>[deductions][<%= key %>]" value="<%= counts[key] || 0 %>" data-rate="<%= rates[key] %>" <%= editable ? '' : 'disabled' %>>
+                  <% if (editable) { %><button class="btn btn-light" type="button" data-step="1" aria-label="<%= t('Add one: {name}', { name: label }) %>"><i class="bi bi-plus-lg"></i></button><% } %>
+                </div>
+              </div>
+            <% }) %>
+            <div>
+              <label class="form-label" for="m_<%= r.student._id %>"><%= t('Manual points (+/−)') %></label>
+              <div class="input-group input-group-sm stepper">
+                <% if (editable) { %><button class="btn btn-light" type="button" data-step="-0.5" aria-label="<%= t('Remove half a point') %>"><i class="bi bi-dash-lg"></i></button><% } %>
+                <input class="form-control" type="number" min="-100" max="100" step="0.25" id="m_<%= r.student._id %>" name="<%= k %>[manualPoints]" value="<%= p.manualPoints || 0 %>" data-manual <%= editable ? '' : 'disabled' %>>
+                <% if (editable) { %><button class="btn btn-light" type="button" data-step="0.5" aria-label="<%= t('Add half a point') %>"><i class="bi bi-plus-lg"></i></button><% } %>
+              </div>
+            </div>
+          </div>
+          <input class="form-control form-control-sm mt-2" name="<%= k %>[remarks]" maxlength="500" value="<%= p.remarks || '' %>" placeholder="<%= t('Remarks') %>" aria-label="<%= t('Remarks') %>" <%= editable ? '' : 'disabled' %>>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+</form>
+<script src="/js/subac.js"></script>

@@ -1,7 +1,7 @@
 <%- include('../partials/page-header', { heading: 'School settings' }) %>
 
 <ul class="nav nav-tabs mb-3">
-  <% [['profile', 'School profile'], ['fees', 'Fees & payments'], ['numbering', 'Numbering & receipts'], ['categories', 'Expense categories']].forEach(function (tb) { %>
+  <% [['profile', 'School profile'], ['fees', 'Fees & payments'], ['numbering', 'Numbering & receipts'], ['subac', 'Subac deductions'], ['categories', 'Expense categories']].forEach(function (tb) { %>
     <li class="nav-item"><a class="nav-link <%= tab === tb[0] ? 'active' : '' %>" href="?tab=<%= tb[0] %>"><%= t(tb[1]) %></a></li>
   <% }) %>
 </ul>
@@ -45,6 +45,17 @@
       <% }) %>
       <%- include('../partials/field', { name: 'receiptFooter', label: 'Receipt footer text', ftype: 'textarea', value: s.receiptFooter, rows: 2, max: 300 }) %>
     </div></div>
+    <div class="col-12 text-end"><button class="btn btn-primary" type="submit"><%= t('Save settings') %></button></div>
+  </div></div>
+</form>
+<% } else if (tab === 'subac') { %>
+<form method="post" action="/school/settings/subac" class="needs-validation" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="card"><div class="card-header"><%= t('Points lost per occurrence') %></div><div class="card-body row g-3">
+    <div class="col-12 small text-muted"><%= t('Each student starts a Subac at {base} points. New sessions use these values; sessions already created keep the values they started with.', { base: C.SUBAC_BASE_SCORE }) %></div>
+    <% Object.keys(C.SUBAC_DEDUCTIONS).forEach(function (key) { %>
+      <%- include('../partials/field', { name: key, label: C.SUBAC_DEDUCTIONS[key].label, ftype: 'number', value: s.subacDeductions[key], min: 0, max: 100, step: 0.25, required: true, col: 'col-md-4' }) %>
+    <% }) %>
     <div class="col-12 text-end"><button class="btn btn-primary" type="submit"><%= t('Save settings') %></button></div>
   </div></div>
 </form>

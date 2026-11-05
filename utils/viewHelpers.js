@@ -17,6 +17,8 @@ const STATUS_COLORS = {
   planned: 'info', in_progress: 'warning', completed: 'success',
   on_leave: 'warning', resigned: 'secondary', terminated: 'danger',
   excellent: 'success', very_good: 'primary', good: 'info', fair: 'warning', needs_improvement: 'danger',
+  acceptable: 'info', not_accepted: 'danger', assigned: 'info', returned: 'warning', passed: 'success',
+  daily: 'primary', one_time: 'info',
 };
 
 function statusBadge(status, t = (s) => s) {
@@ -41,6 +43,8 @@ function initials(name) {
 const selected = (a, b) => (String(a) === String(b) ? 'selected' : '');
 const checked = (cond) => (cond ? 'checked' : '');
 
+const surahName = (n) => { const s = getSurah(n); return s ? `${s.number}. ${s.name}` : ''; };
+
 /** Format one report cell for HTML (status cells become badges, returned as HTML). */
 function reportCell(value, type, currency, t) {
   if (value === undefined || value === null || value === '') return '';
@@ -60,6 +64,11 @@ function forLocale(t) {
     titleCase: (s) => t(titleCase(s)),
     statusBadge: (s) => statusBadge(s, t),
     reportCell: (value, type, currency) => reportCell(value, type, currency, t),
+    lessonPortion: (l) => [
+      l.surah ? `${surahName(l.surah)} ${l.fromVerse}–${l.toVerse}` : '',
+      l.juz ? t('Juz {n}', { n: l.juz }) : '',
+      l.topic || '',
+    ].filter(Boolean).join(' · '),
   };
 }
 
@@ -77,6 +86,6 @@ module.exports = {
   initials,
   selected,
   checked,
-  surahName: (n) => { const s = getSurah(n); return s ? `${s.number}. ${s.name}` : ''; },
+  surahName,
   C,
 };

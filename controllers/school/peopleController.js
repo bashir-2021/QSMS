@@ -6,6 +6,7 @@ const dashboardService = require('../../services/dashboardService');
 const studentService = require('../../services/studentService');
 const teacherService = require('../../services/teacherService');
 const classService = require('../../services/classService');
+const shiftService = require('../../services/shiftService');
 const exportService = require('../../services/exportService');
 const audit = require('../../services/auditService');
 const paymentService = require('../../services/paymentService');
@@ -32,8 +33,9 @@ async function students(req, res) {
     const rows = await studentService.exportRows(req.tenantId, req.query, restrict);
     const report = exportService.listReport(req.t('Students'), [
       { key: 'studentCode', label: req.t('Student ID') }, { key: 'fullName', label: req.t('Name') }, { key: 'gender', label: req.t('Gender'), type: 'status' },
-      { key: 'dateOfBirth', label: req.t('Date of birth'), type: 'date' }, { key: 'class', label: req.t('Class') }, { key: 'teacher', label: req.t('Teacher') },
-      { key: 'guardianName', label: req.t('Guardian') }, { key: 'guardianPhone', label: req.t('Guardian phone') }, { key: 'registrationDate', label: req.t('Registered'), type: 'date' }, { key: 'status', label: req.t('Status'), type: 'status' },
+      { key: 'dateOfBirth', label: req.t('Date of birth'), type: 'date' }, { key: 'program', label: req.t('Quran category'), type: 'status' }, { key: 'class', label: req.t('Class') }, { key: 'teacher', label: req.t('Teacher') },
+      { key: 'guardianName', label: req.t('Guardian') }, { key: 'guardianPhone', label: req.t('Guardian phone') }, { key: 'motherName', label: req.t('Mother name') }, { key: 'district', label: req.t('District') },
+      { key: 'registrationDate', label: req.t('Registered'), type: 'date' }, { key: 'status', label: req.t('Status'), type: 'status' },
     ], rows.map((s) => ({ ...s, class: s.class ? s.class.name : '', teacher: s.teacher ? s.teacher.fullName : '' })));
     if (await exportService.respond(req, res, report, { org: org(req), currency: req.settings.currency })) return;
   }
@@ -42,11 +44,11 @@ async function students(req, res) {
 }
 
 async function studentForm(req, res) {
-  const [student, classes, teachers] = await Promise.all([
+  const [student, classes, teachers, classShifts] = await Promise.all([
     req.params.id ? owned(Student, req.tenantId, req.params.id, 'Student') : null,
-    classService.all(req.tenantId), teacherService.all(req.tenantId),
+    classService.all(req.tenantId), teacherService.all(req.tenantId), shiftService.activeByClass(req.tenantId),
   ]);
-  res.render('students/form', { title: student ? req.t('Edit {name}', { name: student.fullName }) : 'Register student', student, classes, teachers, nav: 'students' });
+  res.render('students/form', { title: student ? req.t('Edit {name}', { name: student.fullName }) : 'Register student', student, classes, teachers, classShifts, nav: 'students' });
 }
 
 /**
@@ -176,6 +178,7 @@ async function createClass(req, res) {
   const c = await classService.create(ctx(req), req.body);
   await audit.school(req, 'class.create', { entity: 'Class', entityId: c._id });
   req.flash('success', req.t('Class {name} created.', { name: c.name }));
+  req.flash('info', 'Add the shifts this class runs, such as Morning, Evening or Night.');
   res.redirect(`/school/classes/${c._id}`);
 }
 async function updateClass(req, res) {
@@ -188,15 +191,44 @@ async function classDetail(req, res) {
   const restrict = await classService.restrictedClassIds(req);
   if (restrict && !restrict.map(String).includes(String(req.params.id))) throw notFound('Class');
   const data = await classService.detail(req.tenantId, req.params.id);
-  const candidates = await Student.find({ tenantId: req.tenantId, status: 'active', class: { $ne: data.cls._id } })
-    .select('fullName studentCode class').populate('class', 'name').sort({ fullName: 1 }).limit(300).lean();
-  res.render('classes/show', { title: data.cls.name, ...data, candidates, fee: data.cls.monthlyFee != null ? data.cls.monthlyFee : req.settings.monthlyFee, nav: 'classes' });
+  const [candidates, shifts] = await Promise.all([
+    Student.find({ tenantId: req.tenantId, status: 'active', class: { $ne: data.cls._id } })
+      .select('fullName studentCode class').populate('class', 'name').sort({ fullName: 1 }).limit(300).lean(),
+    shiftService.withStudentCounts(req.tenantId, data.cls._id),
+  ]);
+  res.render('classes/show', { title: data.cls.name, ...data, candidates, shifts, fee: data.cls.monthlyFee != null ? data.cls.monthlyFee : req.settings.monthlyFee, nav: 'classes' });
 }
 async function enrol(req, res) {
   const { cls, moved } = await classService.enrol(ctx(req), req.params.id, req.body.students, studentService);
   await audit.school(req, 'class.enrol', { entity: 'Class', entityId: cls._id, details: { students: moved } });
   req.flash('success', moved === 1 ? req.t('1 student enrolled in {class}.', { class: cls.name }) : req.t('{n} students enrolled in {class}.', { n: moved, class: cls.name }));
   res.redirect(`/school/classes/${cls._id}`);
+}
+
+/* ------------------------------- Class shifts ----------------------------- */
+async function createShift(req, res) {
+  const { cls, shift } = await shiftService.create(ctx(req), req.params.id, req.body);
+  await audit.school(req, 'shift.create', { entity: 'Class', entityId: cls._id, details: { shift: shift.name } });
+  req.flash('success', req.t('Shift {name} added.', { name: shift.name }));
+  res.redirect(`/school/classes/${cls._id}`);
+}
+async function updateShift(req, res) {
+  const shift = await shiftService.update(ctx(req), req.params.id, req.params.shiftId, req.body);
+  await audit.school(req, 'shift.update', { entity: 'Class', entityId: shift.class, details: { shift: shift.name } });
+  req.flash('success', 'Shift updated.');
+  res.redirect(`/school/classes/${shift.class}`);
+}
+async function setShiftStatus(req, res) {
+  const shift = await shiftService.setActive(ctx(req), req.params.id, req.params.shiftId, req.body.isActive === 'on');
+  await audit.school(req, 'shift.status', { entity: 'Class', entityId: shift.class, details: { shift: shift.name, isActive: shift.isActive } });
+  req.flash('success', shift.isActive ? 'Shift activated.' : 'Shift deactivated.');
+  res.redirect(`/school/classes/${shift.class}`);
+}
+async function deleteShift(req, res) {
+  const shift = await shiftService.remove(ctx(req), req.params.id, req.params.shiftId);
+  await audit.school(req, 'shift.delete', { entity: 'Class', entityId: shift.class, details: { shift: shift.name } });
+  req.flash('success', 'Shift deleted.');
+  res.redirect(`/school/classes/${shift.class}`);
 }
 
 /* ------------------------------ Private files ----------------------------- */
@@ -214,5 +246,5 @@ async function file(req, res) {
 module.exports = {
   dashboard, students, studentForm, createStudent, updateStudent, studentProfile, transferStudent, setStudentStatus, studentSearch,
   teachers, teacherForm, createTeacher, updateTeacher, teacherProfile,
-  classes, classForm, createClass, updateClass, classDetail, enrol, file, C, money,
+  classes, classForm, createClass, updateClass, classDetail, enrol, createShift, updateShift, setShiftStatus, deleteShift, file, C, money,
 };

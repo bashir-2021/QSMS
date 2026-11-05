@@ -1,10 +1,11 @@
-<%- include('../partials/page-header', { heading: 'Student attendance', sub: 'Daily register by class',
+<%- include('../partials/page-header', { heading: 'Student attendance', sub: 'Daily register by class and shift',
   actions: '<a class="btn btn-light btn-icon" href="/school/attendance/teachers"><i class="bi bi-person-badge"></i>' + t('Teacher attendance') + '</a><a class="btn btn-light btn-icon" href="/school/attendance/reports"><i class="bi bi-clipboard-data"></i>' + t('Reports') + '</a>' }) %>
 
 <form class="filter-bar row g-2 align-items-end" method="get">
-  <div class="col-md-5"><label class="form-label"><%= t('Class') %></label><select class="form-select" name="class" data-autosubmit><% classes.forEach(function (c) { %><option value="<%= c._id %>" <%= sheet && selected(sheet.cls._id, c._id) %>><%= c.name %></option><% }) %></select></div>
-  <div class="col-md-4"><label class="form-label"><%= t('Date') %></label><input type="date" class="form-control" name="date" value="<%= date %>" max="<%= isoDate(new Date()) %>" data-autosubmit></div>
-  <div class="col-md-3"><button class="btn btn-light w-100" type="submit"><%= t('Load register') %></button></div>
+  <div class="col-md-4"><label class="form-label"><%= t('Class') %></label><select class="form-select" name="class" data-autosubmit><% classes.forEach(function (c) { %><option value="<%= c._id %>" <%= sheet && selected(sheet.cls._id, c._id) %>><%= c.name %></option><% }) %></select></div>
+  <% if (sheet && sheet.shifts.length) { %><div class="col-md-3"><label class="form-label"><%= t('Shift') %></label><select class="form-select" name="shift" data-autosubmit><% sheet.shifts.forEach(function (sh) { %><option value="<%= sh._id %>" <%= selected(sheet.shift._id, sh._id) %>><%= t(sh.name) %></option><% }) %></select></div><% } %>
+  <div class="col-md-3"><label class="form-label"><%= t('Date') %></label><input type="date" class="form-control" name="date" value="<%= date %>" max="<%= isoDate(new Date()) %>" data-autosubmit></div>
+  <div class="col-md-2"><button class="btn btn-light w-100" type="submit"><%= t('Load register') %></button></div>
 </form>
 
 <% if (!sheet) { %>
@@ -13,10 +14,11 @@
 <form method="post" action="/school/attendance">
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <input type="hidden" name="class" value="<%= sheet.cls._id %>">
+  <% if (sheet.shift) { %><input type="hidden" name="shift" value="<%= sheet.shift._id %>"><% } %>
   <input type="hidden" name="date" value="<%= date %>">
   <div class="card">
     <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
-      <span><%= sheet.cls.name %> · <%= fmtDate(sheet.date) %> <% if (sheet.saved) { %><span class="badge badge-soft-success ms-1"><%= t('Saved') %></span><% } else { %><span class="badge badge-soft-warning ms-1"><%= t('Not yet taken') %></span><% } %></span>
+      <span><%= sheet.cls.name %><%= sheet.shift ? ' · ' + t(sheet.shift.name) : '' %> · <%= fmtDate(sheet.date) %> <% if (sheet.saved) { %><span class="badge badge-soft-success ms-1"><%= t('Saved') %></span><% } else { %><span class="badge badge-soft-warning ms-1"><%= t('Not yet taken') %></span><% } %></span>
       <% if (editable && sheet.rows.length) { %>
         <div class="d-flex gap-2 no-print">
           <button class="btn btn-sm btn-light" type="button" data-mark-all="present"><%= t('All present') %></button>
@@ -27,7 +29,7 @@
     <div class="table-responsive"><table class="table">
       <thead><tr><th><%= t('Student') %></th><th><%= t('Status') %></th><th><%= t('Remarks') %></th></tr></thead>
       <tbody>
-        <% if (!sheet.rows.length) { %><tr><td colspan="3" class="empty-state"><%= t('No active students in this class') %></td></tr><% } %>
+        <% if (!sheet.rows.length) { %><tr><td colspan="3" class="empty-state"><%= t(sheet.shift ? 'No active students in this shift' : 'No active students in this class') %></td></tr><% } %>
         <% sheet.rows.forEach(function (r) { var st = r.record ? r.record.status : 'present'; var id = r.student._id; %>
           <tr>
             <td><div class="fw-semibold"><%= r.student.fullName %></div><div class="small text-muted font-monospace"><%= r.student.studentCode %></div></td>

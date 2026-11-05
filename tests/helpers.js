@@ -82,7 +82,7 @@ async function twoSchools() {
     const subscription = await M.Subscription.findById(tenant.currentSubscription).lean();
     const ctx = { tenantId: tenant._id, tenant: tenant.toObject(), user: admin.toObject(), settings, subscription };
     const cls = await classService.create(ctx, { name: `Class ${key}`, level: 'Beginner', capacity: '20', isActive: 'on' });
-    const { student } = await studentService.create(ctx, { fullName: `Student ${key}`, gender: 'male', class: String(cls._id) });
+    const { student } = await studentService.create(ctx, { fullName: `Student ${key}`, gender: 'male', program: 'cashra', class: String(cls._id) });
     out[key] = { tenant, admin, ctx, cls, student, req: { tenantId: tenant._id, user: admin, ip: '127.0.0.1' } };
   }
   out.plan = plan;

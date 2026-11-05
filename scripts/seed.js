@@ -26,6 +26,8 @@ const expenses = require('../services/expenseService');
 const lessonService = require('../services/lessonService');
 const activityService = require('../services/activityService');
 const attendanceService = require('../services/attendanceService');
+const shiftService = require('../services/shiftService');
+const studentLessonService = require('../services/studentLessonService');
 const tenantContext = require('../utils/tenantContext');
 
 // deterministic pseudo-random numbers so every seed looks the same
@@ -100,7 +102,10 @@ async function seedSchool({ name, city, email, plan, verifyPaid, classDefs, teac
 
   const classes = [];
   for (let i = 0; i < classDefs.length; i += 1) {
-    classes.push(await classService.create(ctx, { ...classDefs[i], teacher: String(teachers[i % teachers.length]._id), isActive: 'on', startDate: '2026-01-10' }));
+    const cls = await classService.create(ctx, { ...classDefs[i], teacher: String(teachers[i % teachers.length]._id), isActive: 'on', startDate: '2026-01-10' });
+    classes.push(cls);
+    await shiftService.create(ctx, cls._id, { name: 'Morning', startTime: '07:00', endTime: '10:00' });
+    await shiftService.create(ctx, cls._id, { name: 'Evening', startTime: '16:00', endTime: '18:00' });
   }
 
   ({ ctx, req } = await ctxFor(tenant._id));
@@ -115,7 +120,8 @@ async function seedSchool({ name, city, email, plan, verifyPaid, classDefs, teac
       students.push((await studentService.create(ctx, {
         fullName: `${first} ${father} ${pick(FATHERS)}`, gender: female ? 'female' : 'male', dateOfBirth: `${year}-0${1 + Math.floor(rand() * 9)}-1${Math.floor(rand() * 9)}`,
         guardianName: `${father} ${pick(FATHERS)}`, guardianRelation: 'Father', guardianPhone: `+252 61 ${String(1000000 + Math.floor(rand() * 8999999))}`,
-        address: `${city}, ${pick(['Hodan', 'Wadajir', 'Waberi', 'Yaqshid', 'Hamar Weyne', 'Kaaraan'])}`, registrationDate: regDate,
+        motherName: `${pick(GIRLS)} ${pick(FATHERS)}`, district: pick(['Hodan', 'Wadajir', 'Waberi', 'Yaqshid', 'Hamar Weyne', 'Kaaraan']),
+        address: city, registrationDate: regDate, program: pick(Object.keys(C.STUDENT_PROGRAMS)),
         class: String(cls._id),
       }, null, { registrationFee: ctx.settings.registrationFee })).student);
     }
@@ -166,10 +172,12 @@ async function seedSchool({ name, city, email, plan, verifyPaid, classDefs, teac
     if (day.getUTCDay() === 5) continue; // Friday off
     const iso = dates.toISODate(day);
     for (const cls of classes) {
-      const roster = await M.Student.find({ tenantId: tenant._id, class: cls._id, status: 'active' }).select('_id').lean();
-      const att = {};
-      roster.forEach((s) => { const r = rand(); att[String(s._id)] = { status: r < 0.82 ? 'present' : r < 0.9 ? 'late' : r < 0.96 ? 'absent' : 'excused' }; });
-      await attendanceService.saveStudentSheet(ctx, String(cls._id), iso, att);
+      for (const shift of await shiftService.forClass(tenant._id, cls._id, { activeOnly: true })) {
+        const roster = await M.Student.find({ tenantId: tenant._id, class: cls._id, status: 'active', shifts: shift._id }).select('_id').lean();
+        const att = {};
+        roster.forEach((s) => { const r = rand(); att[String(s._id)] = { status: r < 0.82 ? 'present' : r < 0.9 ? 'late' : r < 0.96 ? 'absent' : 'excused' }; });
+        await attendanceService.saveStudentSheet(ctx, String(cls._id), iso, att, null, String(shift._id));
+      }
     }
     const tatt = {};
     teachers.forEach((t) => { tatt[String(t._id)] = { status: rand() < 0.92 ? 'present' : 'late', checkIn: '07:30', checkOut: '12:30' }; });
@@ -194,17 +202,34 @@ async function seedSchool({ name, city, email, plan, verifyPaid, classDefs, teac
       });
       await lessonService.saveProgress(ctx, String(lesson._id), rows);
     }
+    // each student has a passed lesson and an open one, some returned to the teacher
+    const lessonStudents = await M.Student.find({ tenantId: tenant._id, class: cls._id, status: 'active' }).select('_id program').lean();
+    for (const s of lessonStudents) {
+      const portion = (from, to) => (s.program === 'farbar' ? { topic: 'Writing the letters Alif to Jiim' } : { surah: '67', fromVerse: String(from), toVerse: String(to) });
+      const first = await studentLessonService.assign(ctx, { ...portion(1, 12), student: String(s._id), assignedDate: dates.toISODate(dates.addDays(new Date(), -2)) });
+      await studentLessonService.review(ctx, first.lesson._id, { grade: pick(['excellent', 'very_good', 'acceptable']) });
+      const second = await studentLessonService.assign(ctx, { ...portion(13, 20), student: String(s._id), assignedDate: dates.toISODate(new Date()) });
+      if (rand() < 0.3) await studentLessonService.review(ctx, second.lesson._id, { grade: 'not_accepted', remarks: 'Revise and recite again' });
+    }
     // one Subac and one Duruus session per class
     for (const type of ['subac', 'duruus']) {
       const a = await activityService.create(ctx, type, {
         title: type === 'subac' ? 'Weekly Subac — Juz Amma review' : 'Dars — Manners of the student of knowledge',
+        frequency: type === 'subac' ? 'one_time' : undefined,
         date: dates.toISODate(dates.addDays(new Date(), -3)), class: String(cls._id),
         topic: type === 'subac' ? 'Surahs An-Naba to An-Nas' : 'Adab al-talib', objectives: 'Strengthen retention and character.',
         evaluation: 'Most students recited fluently; three need follow-up.',
       });
       const parts = await M.ActivityParticipation.find({ tenantId: tenant._id, activity: a._id }).lean();
       const rows = {};
-      parts.forEach((p) => { const sc = Math.floor(60 + rand() * 40); rows[String(p.student)] = { attendance: rand() < 0.9 ? 'present' : 'absent', score: String(sc), performance: sc >= 85 ? 'very_good' : sc >= 70 ? 'good' : 'fair' }; });
+      parts.forEach((p) => {
+        const sc = Math.floor(60 + rand() * 40);
+        const count = () => String(Math.floor(rand() * 4));
+        rows[String(p.student)] = {
+          attendance: rand() < 0.9 ? 'present' : 'absent', score: String(sc), performance: sc >= 85 ? 'very_good' : sc >= 70 ? 'good' : 'fair',
+          deductions: Object.fromEntries(Object.keys(C.SUBAC_DEDUCTIONS).map((key) => [key, count()])),
+        };
+      });
       await activityService.saveParticipation(ctx, type, String(a._id), rows);
     }
   }

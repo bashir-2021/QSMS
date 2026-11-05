@@ -1,48 +1,57 @@
 'use strict';
 const mongoose = require('mongoose');
-const { StudentAttendance, TeacherAttendance, Student, Teacher, Class } = require('../models');
+const { StudentAttendance, TeacherAttendance, Student, Teacher, Class, ClassShift } = require('../models');
 const C = require('../config/constants');
 const dates = require('../utils/dates');
 const { badRequest, forbidden } = require('../utils/errors');
 const { owned, ownedOptional } = require('./scope');
+const shiftService = require('./shiftService');
 
 const oid = (v) => new mongoose.Types.ObjectId(String(v));
 
 /* ------------------------------ Daily registers --------------------------- */
 
-async function studentSheet(tenantId, classId, day, restrict) {
+/** The register for one shift of a class (the first shift unless `shiftId` picks another). A class without shifts has one register. */
+async function studentSheet(tenantId, classId, day, restrict, shiftId) {
   const cls = await owned(Class, tenantId, classId, 'Class');
   if (restrict && !restrict.map(String).includes(String(cls._id))) throw forbidden('You can only take attendance for your own classes.');
   const date = dates.parseDay(day) || dates.startOfDay();
+  const shifts = await shiftService.forClass(tenantId, cls._id, { activeOnly: true });
+  const shift = shifts.find((s) => String(s._id) === String(shiftId)) || shifts[0] || null;
   const [students, records] = await Promise.all([
-    Student.find({ tenantId, class: cls._id, status: 'active' }).sort({ fullName: 1 }).select('fullName studentCode photo').lean(),
-    StudentAttendance.find({ tenantId, class: cls._id, date }).lean(),
+    Student.find({ tenantId, class: cls._id, status: 'active', ...(shift ? { shifts: shift._id } : {}) }).sort({ fullName: 1 }).select('fullName studentCode photo').lean(),
+    StudentAttendance.find({ tenantId, class: cls._id, date, shift: shift ? shift._id : null }).lean(),
   ]);
   const map = Object.fromEntries(records.map((r) => [String(r.student), r]));
-  return { cls, date, rows: students.map((s) => ({ student: s, record: map[String(s._id)] || null })), saved: records.length > 0 };
+  return { cls, date, shifts, shift, rows: students.map((s) => ({ student: s, record: map[String(s._id)] || null })), saved: records.length > 0 };
 }
 
-/** entries = { [studentId]: { status, remarks } } */
-async function saveStudentSheet(ctx, classId, day, entries = {}, restrict) {
+/** entries = { [studentId]: { status, remarks } }. `shiftId` is required when the class has shifts. */
+async function saveStudentSheet(ctx, classId, day, entries = {}, restrict, shiftId) {
   const cls = await owned(Class, ctx.tenantId, classId, 'Class');
   if (restrict && !restrict.map(String).includes(String(cls._id))) throw forbidden('You can only take attendance for your own classes.');
   const date = dates.parseDay(day);
   if (!date) throw badRequest('Choose a valid date.');
   if (date > dates.endOfDay()) throw badRequest('Attendance cannot be recorded for a future date.');
+  const shifts = await shiftService.forClass(ctx.tenantId, cls._id, { activeOnly: true });
+  const shift = shifts.find((s) => String(s._id) === String(shiftId)) || null;
+  if (shifts.length && !shift) throw badRequest('Choose a shift of this class.');
   const ids = Object.keys(entries).filter((x) => /^[a-f0-9]{24}$/i.test(x));
-  const valid = new Set((await Student.find({ tenantId: ctx.tenantId, _id: { $in: ids }, class: cls._id }).select('_id').lean()).map((s) => String(s._id)));
+  const inRegister = { tenantId: ctx.tenantId, _id: { $in: ids }, class: cls._id, ...(shift ? { shifts: shift._id } : {}) };
+  const valid = new Set((await Student.find(inRegister).select('_id').lean()).map((s) => String(s._id)));
+  const shiftValue = shift ? shift._id : null;
   const ops = ids.filter((id) => valid.has(id) && C.ATTENDANCE_STATUSES.includes(entries[id].status)).map((id) => ({
     updateOne: {
-      filter: { tenantId: ctx.tenantId, student: id, date },
+      filter: { tenantId: ctx.tenantId, student: id, date, shift: shiftValue },
       update: {
         $set: { status: entries[id].status, remarks: String(entries[id].remarks || '').slice(0, 300), class: cls._id, recordedBy: ctx.user._id },
-        $setOnInsert: { tenantId: ctx.tenantId, student: id, date },
+        $setOnInsert: { tenantId: ctx.tenantId, student: id, date, shift: shiftValue },
       },
       upsert: true,
     },
   }));
   if (ops.length) await StudentAttendance.bulkWrite(ops);
-  return { cls, date, saved: ops.length };
+  return { cls, date, shift, saved: ops.length };
 }
 
 async function teacherSheet(tenantId, day) {
@@ -104,7 +113,7 @@ const rate = (t) => (t.total ? Math.round(((t.present + t.late) / t.total) * 100
 /**
  * Attendance report.
  * q.scope: 'student' (default) or 'teacher'; q.period: daily | weekly | monthly | custom;
- * optional q.class / q.student / q.teacher filters.
+ * optional q.class / q.shift / q.student / q.teacher filters.
  */
 async function report(tenantId, q = {}, restrict) {
   const { from, to, label } = rangeFor(q);
@@ -130,6 +139,11 @@ async function report(tenantId, q = {}, restrict) {
     if (restrict && !restrict.map(String).includes(String(cls._id))) throw forbidden('You can only view your own classes.');
     match.class = cls._id;
     title = `Student attendance — ${cls.name}`;
+    const shift = /^[a-f0-9]{24}$/i.test(q.shift || '') ? await ClassShift.findOne({ tenantId, _id: q.shift, class: cls._id }).lean() : null;
+    if (shift) {
+      match.shift = shift._id;
+      title = `Student attendance — ${cls.name} · ${shift.name}`;
+    }
   } else if (restrict) {
     match.class = { $in: restrict };
   }

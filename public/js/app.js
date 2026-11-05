@@ -77,6 +77,31 @@
     cb.addEventListener('change', sync); sync();
   });
 
+  /* ---- Student form: show the selected class's shifts, all ticked by default ---- */
+  document.querySelectorAll('[data-shift-picker]').forEach((picker) => {
+    const classSelect = picker.closest('form').querySelector('select[name="class"]');
+    const groups = picker.querySelectorAll('[data-shifts-for]');
+    const requireOne = () => {
+      const boxes = [...picker.querySelectorAll('input[name="shifts"]:not(:disabled)')];
+      const anyTicked = boxes.some((b) => b.checked);
+      boxes.forEach((b) => { b.required = !anyTicked; });
+    };
+    classSelect.addEventListener('change', () => {
+      let found = false;
+      groups.forEach((group) => {
+        const selected = group.dataset.shiftsFor === classSelect.value;
+        found = found || selected;
+        group.classList.toggle('d-none', !selected);
+        group.querySelectorAll('input').forEach((b) => { b.disabled = !selected; b.checked = true; });
+      });
+      picker.querySelector('[data-shifts-empty]').classList.toggle('d-none', found);
+      picker.querySelector('[data-shifts-help]').classList.toggle('d-none', !found);
+      requireOne();
+    });
+    picker.addEventListener('change', requireOne);
+    requireOne();
+  });
+
   /* ---- Print buttons ---- */
   document.querySelectorAll('[data-print]').forEach((b) => b.addEventListener('click', () => window.print()));
 

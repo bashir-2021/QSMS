@@ -40,7 +40,7 @@ function createApp({ sessionStore } = {}) {
   app.use(compression());
   if (!config.isTest) app.use(morgan(config.isProd ? 'combined' : 'dev'));
   app.use(express.static(path.join(__dirname, 'public'), { maxAge: config.isProd ? '7d' : 0 }));
-  app.use(express.urlencoded({ extended: true, limit: '200kb', parameterLimit: 2000 }));
+  app.use(express.urlencoded({ extended: true, limit: '400kb', parameterLimit: 6000 }));
   app.use(express.json({ limit: '100kb' }));
 
   // sessions (stored in MongoDB, httpOnly, sameSite, secure behind HTTPS)

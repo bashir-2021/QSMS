@@ -16,6 +16,7 @@
   <% } %>
   <% if (scope === 'student') { %>
     <div class="col-6 col-md-2"><label class="form-label"><%= t('Class') %></label><select class="form-select" name="class"><option value=""><%= t('All classes') %></option><% classes.forEach(function (c) { %><option value="<%= c._id %>" <%= selected(query.class, c._id) %>><%= c.name %></option><% }) %></select></div>
+    <% if (shifts.length) { %><div class="col-6 col-md-2"><label class="form-label"><%= t('Shift') %></label><select class="form-select" name="shift"><option value=""><%= t('All shifts') %></option><% shifts.forEach(function (sh) { %><option value="<%= sh._id %>" <%= selected(query.shift, sh._id) %>><%= t(sh.name) %></option><% }) %></select></div><% } %>
     <% if (student) { %><input type="hidden" name="student" value="<%= query.student %>"><div class="col-6 col-md-2"><label class="form-label"><%= t('Student') %></label><div class="form-control bg-light text-truncate"><%= student.fullName %></div></div><% } %>
   <% } else { %>
     <div class="col-6 col-md-3"><label class="form-label"><%= t('Teacher') %></label><select class="form-select" name="teacher"><option value=""><%= t('All teachers') %></option><% teachers.forEach(function (tc) { %><option value="<%= tc._id %>" <%= selected(query.teacher, tc._id) %>><%= tc.fullName %></option><% }) %></select></div>

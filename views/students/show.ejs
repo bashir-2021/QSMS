@@ -13,10 +13,14 @@
       <div><dt><%= t('Status') %></dt><dd><%- statusBadge(s.status) %></dd></div>
       <div><dt><%= t('Gender') %></dt><dd><%= titleCase(s.gender) %></dd></div>
       <div><dt><%= t('Date of birth') %></dt><dd><%= fmtDate(s.dateOfBirth) || '—' %></dd></div>
+      <div><dt><%= t('Quran category') %></dt><dd><% if (s.program) { %><%= titleCase(s.program) %><% } else { %><span class="text-danger"><%= t('Not set') %></span><% } %></dd></div>
       <div><dt><%= t('Class') %></dt><dd><%= s.class ? s.class.name : t('Not assigned') %></dd></div>
+      <div><dt><%= t('Shifts') %></dt><dd><%= (s.shifts || []).filter(function (sh) { return sh.isActive; }).map(function (sh) { return t(sh.name); }).join(', ') || '—' %></dd></div>
       <div><dt><%= t('Teacher') %></dt><dd><%= s.teacher ? s.teacher.fullName : '—' %></dd></div>
       <div><dt><%= t('Guardian') %></dt><dd><%= s.guardianName || '—' %><% if (s.guardianRelation) { %> <span class="text-muted small">(<%= s.guardianRelation %>)</span><% } %></dd></div>
       <div><dt><%= t('Guardian phone') %></dt><dd><%= s.guardianPhone || '—' %></dd></div>
+      <div><dt><%= t('Mother name') %></dt><dd><%= s.motherName || '—' %></dd></div>
+      <div><dt><%= t('District') %></dt><dd><%= s.district || '—' %></dd></div>
       <div><dt><%= t('Registered') %></dt><dd><%= fmtDate(s.registrationDate) %></dd></div>
       <div><dt><%= t('Address') %></dt><dd><%= s.address || '—' %></dd></div>
       <% if (can('invoices.view') && hasFeature('finance')) { %><div><dt><%= t('Registration fee') %></dt><dd><% if (regInv) { %><%= money(regInv.total, cur) %> <%- statusBadge(regInv.status) %><% } else { %><span class="text-muted"><%= t('Not charged') %></span><% } %></dd></div><% } %>
@@ -91,7 +95,21 @@
   <% } %>
 
   <div class="tab-pane fade <%= can('invoices.view') ? '' : 'show active' %>" id="tabProg">
-    <div class="card"><div class="table-responsive"><table class="table table-hover">
+    <div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center"><span><%= t('Student lessons') %></span>
+      <% if (can('lessons.manage') && hasFeature('lessons')) { %><a class="small" href="/school/student-lessons/new?student=<%= s._id %>"><%= t('Give a lesson') %></a><% } %></div>
+    <div class="table-responsive"><table class="table">
+      <thead><tr><th><%= t('Date') %></th><th><%= t('Portion') %></th><th><%= t('Status') %></th><th><%= t('Grade') %></th><th class="num"><%= t('Score') %></th><th class="num"><%= t('Attempts') %></th><th><%= t('Remarks') %></th><% if (can('lessons.manage')) { %><th></th><% } %></tr></thead>
+      <tbody>
+        <% if (!studentLessons.length) { %><tr><td colspan="8" class="empty-state"><%= t('No student lessons yet') %></td></tr><% } %>
+        <% studentLessons.forEach(function (l) { var lastReview = (l.reviews || [])[l.reviews.length - 1]; %>
+          <tr><td><%= fmtDate(l.assignedDate) %></td><td class="small"><%= lessonPortion(l) %></td><td><%- statusBadge(l.status) %></td>
+            <td><%- l.grade ? statusBadge(l.grade) : '—' %></td><td class="num"><%= l.score != null ? l.score + '%' : '—' %></td><td class="num"><%= (l.reviews || []).length %></td>
+            <td class="small text-muted"><%= lastReview ? lastReview.remarks : '' %></td>
+            <% if (can('lessons.manage')) { %><td class="text-end no-print"><form method="post" action="/school/student-lessons/<%= l._id %>/delete" data-confirm="<%= t('Delete this lesson and its grades?') %>" data-confirm-button="<%= t('Delete') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-sm btn-light text-danger" type="submit" aria-label="<%= t('Delete') %>"><i class="bi bi-trash"></i></button></form></td><% } %></tr>
+        <% }) %>
+      </tbody>
+    </table></div></div>
+    <div class="card"><div class="card-header"><%= t('Class lessons') %></div><div class="table-responsive"><table class="table table-hover">
       <thead><tr><th><%= t('Date') %></th><th><%= t('Lesson') %></th><th><%= t('Category') %></th><th><%= t('Portion') %></th><th><%= t('Performance') %></th><th class="num"><%= t('Score') %></th><th><%= t('Remarks') %></th></tr></thead>
       <tbody>
         <% if (!progress.length) { %><tr><td colspan="7" class="empty-state"><%= t('No lesson progress recorded yet') %></td></tr><% } %>
@@ -108,10 +126,10 @@
   <div class="tab-pane fade" id="tabAtt">
     <div class="card"><div class="card-header d-flex justify-content-between"><span><%= t('Last 30 records') %></span><a class="small" href="/school/attendance/reports?student=<%= s._id %>&period=monthly"><%= t('Full report') %></a></div>
     <div class="table-responsive"><table class="table">
-      <thead><tr><th><%= t('Date') %></th><th><%= t('Class') %></th><th><%= t('Status') %></th><th><%= t('Remarks') %></th></tr></thead>
+      <thead><tr><th><%= t('Date') %></th><th><%= t('Class') %></th><th><%= t('Shift') %></th><th><%= t('Status') %></th><th><%= t('Remarks') %></th></tr></thead>
       <tbody>
-        <% if (!attendance.length) { %><tr><td colspan="4" class="empty-state"><%= t('No attendance recorded') %></td></tr><% } %>
-        <% attendance.forEach(function (a) { %><tr><td><%= fmtDate(a.date) %></td><td><%= a.class ? a.class.name : '' %></td><td><%- statusBadge(a.status) %></td><td class="small text-muted"><%= a.remarks %></td></tr><% }) %>
+        <% if (!attendance.length) { %><tr><td colspan="5" class="empty-state"><%= t('No attendance recorded') %></td></tr><% } %>
+        <% attendance.forEach(function (a) { %><tr><td><%= fmtDate(a.date) %></td><td><%= a.class ? a.class.name : '' %></td><td><%= a.shift ? t(a.shift.name) : '—' %></td><td><%- statusBadge(a.status) %></td><td class="small text-muted"><%= a.remarks %></td></tr><% }) %>
       </tbody>
     </table></div></div>
   </div>

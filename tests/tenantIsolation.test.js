@@ -46,7 +46,7 @@ describe('tenant isolation — data layer', () => {
 
   test('services reject references to another school\'s records', async () => {
     const studentService = require('../services/studentService');
-    await expect(studentService.create(s.a.ctx, { fullName: 'X', gender: 'male', class: String(s.b.cls._id) })).rejects.toMatchObject({ status: 404 });
+    await expect(studentService.create(s.a.ctx, { fullName: 'X', gender: 'male', program: 'cashra', class: String(s.b.cls._id) })).rejects.toMatchObject({ status: 404 });
     const payments = require('../services/paymentService');
     await expect(payments.record(s.a.ctx, s.a.req, { student: String(s.b.student._id), amount: '5', method: 'Cash', paymentDate: '2026-01-01' })).rejects.toMatchObject({ status: 404 });
   });

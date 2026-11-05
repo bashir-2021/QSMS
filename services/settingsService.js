@@ -4,6 +4,7 @@ const money = require('../utils/money');
 const { persistUpload, removeStored } = require('../middleware/upload');
 const { badRequest, conflict, notFound } = require('../utils/errors');
 const { owned } = require('./scope');
+const C = require('../config/constants');
 
 async function get(tenantId) {
   let s = await SchoolSettings.findOne({ tenantId });
@@ -51,6 +52,25 @@ async function updateSettings(tenantId, data) {
   return s;
 }
 
+/* ----------------------------- Subac deductions --------------------------- */
+
+/** Points lost per occurrence for each Subac error, falling back to the defaults. */
+function subacRates(settings) {
+  const saved = (settings && settings.subacDeductions) || {};
+  return Object.fromEntries(Object.entries(C.SUBAC_DEDUCTIONS).map(([key, d]) => [key, typeof saved[key] === 'number' ? saved[key] : d.points]));
+}
+
+async function updateSubacDeductions(tenantId, data) {
+  const s = await get(tenantId);
+  Object.keys(C.SUBAC_DEDUCTIONS).forEach((key) => {
+    const points = Number(data[key]);
+    if (!Number.isFinite(points) || points < 0 || points > 100) throw badRequest('Deduction points must be between 0 and 100.');
+    s.subacDeductions[key] = points;
+  });
+  await s.save();
+  return s;
+}
+
 /* --------------------------- Expense categories --------------------------- */
 
 const listCategories = (tenantId, { activeOnly = false } = {}) => ExpenseCategory
@@ -80,4 +100,4 @@ async function deleteCategory(tenantId, id) {
   await ExpenseCategory.deleteOne({ tenantId, _id: cat._id });
 }
 
-module.exports = { get, updateProfile, updateSettings, listCategories, createCategory, updateCategory, deleteCategory };
+module.exports = { get, updateProfile, updateSettings, subacRates, updateSubacDeductions, listCategories, createCategory, updateCategory, deleteCategory };

@@ -1,0 +1,25 @@
+<% var o = suggestion; %>
+<%- include('../partials/page-header', { heading: 'New student lesson', crumbs: [['Student lessons', '/school/student-lessons'], [student.fullName, null]] }) %>
+
+<form method="post" action="/school/student-lessons" class="needs-validation" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <input type="hidden" name="student" value="<%= student._id %>">
+  <div class="row g-3">
+    <div class="col-lg-8"><div class="card"><div class="card-header"><%= t('Lesson for {name}', { name: student.fullName }) %></div><div class="card-body row g-3">
+      <div class="col-12 small text-muted"><%= student.program ? t(C.STUDENT_PROGRAMS[student.program]) : t('Category not set') %><%= student.class ? ' · ' + student.class.name : '' %></div>
+      <%- include('../partials/field', { name: 'surah', label: 'Surah', ftype: 'select', value: o.surah, col: 'col-md-6', placeholder: '— Not applicable —', options: surahs.map(function (s) { return { value: s.number, label: t('{n}. {name} ({verses} verses)', { n: s.number, name: s.name, verses: s.verses }), attrs: 'data-verses="' + s.verses + '"' }; }) }) %>
+      <%- include('../partials/field', { name: 'fromVerse', label: 'From verse', ftype: 'number', value: o.fromVerse, min: 1, col: 'col-md-3' }) %>
+      <%- include('../partials/field', { name: 'toVerse', label: 'To verse', ftype: 'number', min: 1, col: 'col-md-3' }) %>
+      <%- include('../partials/field', { name: 'juz', label: 'Juz', ftype: 'number', value: o.juz, min: 1, max: 30, col: 'col-md-3', help: 'For Taxfiid.' }) %>
+      <%- include('../partials/field', { name: 'topic', label: 'Topic', col: 'col-md-9', max: 200, placeholder: 'e.g. writing the letters Alif to Jiim', help: 'For Farbar, or any note about the lesson.' }) %>
+      <div class="col-12 form-text"><%= t('Enter a surah and verses, a juz or a topic.') %></div>
+    </div></div></div>
+    <div class="col-lg-4"><div class="card"><div class="card-body row g-3">
+      <%- include('../partials/field', { name: 'assignedDate', label: 'Date', ftype: 'date', value: isoDate(new Date()), required: true }) %>
+      <div class="col-12 d-grid gap-2">
+        <button class="btn btn-primary" type="submit"><%= t('Give lesson') %></button>
+        <a class="btn btn-light" href="/school/student-lessons"><%= t('Cancel') %></a>
+      </div>
+    </div></div></div>
+  </div>
+</form>

@@ -10,7 +10,7 @@ Quranic is a multi-tenant SaaS platform that lets many Quran schools run indepen
 
 ```bash
 # 1. MongoDB as a replica set (required for financial transactions)
-mongod --replSet rs0 --dbpath ./data      # in another terminal:  mongosh --eval "rs.initiate()"
+npm run db                                # keep it running; port and replica set come from MONGO_URI
 
 # 2. Install and configure
 npm install
@@ -54,13 +54,13 @@ Browser ──► Express (app.js)
 |---|---|
 | `config/` | env config, DB connection + `runInTransaction`, constants, **RBAC matrix** (`roles.js`) |
 | `models/` | `platform.js` (PlatformUser, Tenant, SubscriptionPlan, Subscription, SubscriptionPayment, PlatformAuditLog, Counter, Notification), `school.js`, `academic.js`, `finance.js`, `plugins/tenant.js` |
-| `services/` | one service per domain: billing, payment, expense, report, subscription, tenant, student, teacher, class, lesson, activity, attendance, dashboard, export (PDF/Excel), receipt PDF, notification, audit, job |
+| `services/` | one service per domain: billing, payment, expense, report, subscription, tenant, student, teacher, class, shift, lesson, student lesson, activity, attendance, dashboard, export (PDF/Excel), receipt PDF, notification, audit, job |
 | `controllers/` | public, auth, platform, `school/*` |
 | `middleware/` | auth/context, CSRF, security headers & rate limits, uploads, validators, flash, errors |
 | `views/` | `layouts/` (public, school, platform), `partials/`, one folder per module |
 | `public/` | `css/app.css` design system, `js/` (app, charts, payment, invoice picker), images |
 | `scripts/` | `seed.js`, `createSuperAdmin.js`, `backup.js` |
-| `tests/` | money/numbering units, tenant isolation (data + HTTP), RBAC, billing/payments/reports, subscriptions |
+| `tests/` | money/numbering units, tenant isolation (data + HTTP), RBAC, billing/payments/reports, subscriptions, Quran school workflow |
 
 ---
 
@@ -90,6 +90,17 @@ Browser ──► Express (app.js)
 - **Registration fee is one-time.** The school fee is set in *School Settings*; the student registration form charges it (staff with `invoices.manage` may change the amount, e.g. a discount) and can record the payment on the spot with a receipt (`payments.create`). The `student:registration` billing key guarantees one live registration invoice per student.
 
 Reports (HTML, print, PDF, Excel): daily, monthly, annual, student payments, registration fees, outstanding balances, teacher salaries, expenses by category, income & expenditure, net balance (with opening and running balance).
+
+---
+
+## Quran school workflow
+
+- **Registration.** Mother name, district and a photo, taken with the device camera or uploaded. The camera needs HTTPS or localhost; a captured photo goes through the normal upload checks.
+- **Categories.** Every student is in one of Farbar, Cashra or Taxfiid (`C.STUDENT_PROGRAMS`). Students registered before categories show *Not set*, can be found with that filter, and must be given one the next time they are edited.
+- **Shifts.** Each class has its own shifts (`ClassShift`), managed on the class page. A student is on all of the class's shifts unless some are cleared, and at least one stays selected. A transfer starts from all shifts of the new class. Anyone left without an active shift is placed on all active shifts, so nobody drops off a register. Shifts with attendance are deactivated, not deleted.
+- **Attendance.** One register per class, shift and day, so a student can have one record per shift (`{ tenantId, student, date, shift }` is unique; the old index is replaced at startup by `syncIndexes`). A class without shifts keeps one register. Reports count sessions and can be filtered by shift.
+- **Student lessons** (`/school/student-lessons`). A student has one open lesson: surah and verses, a juz or a topic. The teacher listens and grades it: Excellent 100%, Very good 85%, Acceptable 70% or Not accepted. Not accepted keeps the same lesson open; every attempt is kept. Scores are in `C.STUDENT_LESSON_GRADES`.
+- **Subac.** A session is daily or one-time. A class has at most one daily Subac a day; Beginner-level classes cannot have one, and Farbar students are left out of it. One-time sessions work for any class and student. The score starts at 100 and loses points per error; teachers count errors with − and + or by typing, and can add or remove manual points. The server calculates the score, and absent students have none. School managers set the points in *School Settings → Subac deductions*; each session keeps the points it was created with. Sessions from before this feature keep their typed scores.
 
 ---
 

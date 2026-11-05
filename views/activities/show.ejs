@@ -5,6 +5,7 @@
 <div class="card mb-3"><div class="card-body">
   <dl class="dl-grid mb-0">
     <div><dt><%= t('Type') %></dt><dd><%= t(C.ACTIVITY_TYPES[type]) %></dd></div>
+    <% if (a.frequency) { %><div><dt><%= t('Frequency') %></dt><dd><%- statusBadge(a.frequency) %></dd></div><% } %>
     <div><dt><%= t('Class') %></dt><dd><%= a.class.name %></dd></div>
     <div><dt><%= t('Teacher') %></dt><dd><%= a.teacher ? a.teacher.fullName : '—' %></dd></div>
     <div><dt><%= t('Topic') %></dt><dd><%= a.topic || '—' %></dd></div>
@@ -16,6 +17,9 @@
   </div>
 </div></div>
 
+<% if (usesDeductions) { %>
+  <%- include('subac-scoring', { a: a, base: base, editable: editable, roster: roster }) %>
+<% } else { %>
 <form method="post" action="<%= base %>/<%= a._id %>/participation">
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <div class="card">
@@ -37,6 +41,7 @@
     </table></div>
   </div>
 </form>
+<% } %>
 <% if (editable) { %>
 <form method="post" action="<%= base %>/<%= a._id %>/delete" class="mt-3 text-end" data-confirm="<%= t('Delete this session and its participation records?') %>" data-confirm-button="<%= t('Delete') %>">
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">

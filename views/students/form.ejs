@@ -1,4 +1,6 @@
-<% var s = student || {}; var editing = Boolean(student); %>
+<% var s = student || {}; var editing = Boolean(student); var formOld = locals.old || {}; var wasPosted = Object.keys(formOld).length > 0;
+   var currentClass = String(wasPosted ? formOld.class || '' : s.class || '');
+   var keptShifts = wasPosted ? [].concat(formOld.shifts || []).map(String) : (s.shifts || []).map(String); %>
 <%- include('../partials/page-header', { heading: editing ? 'Edit student' : 'Register student', crumbs: [['Students', '/school/students'], [editing ? s.fullName : 'New', null]] }) %>
 
 <form method="post" action="<%= editing ? '/school/students/' + s._id : '/school/students' %>?_csrf=<%= csrfToken %>" enctype="multipart/form-data" class="needs-validation" novalidate>
@@ -10,18 +12,39 @@
         <%- include('../partials/field', { name: 'dateOfBirth', label: 'Date of birth', ftype: 'date', value: isoDate(s.dateOfBirth), col: 'col-md-4' }) %>
         <%- include('../partials/field', { name: 'registrationDate', label: 'Registration date', ftype: 'date', value: isoDate(s.registrationDate || new Date()), col: 'col-md-4' }) %>
         <%- include('../partials/field', { name: 'status', label: 'Status', ftype: 'select', value: s.status || 'active', col: 'col-md-4', placeholder: false, options: C.STUDENT_STATUSES.map(function (x) { return { value: x, label: titleCase(x) }; }) }) %>
-        <%- include('../partials/field', { name: 'address', label: 'Address', value: s.address }) %>
+        <%- include('../partials/field', { name: 'program', label: 'Quran category', ftype: 'select', value: s.program, required: true, options: Object.keys(C.STUDENT_PROGRAMS).map(function (k) { return { value: k, label: C.STUDENT_PROGRAMS[k] }; }), help: 'Every student belongs to one of the three categories.' }) %>
+        <%- include('../partials/field', { name: 'district', label: 'District', value: s.district, col: 'col-md-4' }) %>
+        <%- include('../partials/field', { name: 'address', label: 'Address', value: s.address, col: 'col-md-8' }) %>
       </div></div>
 
       <div class="card mb-3"><div class="card-header"><%= t('Guardian') %></div><div class="card-body row g-3">
         <%- include('../partials/field', { name: 'guardianName', label: 'Guardian name', value: s.guardianName, col: 'col-md-5' }) %>
         <%- include('../partials/field', { name: 'guardianRelation', label: 'Relationship', value: s.guardianRelation, col: 'col-md-3', placeholder: 'Father, Mother…' }) %>
         <%- include('../partials/field', { name: 'guardianPhone', label: 'Guardian phone', ftype: 'tel', value: s.guardianPhone, col: 'col-md-4' }) %>
+        <%- include('../partials/field', { name: 'motherName', label: 'Mother name', value: s.motherName, col: 'col-md-5' }) %>
       </div></div>
 
       <div class="card mb-3"><div class="card-header"><%= t('Class placement & fees') %></div><div class="card-body row g-3">
         <%- include('../partials/field', { name: 'class', label: 'Class', ftype: 'select', value: s.class, col: 'col-md-6', placeholder: '— Not assigned —', options: classes.map(function (c) { return { value: c._id, label: c.name + ' (' + t(c.level) + ')' }; }), help: editing ? 'Changing the class records a transfer in the enrolment history.' : '' }) %>
         <%- include('../partials/field', { name: 'teacher', label: 'Teacher', ftype: 'select', value: s.teacher, col: 'col-md-6', placeholder: '— Class teacher —', options: teachers.map(function (tc) { return { value: tc._id, label: tc.fullName }; }) }) %>
+        <div class="col-12" data-shift-picker>
+          <input type="hidden" name="shiftsShown" value="1">
+          <label class="form-label"><%= t('Shifts') %></label>
+          <% Object.keys(classShifts).forEach(function (classId) {
+               var isCurrent = classId === currentClass;
+               var useAll = !isCurrent || !keptShifts.some(function (id) { return classShifts[classId].some(function (sh) { return String(sh._id) === id; }); }); %>
+            <div class="d-flex flex-wrap gap-3 <%= isCurrent ? '' : 'd-none' %>" data-shifts-for="<%= classId %>">
+              <% classShifts[classId].forEach(function (sh) { %>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="shifts" value="<%= sh._id %>" id="shift_<%= sh._id %>" <%= useAll || keptShifts.indexOf(String(sh._id)) >= 0 ? 'checked' : '' %> <%= isCurrent ? '' : 'disabled' %>>
+                  <label class="form-check-label" for="shift_<%= sh._id %>"><%= t(sh.name) %><% if (sh.startTime) { %> <span class="text-muted small"><%= sh.startTime %><%= sh.endTime ? '–' + sh.endTime : '' %></span><% } %></label>
+                </div>
+              <% }) %>
+            </div>
+          <% }) %>
+          <div class="form-text <%= classShifts[currentClass] ? 'd-none' : '' %>" data-shifts-empty><%= t('Choose a class that has shifts. Classes without shifts keep one register.') %></div>
+          <div class="form-text <%= classShifts[currentClass] ? '' : 'd-none' %>" data-shifts-help><%= t('All of the class\'s shifts are selected. Clear any the student does not attend; at least one is needed.') %></div>
+        </div>
         <%- include('../partials/field', { name: 'feeOverride', label: 'Custom monthly fee (optional)', ftype: 'money', value: s.feeOverride != null ? moneyInput(s.feeOverride) : '', col: 'col-md-6', help: t('Leave empty to use the class fee or the school fee ({fee}).', { fee: money(settings.monthlyFee, currency) }) }) %>
         <%- include('../partials/field', { name: 'notes', label: 'Notes', ftype: 'textarea', value: s.notes, rows: 2, max: 500 }) %>
       </div></div>
@@ -59,10 +82,19 @@
       <% } %>
     </div>
     <div class="col-lg-4">
-      <div class="card mb-3"><div class="card-header"><%= t('Photo') %></div><div class="card-body text-center">
-        <img id="photoPreview" class="rounded-4 mb-3 <%= s.photo ? '' : 'd-none' %>" style="width:140px;height:140px;object-fit:cover" src="<%= s.photo ? '/school/files/' + s.photo.split('/').pop() : '' %>" alt="">
-        <input type="file" class="form-control" name="photo" accept="image/png,image/jpeg,image/webp" data-preview="#photoPreview">
-        <div class="form-text"><%= t('JPG, PNG or WebP · max 2 MB') %></div>
+      <div class="card mb-3"><div class="card-header"><%= t('Photo') %></div><div class="card-body text-center" data-camera
+        data-msg-insecure="<%= t('The camera only works over HTTPS or on localhost. Upload a file instead.') %>"
+        data-msg-denied="<%= t('The camera could not be opened. Allow camera access in the browser, or upload a file instead.') %>">
+        <img id="photoPreview" class="photo-box rounded-4 mb-3 <%= s.photo ? '' : 'd-none' %>" src="<%= s.photo ? '/school/files/' + s.photo.split('/').pop() : '' %>" alt="">
+        <video class="photo-box rounded-4 mb-3 d-none" data-camera-video autoplay playsinline muted></video>
+        <div class="d-flex flex-wrap justify-content-center gap-2 mb-2">
+          <button class="btn btn-light btn-sm" type="button" data-camera-open><i class="bi bi-camera"></i> <%= t('Take photo') %></button>
+          <button class="btn btn-primary btn-sm d-none" type="button" data-camera-capture><i class="bi bi-circle"></i> <%= t('Capture') %></button>
+          <button class="btn btn-light btn-sm d-none" type="button" data-camera-cancel><%= t('Cancel') %></button>
+        </div>
+        <div class="small text-danger mb-2 d-none" data-camera-error role="alert"></div>
+        <input type="file" class="form-control" name="photo" accept="image/png,image/jpeg,image/webp" data-preview="#photoPreview" aria-label="<%= t('Upload a photo') %>">
+        <div class="form-text"><%= t('Take a photo with the camera, or upload JPG, PNG or WebP · max 2 MB') %></div>
       </div></div>
       <div class="card"><div class="card-body d-grid gap-2">
         <button class="btn btn-primary" type="submit"><%= t(editing ? 'Save changes' : 'Register student') %></button>
@@ -71,3 +103,4 @@
     </div>
   </div>
 </form>
+<script src="/js/camera.js"></script>

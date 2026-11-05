@@ -5,6 +5,8 @@ const C = require('../../config/constants');
 const { SURAHS } = require('../../utils/quran');
 const dates = require('../../utils/dates');
 const lessonService = require('../../services/lessonService');
+const studentLessonService = require('../../services/studentLessonService');
+const shiftService = require('../../services/shiftService');
 const activityService = require('../../services/activityService');
 const attendanceService = require('../../services/attendanceService');
 const classService = require('../../services/classService');
@@ -66,6 +68,39 @@ async function saveProgress(req, res) {
   res.redirect(`/school/lessons/${req.params.id}`);
 }
 
+/* ----------------------------- Student lessons ---------------------------- */
+/** Go back to the same filtered board after an action; only that page is accepted. */
+const boardUrl = (req) => (/^\/school\/student-lessons(\?[\w=&%.+-]*)?$/.test(req.body.back || '') ? req.body.back : '/school/student-lessons');
+
+async function studentLessons(req, res) {
+  const restrict = await classService.restrictedClassIds(req);
+  const [page, classes] = await Promise.all([studentLessonService.board(req.tenantId, req.query, restrict), classService.all(req.tenantId, restrict)]);
+  res.render('student-lessons/index', { title: 'Student lessons', page, classes, query: req.query, nav: 'student-lessons' });
+}
+async function studentLessonForm(req, res) {
+  const data = await studentLessonService.assignForm(req.tenantId, req.query.student, await classService.restrictedClassIds(req));
+  res.render('student-lessons/form', { title: 'New student lesson', ...data, surahs: SURAHS, nav: 'student-lessons' });
+}
+async function assignStudentLesson(req, res) {
+  const { lesson, student } = await studentLessonService.assign(ctx(req), req.body, await classService.restrictedClassIds(req));
+  await audit.school(req, 'studentLesson.assign', { entity: 'StudentLesson', entityId: lesson._id, details: { student: student.studentCode } });
+  req.flash('success', req.t('Lesson given to {name}.', { name: student.fullName }));
+  res.redirect(student.class ? `/school/student-lessons?class=${student.class}` : '/school/student-lessons');
+}
+async function reviewStudentLesson(req, res) {
+  const { lesson, student, passed } = await studentLessonService.review(ctx(req), req.params.id, req.body, await classService.restrictedClassIds(req));
+  await audit.school(req, 'studentLesson.review', { entity: 'StudentLesson', entityId: lesson._id, details: { student: student.studentCode, grade: req.body.grade } });
+  if (passed) req.flash('success', req.t('{name} passed the lesson: {grade} ({score}%).', { name: student.fullName, grade: req.t(C.STUDENT_LESSON_GRADES[lesson.grade].label), score: lesson.score }));
+  else req.flash('warning', req.t('{name} was not accepted and returns to the same lesson.', { name: student.fullName }));
+  res.redirect(boardUrl(req));
+}
+async function deleteStudentLesson(req, res) {
+  const { lesson, student } = await studentLessonService.remove(ctx(req), req.params.id, await classService.restrictedClassIds(req));
+  await audit.school(req, 'studentLesson.delete', { entity: 'StudentLesson', entityId: lesson._id, details: { student: student.studentCode } });
+  req.flash('success', 'Lesson deleted.');
+  res.redirect(boardUrl(req));
+}
+
 /* ------------------------- Activities (Subac/Duruus) ---------------------- */
 const typeOf = (req) => {
   if (!C.ACTIVITY_TYPES[req.params.type]) throw notFound('Activity type');
@@ -124,15 +159,15 @@ async function attendance(req, res) {
   const restrict = await classService.restrictedClassIds(req);
   const classes = await classService.all(req.tenantId, restrict);
   const classId = req.query.class || (classes[0] && String(classes[0]._id));
-  const sheet = classId ? await attendanceService.studentSheet(req.tenantId, classId, req.query.date, restrict) : null;
+  const sheet = classId ? await attendanceService.studentSheet(req.tenantId, classId, req.query.date, restrict, req.query.shift) : null;
   res.render('attendance/students', { title: 'Student attendance', classes, sheet, date: dates.toISODate(sheet ? sheet.date : new Date()), nav: 'attendance' });
 }
 async function saveAttendance(req, res) {
   const restrict = await classService.restrictedClassIds(req);
-  const r = await attendanceService.saveStudentSheet(ctx(req), req.body.class, req.body.date, req.body.att, restrict);
-  await audit.school(req, 'attendance.students', { entity: 'Class', entityId: r.cls._id, details: { date: dates.toISODate(r.date), saved: r.saved } });
+  const r = await attendanceService.saveStudentSheet(ctx(req), req.body.class, req.body.date, req.body.att, restrict, req.body.shift);
+  await audit.school(req, 'attendance.students', { entity: 'Class', entityId: r.cls._id, details: { date: dates.toISODate(r.date), shift: r.shift ? r.shift.name : undefined, saved: r.saved } });
   req.flash('success', r.saved === 1 ? req.t('Attendance saved for 1 student in {cls}.', { cls: r.cls.name }) : req.t('Attendance saved for {n} students in {cls}.', { n: r.saved, cls: r.cls.name }));
-  res.redirect(`/school/attendance?class=${r.cls._id}&date=${dates.toISODate(r.date)}`);
+  res.redirect(`/school/attendance?class=${r.cls._id}&date=${dates.toISODate(r.date)}${r.shift ? `&shift=${r.shift._id}` : ''}`);
 }
 async function teacherAttendance(req, res) {
   const sheet = await attendanceService.teacherSheet(req.tenantId, req.query.date);
@@ -161,7 +196,7 @@ async function attendanceReport(req, res) {
       title: isTeacher ? req.t('By teacher') : req.t('By student'),
       columns: [{ key: 'code', label: req.t('ID') }, { key: 'name', label: req.t('Name') }, ...(isTeacher ? [] : [{ key: 'className', label: req.t('Class') }]),
         { key: 'present', label: req.t('Present'), type: 'number' }, { key: 'absent', label: req.t('Absent'), type: 'number' }, { key: 'late', label: req.t('Late'), type: 'number' },
-        { key: 'excused', label: req.t('Excused'), type: 'number' }, { key: 'total', label: req.t('Days'), type: 'number' }, { key: 'rate', label: req.t('Rate'), type: 'percent' }],
+        { key: 'excused', label: req.t('Excused'), type: 'number' }, { key: 'total', label: req.t(isTeacher ? 'Days' : 'Sessions'), type: 'number' }, { key: 'rate', label: req.t('Rate'), type: 'percent' }],
       rows: data.rows,
       totals: { code: req.t('Total'), present: data.totals.present, absent: data.totals.absent, late: data.totals.late, excused: data.totals.excused, total: data.totals.total, rate: data.totals.rate },
     }, {
@@ -172,15 +207,17 @@ async function attendanceReport(req, res) {
     chart: { labels: data.daily.map((d) => d.day.slice(5)), rate: data.daily.map((d) => d.rate) },
   };
   if (await exportService.respond(req, res, report, { org: org(req), currency: req.settings.currency })) return;
-  const [classes, teachers, student] = await Promise.all([
+  const [classes, teachers, student, shifts] = await Promise.all([
     classService.all(req.tenantId, restrict), teacherService.all(req.tenantId, { activeOnly: false }),
     req.query.student ? Student.findOne({ tenantId: req.tenantId, _id: req.query.student }).select('fullName').lean() : null,
+    req.query.class && !isTeacher ? shiftService.forClass(req.tenantId, req.query.class) : [],
   ]);
-  res.render('attendance/report', { title: 'Attendance reports', report, query: req.query, classes, teachers, student, nav: 'attendance-report' });
+  res.render('attendance/report', { title: 'Attendance reports', report, query: req.query, classes, teachers, student, shifts, nav: 'attendance-report' });
 }
 
 module.exports = {
   lessons, lessonForm, createLesson, updateLesson, deleteLesson, lessonDetail, saveProgress,
+  studentLessons, studentLessonForm, assignStudentLesson, reviewStudentLesson, deleteStudentLesson,
   activities, activityForm, createActivity, updateActivity, deleteActivity, activityDetail, saveParticipation,
   attendance, saveAttendance, teacherAttendance, saveTeacherAttendance, attendanceReport,
 };

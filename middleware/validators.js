@@ -76,7 +76,9 @@ module.exports = {
 
   student: [
     text('fullName', 'Full name'), oneOf('gender', C.GENDERS, 'Gender'), date('dateOfBirth', 'Date of birth'),
+    oneOf('program', Object.keys(C.STUDENT_PROGRAMS), 'Quran category'),
     text('guardianName', 'Guardian name', { required: false }), phone('guardianPhone', 'Guardian phone'),
+    text('motherName', 'Mother name', { required: false }), text('district', 'District', { max: 80, required: false }),
     text('address', 'Address', { max: 300, required: false }), date('registrationDate', 'Registration date'),
     objectId('class', 'Class', false), objectId('teacher', 'Teacher', false), oneOf('status', C.STUDENT_STATUSES, 'Status', false),
     amount('feeOverride', 'Custom monthly fee', { required: false }), text('notes', 'Notes', { max: 500, required: false }),
@@ -96,6 +98,19 @@ module.exports = {
     body('startTime').optional({ values: 'falsy' }).matches(/^\d{2}:\d{2}$/).withMessage('Invalid start time'),
     body('endTime').optional({ values: 'falsy' }).matches(/^\d{2}:\d{2}$/).withMessage('Invalid end time'),
   ],
+  shift: [
+    text('name', 'Shift name', { max: 60 }),
+    body('startTime').optional({ values: 'falsy' }).matches(/^\d{2}:\d{2}$/).withMessage('Invalid start time'),
+    body('endTime').optional({ values: 'falsy' }).matches(/^\d{2}:\d{2}$/).withMessage('Invalid end time'),
+  ],
+  studentLesson: [
+    objectId('student', 'Student'), date('assignedDate', 'Date', true), text('topic', 'Topic', { max: 200, required: false }),
+    body('surah').optional({ values: 'falsy' }).isInt({ min: 1, max: 114 }).withMessage('Choose a valid surah'),
+    body('fromVerse').optional({ values: 'falsy' }).isInt({ min: 1 }).withMessage('Invalid verse'),
+    body('toVerse').optional({ values: 'falsy' }).isInt({ min: 1 }).withMessage('Invalid verse'),
+    body('juz').optional({ values: 'falsy' }).isInt({ min: 1, max: 30 }).withMessage('Juz must be between 1 and 30'),
+  ],
+  lessonReview: [oneOf('grade', Object.keys(C.STUDENT_LESSON_GRADES), 'Grade'), text('remarks', 'Remarks', { max: 500, required: false })],
   lesson: [
     text('title', 'Title', { max: 160 }), oneOf('category', Object.keys(C.LESSON_CATEGORIES), 'Category'),
     objectId('class', 'Class'), date('date', 'Date', true), oneOf('status', C.LESSON_STATUSES, 'Status'),
@@ -103,7 +118,8 @@ module.exports = {
     body('fromVerse').optional({ values: 'falsy' }).isInt({ min: 1 }).withMessage('Invalid verse'),
     body('toVerse').optional({ values: 'falsy' }).isInt({ min: 1 }).withMessage('Invalid verse'),
   ],
-  activity: [text('title', 'Title', { max: 160 }), objectId('class', 'Class'), date('date', 'Date', true), text('topic', 'Topic', { max: 300, required: false })],
+  activity: [text('title', 'Title', { max: 160 }), objectId('class', 'Class'), date('date', 'Date', true), text('topic', 'Topic', { max: 300, required: false }), oneOf('frequency', C.SUBAC_FREQUENCIES, 'Frequency', false)],
+  subacDeductions: Object.keys(C.SUBAC_DEDUCTIONS).map((key) => body(key).isFloat({ min: 0, max: 100 }).withMessage(m('Deduction points must be between 0 and 100.'))),
   invoice: [
     objectId('student', 'Student'), oneOf('type', Object.keys(C.INVOICE_TYPES), 'Invoice type'), amount('amount', 'Amount'),
     text('description', 'Description', { max: 300, required: false }), date('dueDate', 'Due date'),

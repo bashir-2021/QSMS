@@ -1,7 +1,7 @@
 'use strict';
 /**
  * School core collections (all tenant-scoped through the tenant plugin):
- * SchoolUser, SchoolSettings, Student, Teacher, Class, StudentEnrollment, SchoolAuditLog
+ * SchoolUser, SchoolSettings, Student, Teacher, Class, ClassShift, StudentEnrollment, SchoolAuditLog
  */
 const mongoose = require('mongoose');
 const tenantPlugin = require('./plugins/tenant');
@@ -11,6 +11,7 @@ const { SCHOOL_ROLES } = require('../config/roles');
 const { Schema } = mongoose;
 const ObjectId = Schema.Types.ObjectId;
 const money = { type: Number, default: 0, min: 0, validate: { validator: Number.isSafeInteger, message: 'Money must be integer minor units' } };
+const subacDeductionPaths = Object.fromEntries(Object.entries(C.SUBAC_DEDUCTIONS).map(([key, d]) => [key, { type: Number, min: 0, max: 100, default: d.points }]));
 
 /* ------------------------------- SchoolUser ------------------------------- */
 const schoolUserSchema = new Schema({
@@ -44,6 +45,7 @@ const schoolSettingsSchema = new Schema({
     expense: { type: String, default: 'EXP-{YYYY}-{SEQ:5}' },
   },
   receiptFooter: { type: String, maxlength: 300, default: 'Thank you. May Allah reward your support for Quran education.' },
+  subacDeductions: subacDeductionPaths, // points lost per occurrence, set by the school manager
 }, { timestamps: true });
 schoolSettingsSchema.plugin(tenantPlugin);
 // One settings document per school: replace the plugin's plain tenantId index with a unique one.
@@ -92,6 +94,18 @@ const classSchema = new Schema({
 classSchema.plugin(tenantPlugin);
 classSchema.index({ tenantId: 1, name: 1 }, { unique: true });
 
+/* ------------------------------- ClassShift ------------------------------- */
+// The shifts a class runs (e.g. Morning, Evening, Night). Attendance is taken per shift.
+const classShiftSchema = new Schema({
+  class: { type: ObjectId, ref: 'Class', required: true },
+  name: { type: String, required: true, trim: true, maxlength: 60 },
+  startTime: String, // "08:00"
+  endTime: String,
+  isActive: { type: Boolean, default: true },
+}, { timestamps: true });
+classShiftSchema.plugin(tenantPlugin);
+classShiftSchema.index({ tenantId: 1, class: 1, name: 1 }, { unique: true });
+
 /* --------------------------------- Student -------------------------------- */
 const studentSchema = new Schema({
   studentCode: { type: String, required: true },
@@ -102,9 +116,14 @@ const studentSchema = new Schema({
   guardianName: { type: String, trim: true, maxlength: 120 },
   guardianPhone: { type: String, trim: true, maxlength: 40 },
   guardianRelation: { type: String, trim: true, maxlength: 40 },
+  motherName: { type: String, trim: true, maxlength: 120 },
+  district: { type: String, trim: true, maxlength: 80 },
   address: { type: String, trim: true, maxlength: 300 },
   registrationDate: { type: Date, default: Date.now },
+  // Required by studentService for new students; left optional here so older records still save.
+  program: { type: String, enum: Object.keys(C.STUDENT_PROGRAMS) },
   class: { type: ObjectId, ref: 'Class' },
+  shifts: [{ type: ObjectId, ref: 'ClassShift' }], // shifts of the student's class
   teacher: { type: ObjectId, ref: 'Teacher' },
   status: { type: String, enum: C.STUDENT_STATUSES, default: 'active' },
   feeOverride: { type: Number, min: 0, validate: { validator: (v) => v == null || Number.isSafeInteger(v) } }, // optional custom monthly fee
@@ -148,6 +167,7 @@ module.exports = {
   SchoolSettings: mongoose.model('SchoolSettings', schoolSettingsSchema),
   Teacher: mongoose.model('Teacher', teacherSchema),
   Class: mongoose.model('Class', classSchema),
+  ClassShift: mongoose.model('ClassShift', classShiftSchema),
   Student: mongoose.model('Student', studentSchema),
   StudentEnrollment: mongoose.model('StudentEnrollment', enrollmentSchema),
   SchoolAuditLog: mongoose.model('SchoolAuditLog', schoolAuditSchema),

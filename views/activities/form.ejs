@@ -5,6 +5,9 @@
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <div class="card"><div class="card-body row g-3">
     <%- include('../partials/field', { name: 'title', label: 'Title', value: a.title, required: true, col: 'col-md-6' }) %>
+    <% if (type === 'subac' && (!editing || a.frequency)) { %>
+      <%- include('../partials/field', { name: 'frequency', label: 'Frequency', ftype: 'select', value: a.frequency || 'daily', placeholder: false, required: true, col: 'col-md-6', options: C.SUBAC_FREQUENCIES.map(function (f) { return { value: f, label: titleCase(f) }; }), help: 'Beginner classes cannot have daily Subac, and Farbar students are left out of it. A one-time Subac can be registered for any class when needed.' }) %>
+    <% } %>
     <%- include('../partials/field', { name: 'date', label: 'Date', ftype: 'date', value: isoDate(a.date), required: true, col: 'col-md-3' }) %>
     <%- include('../partials/field', { name: 'class', label: 'Class', ftype: 'select', value: a.class && a.class._id ? a.class._id : a.class, required: true, col: 'col-md-3', options: classes.map(function (c) { return { value: c._id, label: c.name }; }), help: editing ? '' : 'Active students in the class are added as participants.' }) %>
     <%- include('../partials/field', { name: 'teacher', label: 'Teacher', ftype: 'select', value: a.teacher && a.teacher._id ? a.teacher._id : a.teacher, col: 'col-md-4', placeholder: '— Class teacher —', options: teachers.map(function (tc) { return { value: tc._id, label: tc.fullName }; }) }) %>

@@ -4,21 +4,23 @@
     (can('students.manage') ? '<a class="btn btn-primary btn-icon" href="/school/students/new"><i class="bi bi-person-plus"></i>' + t('Register student') + '</a>' : '') }) %>
 
 <form class="filter-bar row g-2 align-items-end" method="get">
-  <div class="col-md-4"><label class="form-label"><%= t('Search') %></label><input class="form-control" name="search" value="<%= query.search || '' %>" placeholder="<%= t('Name, ID, guardian or phone') %>"></div>
+  <div class="col-md-3"><label class="form-label"><%= t('Search') %></label><input class="form-control" name="search" value="<%= query.search || '' %>" placeholder="<%= t('Name, ID, guardian or phone') %>"></div>
   <div class="col-6 col-md-2"><label class="form-label"><%= t('Class') %></label>
     <select class="form-select" name="class" data-autosubmit><option value=""><%= t('All classes') %></option><% classes.forEach(function (c) { %><option value="<%= c._id %>" <%= selected(query.class, c._id) %>><%= c.name %></option><% }) %></select></div>
+  <div class="col-6 col-md-2"><label class="form-label"><%= t('Quran category') %></label>
+    <select class="form-select" name="program" data-autosubmit><option value=""><%= t('All') %></option><% Object.keys(C.STUDENT_PROGRAMS).forEach(function (k) { %><option value="<%= k %>" <%= selected(query.program, k) %>><%= titleCase(k) %></option><% }) %><option value="none" <%= selected(query.program, 'none') %>><%= t('Not set') %></option></select></div>
   <div class="col-6 col-md-2"><label class="form-label"><%= t('Status') %></label>
     <select class="form-select" name="status" data-autosubmit><option value=""><%= t('All') %></option><% C.STUDENT_STATUSES.forEach(function (s) { %><option value="<%= s %>" <%= selected(query.status, s) %>><%= titleCase(s) %></option><% }) %></select></div>
-  <div class="col-6 col-md-2"><label class="form-label"><%= t('Gender') %></label>
+  <div class="col-6 col-md-1"><label class="form-label"><%= t('Gender') %></label>
     <select class="form-select" name="gender" data-autosubmit><option value=""><%= t('All') %></option><% C.GENDERS.forEach(function (g) { %><option value="<%= g %>" <%= selected(query.gender, g) %>><%= titleCase(g) %></option><% }) %></select></div>
   <div class="col-6 col-md-2 d-flex gap-2"><button class="btn btn-primary flex-fill" type="submit"><i class="bi bi-search"></i></button><a class="btn btn-light" href="/school/students"><%= t('Reset') %></a></div>
 </form>
 
 <div class="card">
   <div class="table-responsive"><table class="table table-hover">
-    <thead><tr><th><%= t('Student') %></th><th><%= t('ID') %></th><th><%= t('Class') %></th><th><%= t('Guardian') %></th><th><%= t('Registered') %></th><th><%= t('Status') %></th></tr></thead>
+    <thead><tr><th><%= t('Student') %></th><th><%= t('ID') %></th><th><%= t('Quran category') %></th><th><%= t('Class') %></th><th><%= t('Guardian') %></th><th><%= t('Registered') %></th><th><%= t('Status') %></th></tr></thead>
     <tbody>
-      <% if (!page.items.length) { %><tr><td colspan="6"><div class="empty-state"><i class="bi bi-people"></i><%= t('No students found.') %><% if (can('students.manage')) { %> <a href="/school/students/new"><%= t('Register the first student') %></a><% } %></div></td></tr><% } %>
+      <% if (!page.items.length) { %><tr><td colspan="7"><div class="empty-state"><i class="bi bi-people"></i><%= t('No students found.') %><% if (can('students.manage')) { %> <a href="/school/students/new"><%= t('Register the first student') %></a><% } %></div></td></tr><% } %>
       <% page.items.forEach(function (s) { %>
         <tr>
           <td><div class="d-flex align-items-center gap-2">
@@ -26,6 +28,7 @@
             <div><a class="row-link" href="/school/students/<%= s._id %>"><%= s.fullName %></a><div class="small text-muted"><%= titleCase(s.gender) %><%= s.dateOfBirth ? ' · ' + fmtDate(s.dateOfBirth) : '' %></div></div>
           </div></td>
           <td class="font-monospace small"><%= s.studentCode %></td>
+          <td><%= s.program ? titleCase(s.program) : '—' %></td>
           <td><%= s.class ? s.class.name : '—' %><div class="small text-muted"><%= s.teacher ? s.teacher.fullName : '' %></div></td>
           <td><%= s.guardianName || '—' %><div class="small text-muted"><%= s.guardianPhone || '' %></div></td>
           <td><%= fmtDate(s.registrationDate) %></td>

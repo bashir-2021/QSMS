@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node app.js",
     "dev": "node --watch app.js",
+    "db": "node scripts/devDb.js",
     "seed": "node scripts/seed.js",
     "create-superadmin": "node scripts/createSuperAdmin.js",
     "backup": "node scripts/backup.js",

@@ -27,6 +27,47 @@
     </table></div>
   </div></div>
   <div class="col-xl-4">
+    <div class="card mb-3"><div class="card-header"><%= t('Shifts') %></div>
+      <% if (!shifts.length) { %><div class="empty-state small"><%= t('No shifts yet. Until you add one, this class keeps a single attendance register.') %></div><% } %>
+      <div class="list-group list-group-flush">
+        <% shifts.forEach(function (sh) { %>
+          <div class="list-group-item">
+            <% if (can('classes.manage')) { %>
+              <form method="post" action="/school/classes/<%= c._id %>/shifts/<%= sh._id %>" class="row g-1 align-items-end mb-1">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <div class="col-12"><input class="form-control form-control-sm" name="name" value="<%= sh.name %>" maxlength="60" required aria-label="<%= t('Shift name') %>"></div>
+                <div class="col-5"><input class="form-control form-control-sm" type="time" name="startTime" value="<%= sh.startTime || '' %>" aria-label="<%= t('Start time') %>"></div>
+                <div class="col-5"><input class="form-control form-control-sm" type="time" name="endTime" value="<%= sh.endTime || '' %>" aria-label="<%= t('End time') %>"></div>
+                <div class="col-2"><button class="btn btn-sm btn-light w-100" type="submit" aria-label="<%= t('Save') %>" title="<%= t('Save') %>"><i class="bi bi-check-lg"></i></button></div>
+              </form>
+            <% } else { %>
+              <div class="fw-semibold small"><%= t(sh.name) %> <span class="text-muted"><%= sh.startTime || '' %><%= sh.endTime ? '–' + sh.endTime : '' %></span></div>
+            <% } %>
+            <div class="d-flex justify-content-between align-items-center small">
+              <span class="text-muted"><%= sh.studentCount === 1 ? t('1 student') : t('{n} students', { n: sh.studentCount }) %> <%- statusBadge(sh.isActive ? 'active' : 'inactive') %></span>
+              <% if (can('classes.manage')) { %><span class="d-flex gap-1">
+                <form method="post" action="/school/classes/<%= c._id %>/shifts/<%= sh._id %>/status"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="isActive" value="<%= sh.isActive ? '' : 'on' %>"><button class="btn btn-sm btn-light" type="submit"><%= t(sh.isActive ? 'Deactivate' : 'Activate') %></button></form>
+                <form method="post" action="/school/classes/<%= c._id %>/shifts/<%= sh._id %>/delete" data-confirm="<%= t('Delete shift {name}? Shifts with attendance records cannot be deleted.', { name: sh.name }) %>" data-confirm-button="<%= t('Delete') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-sm btn-light text-danger" type="submit" aria-label="<%= t('Delete') %>"><i class="bi bi-trash"></i></button></form>
+              </span><% } %>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+      <% if (can('classes.manage')) { %>
+      <div class="card-body border-top">
+        <form method="post" action="/school/classes/<%= c._id %>/shifts" class="row g-2">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="col-12"><label class="form-label required" for="newShiftName"><%= t('Shift name') %></label>
+            <input class="form-control" id="newShiftName" name="name" list="shiftNames" maxlength="60" required placeholder="<%= t('Morning, Evening, Night…') %>">
+            <datalist id="shiftNames"><% ['Morning', 'Evening', 'Night'].forEach(function (n) { %><option value="<%= t(n) %>"></option><% }) %></datalist></div>
+          <div class="col-6"><label class="form-label" for="newShiftStart"><%= t('Start time') %></label><input class="form-control" id="newShiftStart" type="time" name="startTime"></div>
+          <div class="col-6"><label class="form-label" for="newShiftEnd"><%= t('End time') %></label><input class="form-control" id="newShiftEnd" type="time" name="endTime"></div>
+          <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="addStudents" id="addStudents" checked><label class="form-check-label small" for="addStudents"><%= t('Add this class\'s current students to the shift') %></label></div></div>
+          <div class="col-12"><button class="btn btn-primary w-100" type="submit"><%= t('Add shift') %></button></div>
+        </form>
+      </div>
+      <% } %>
+    </div>
     <% if (can('students.manage') && candidates.length) { %>
     <div class="card mb-3"><div class="card-header"><%= t('Enrol / transfer students') %></div><div class="card-body">
       <form method="post" action="/school/classes/<%= c._id %>/enrol" data-confirm="<%= t('Enrol the selected students in {class}? Students in other classes will be transferred.', { class: c.name }) %>" data-confirm-variant="btn-primary" data-confirm-button="<%= t('Enrol') %>">
