@@ -152,6 +152,11 @@ h1, h2, h3, h4, h5, .h1, .h2, .h3, .h4, .h5 { font-weight: 700; letter-spacing: 
 .nav-tabs { border-bottom: 1px solid var(--q-line); }
 .att-toggle .btn { padding: .3rem .6rem; font-size: .78rem; }
 .att-toggle .btn-check:checked + .btn-outline-success { background: var(--q-success); color: #fff; }
+.att-unsaved td:first-child { box-shadow: inset 3px 0 0 var(--bs-warning, #f0ad4e); }
+.att-changed td:first-child { box-shadow: inset 3px 0 0 var(--bs-primary, #0d6efd); }
+.att-just-saved { background: rgba(25, 135, 84, .08); transition: background .6s; }
+.sched-chip { display: inline-block; padding: .1rem .45rem; border-radius: .4rem; background: rgba(0,0,0,.05); font-size: .75rem; font-variant-numeric: tabular-nums; }
+.clock-card .clock { font-size: 2.4rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
 .chart-box { position: relative; height: 260px; }
 .notification-item.unread { background: #fbf8ef; }
 .sidebar-backdrop { display: none; }

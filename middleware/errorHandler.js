@@ -30,6 +30,9 @@ function errorHandler(err, req, res, next) {
 
   if (status >= 500) console.error(`[error] ${req.method} ${req.originalUrl}`, err);
 
+  // The register's per-row Save asks for JSON.
+  if (req.get('accept') === 'application/json') return res.status(status).json({ ok: false, message });
+
   // For form posts with a recoverable error, go back to the form with a message.
   if (req.method === 'POST' && status < 500 && status !== 403 && req.flash) {
     req.flash('danger', message);

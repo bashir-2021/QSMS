@@ -46,6 +46,17 @@ const schoolSettingsSchema = new Schema({
   },
   receiptFooter: { type: String, maxlength: 300, default: 'Thank you. May Allah reward your support for Quran education.' },
   subacDeductions: subacDeductionPaths, // points lost per occurrence, set by the school manager
+  // Student lesson rules, set by the school manager. Lessons keep a copy of the rules they were scored with.
+  lessonRules: {
+    maxWarnings: { type: Number, min: 1, max: 100, default: C.DEFAULT_LESSON_RULES.maxWarnings },
+    pointsPerWarning: { type: Number, min: 0, max: 100, default: C.DEFAULT_LESSON_RULES.pointsPerWarning },
+    returnBelowScore: { type: Number, min: 0, max: 100, default: C.DEFAULT_LESSON_RULES.returnBelowScore }, // 0 = off
+  },
+  hifzLevels: {
+    type: [new Schema({ label: { type: String, trim: true, maxlength: 60, required: true }, min: { type: Number, min: 0, max: 100, required: true } }, { _id: false })],
+    default: () => C.DEFAULT_HIFZ_LEVELS.map((l) => ({ ...l })),
+  },
+  lessonTypes: { type: [{ type: String, trim: true, maxlength: 60 }], default: () => [...C.DEFAULT_LESSON_TYPES] },
 }, { timestamps: true });
 schoolSettingsSchema.plugin(tenantPlugin);
 // One settings document per school: replace the plugin's plain tenantId index with a unique one.
@@ -65,6 +76,10 @@ const teacherSchema = new Schema({
   specialization: { type: String, trim: true, maxlength: 160 },
   employmentDate: Date,
   monthlySalary: money,
+  // Registered working time: the days of the week the teacher works and the times they should arrive and leave.
+  workDays: [{ type: String, enum: C.WEEKDAYS }],
+  checkInTime: { type: String, match: /^\d{2}:\d{2}$/ },
+  checkOutTime: { type: String, match: /^\d{2}:\d{2}$/ },
   status: { type: String, enum: C.TEACHER_STATUSES, default: 'active' },
   photo: String,
   notes: { type: String, maxlength: 500 },
@@ -76,8 +91,8 @@ teacherSchema.index({ tenantId: 1, fullName: 1 });
 /* ---------------------------------- Class --------------------------------- */
 const classSchema = new Schema({
   name: { type: String, required: true, trim: true, maxlength: 80 },
-  level: { type: String, enum: C.CLASS_LEVELS, default: 'Beginner' },
-  teacher: { type: ObjectId, ref: 'Teacher' },
+  level: { type: String, enum: C.CLASS_LEVELS, default: 'cashra' }, // farbar | cashra | taxfiid
+  teachers: [{ type: ObjectId, ref: 'Teacher' }], // a class can have several teachers; the first is the main one
   capacity: { type: Number, min: 1, max: 500, default: 30 },
   schedule: {
     days: [{ type: String, enum: C.WEEKDAYS }],
@@ -93,6 +108,7 @@ const classSchema = new Schema({
 }, { timestamps: true });
 classSchema.plugin(tenantPlugin);
 classSchema.index({ tenantId: 1, name: 1 }, { unique: true });
+classSchema.index({ tenantId: 1, teachers: 1 });
 
 /* ------------------------------- ClassShift ------------------------------- */
 // The shifts a class runs (e.g. Morning, Evening, Night). Attendance is taken per shift.
@@ -117,6 +133,7 @@ const studentSchema = new Schema({
   guardianPhone: { type: String, trim: true, maxlength: 40 },
   guardianRelation: { type: String, trim: true, maxlength: 40 },
   motherName: { type: String, trim: true, maxlength: 120 },
+  motherPhone: { type: String, trim: true, maxlength: 40 }, // required on the form; older records may lack it
   district: { type: String, trim: true, maxlength: 80 },
   address: { type: String, trim: true, maxlength: 300 },
   registrationDate: { type: Date, default: Date.now },
@@ -149,6 +166,21 @@ enrollmentSchema.plugin(tenantPlugin);
 enrollmentSchema.index({ tenantId: 1, student: 1, startDate: -1 });
 enrollmentSchema.index({ tenantId: 1, class: 1, status: 1 });
 
+/* ------------------------------ ParentAccount ----------------------------- */
+// A parent's login to the parent portal: the guardian phone number on their children's records.
+// The account is created at the first sign-in, with the phone number as the password, which must
+// then be changed. Children are found by phone each time, so a new child appears automatically.
+const parentAccountSchema = new Schema({
+  phoneKey: { type: String, required: true, match: /^\d{7,9}$/ }, // last 9 digits of the guardian phone
+  passwordHash: { type: String, required: true, select: false },
+  mustChangePassword: { type: Boolean, default: true },
+  isActive: { type: Boolean, default: true },
+  lastLoginAt: Date,
+  passwordChangedAt: Date,
+}, { timestamps: true });
+parentAccountSchema.plugin(tenantPlugin);
+parentAccountSchema.index({ tenantId: 1, phoneKey: 1 }, { unique: true });
+
 /* ----------------------------- SchoolAuditLog ----------------------------- */
 const schoolAuditSchema = new Schema({
   user: { type: ObjectId, ref: 'SchoolUser' },
@@ -170,5 +202,6 @@ module.exports = {
   ClassShift: mongoose.model('ClassShift', classShiftSchema),
   Student: mongoose.model('Student', studentSchema),
   StudentEnrollment: mongoose.model('StudentEnrollment', enrollmentSchema),
+  ParentAccount: mongoose.model('ParentAccount', parentAccountSchema),
   SchoolAuditLog: mongoose.model('SchoolAuditLog', schoolAuditSchema),
 };

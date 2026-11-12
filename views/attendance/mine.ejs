@@ -1,0 +1,81 @@
+<%- include('../partials/page-header', { heading: 'My attendance', sub: 'Check in when you arrive and check out when you leave. Reception approves the times.' }) %>
+
+<% if (!data) { %>
+  <div class="card"><div class="empty-state"><i class="bi bi-person-x"></i><%= t('Your login is not linked to a teacher record. Ask the school administrator.') %></div></div>
+<% } else { var rec = data.today || {}; var sc = data.schedule; var tch = data.teacher;
+     var checkedIn = Boolean(rec.selfCheckIn || rec.checkIn); var checkedOut = Boolean(rec.selfCheckOut || rec.checkOut);
+     var off = rec.status === 'absent' || rec.status === 'excused'; %>
+<div class="row g-3 mb-3">
+  <div class="col-lg-5"><div class="card clock-card h-100"><div class="card-body">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      <div>
+        <div class="text-muted small"><%= t(data.now.weekday) %> · <%= fmtDate(data.now.day) %></div>
+        <div class="clock mt-1"><%= data.now.time %></div>
+      </div>
+      <% if (!data.today) { %><span class="badge badge-soft-secondary"><%= t('Not checked in') %></span>
+      <% } else if (rec.approval === 'pending') { %><span class="badge badge-soft-warning"><i class="bi bi-hourglass-split"></i> <%= t('Waiting for approval') %></span>
+      <% } else { %><span class="badge badge-soft-success"><i class="bi bi-check2"></i> <%= t('Approved') %></span><% } %>
+    </div>
+
+    <div class="mb-3">
+      <div class="small text-muted mb-1"><%= t('Your registered time today') %></div>
+      <% if (!sc.scheduledIn) { %><div class="text-muted"><%= t('No registered time. Ask the school administrator to add it to your teacher record.') %></div>
+      <% } else { %>
+        <div class="fs-5 fw-semibold"><i class="bi bi-box-arrow-in-right text-success"></i> <%= sc.scheduledIn %> <span class="text-muted mx-1">–</span> <i class="bi bi-box-arrow-right text-danger"></i> <%= sc.scheduledOut || '?' %></div>
+      <% } %>
+      <% if (!sc.workDay) { %><div class="mt-1"><span class="badge badge-soft-info"><%= t('Today is not one of your working days') %></span></div><% } %>
+    </div>
+
+    <div class="row g-2 mb-3 small">
+      <div class="col-6"><div class="border rounded-3 p-2"><div class="text-muted"><%= t('You checked in') %></div><div class="fw-semibold fs-6"><%= rec.selfCheckIn || '—' %></div><% if (rec.checkIn && rec.checkIn !== rec.selfCheckIn) { %><div class="text-muted"><%= t('Approved: {time}', { time: rec.checkIn }) %></div><% } %></div></div>
+      <div class="col-6"><div class="border rounded-3 p-2"><div class="text-muted"><%= t('You checked out') %></div><div class="fw-semibold fs-6"><%= rec.selfCheckOut || '—' %></div><% if (rec.checkOut && rec.checkOut !== rec.selfCheckOut) { %><div class="text-muted"><%= t('Approved: {time}', { time: rec.checkOut }) %></div><% } %></div></div>
+    </div>
+    <% if (data.lateBy) { %><div class="alert alert-warning py-2 small mb-2"><%= t('{time} late', { time: duration(data.lateBy) }) %></div><% } %>
+    <% if (data.earlyBy) { %><div class="alert alert-warning py-2 small mb-2"><%= t('Left {time} early', { time: duration(data.earlyBy) }) %></div><% } %>
+
+    <% if (off) { %>
+      <div class="alert alert-info small mb-0"><%= t('Reception has recorded you as {status} today.', { status: titleCase(rec.status) }) %></div>
+    <% } else if (!checkedIn) { %>
+      <form method="post" action="/school/my-attendance/check-in"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="btn btn-primary btn-lg w-100" type="submit"><i class="bi bi-box-arrow-in-right"></i> <%= t('Check in now') %></button></form>
+    <% } else if (!checkedOut) { %>
+      <form method="post" action="/school/my-attendance/check-out" data-confirm="<%= t('Check out now? You cannot check in again today.') %>" data-confirm-variant="btn-primary"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="btn btn-outline-danger btn-lg w-100" type="submit"><i class="bi bi-box-arrow-right"></i> <%= t('Check out now') %></button></form>
+    <% } else { %>
+      <div class="alert alert-success small mb-0"><i class="bi bi-check2-circle"></i> <%= t('You have checked in and out today.') %></div>
+    <% } %>
+  </div></div></div>
+
+  <div class="col-lg-7"><div class="card h-100">
+    <div class="card-header"><%= t('Your working time') %></div>
+    <div class="card-body">
+      <div class="d-flex flex-wrap gap-2 mb-2">
+        <% C.WEEKDAYS.forEach(function (d) { var on = (tch.workDays || []).indexOf(d) >= 0; %>
+          <span class="badge <%= on ? 'badge-soft-success' : 'badge-soft-secondary' %>"><%= t(d) %></span>
+        <% }) %>
+      </div>
+      <div class="small text-muted"><%= t('{n} days a week', { n: (tch.workDays || []).length }) %><% if (tch.checkInTime) { %> · <%= tch.checkInTime %> – <%= tch.checkOutTime %><% } %></div>
+    </div>
+  </div></div>
+</div>
+
+<div class="card">
+  <div class="card-header"><%= t('Last 30 days') %></div>
+  <div class="table-responsive"><table class="table">
+    <thead><tr><th><%= t('Date') %></th><th><%= t('Registered time') %></th><th><%= t('You pressed') %></th><th><%= t('Real times') %></th><th><%= t('Status') %></th><th><%= t('Approval') %></th></tr></thead>
+    <tbody>
+      <% if (!data.history.length) { %><tr><td colspan="6" class="empty-state"><%= t('No attendance yet') %></td></tr><% } %>
+      <% data.history.forEach(function (h) { %>
+        <tr>
+          <td class="text-nowrap"><%= fmtDate(h.date) %></td>
+          <td class="small"><%= h.scheduledIn ? h.scheduledIn + ' – ' + (h.scheduledOut || '?') : '—' %><% if (h.workDay === false) { %> <span class="badge badge-soft-info"><%= t('Not a working day') %></span><% } %></td>
+          <td class="small"><%= h.selfCheckIn || '—' %> – <%= h.selfCheckOut || '—' %></td>
+          <td class="small"><%= h.checkIn || '—' %> – <%= h.checkOut || '—' %><% if (h.lateBy) { %><div class="text-warning"><%= t('{time} late', { time: duration(h.lateBy) }) %></div><% } %></td>
+          <td><%- statusBadge(h.status) %></td>
+          <td class="small"><% if (h.approval === 'pending') { %><span class="badge badge-soft-warning"><%= t('Waiting for approval') %></span><% } else { %><span class="badge badge-soft-success"><%= t('Approved') %></span><div class="text-muted"><%= h.approvedBy ? h.approvedBy.name : '' %></div><% } %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table></div>
+</div>
+<% } %>

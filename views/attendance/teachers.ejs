@@ -1,35 +1,74 @@
-<%- include('../partials/page-header', { heading: 'Teacher attendance', sub: 'Daily staff register',
+<%- include('../partials/page-header', { heading: 'Teacher attendance', sub: 'Registered times, the teachers\' own check-ins, and the real times approved by reception',
   actions: '<a class="btn btn-light btn-icon" href="/school/attendance"><i class="bi bi-people"></i>' + t('Student attendance') + '</a><a class="btn btn-light btn-icon" href="/school/attendance/reports?scope=teacher"><i class="bi bi-clipboard-data"></i>' + t('Reports') + '</a>' }) %>
 
 <form class="filter-bar row g-2 align-items-end" method="get">
-  <div class="col-md-4"><label class="form-label"><%= t('Date') %></label><input type="date" class="form-control" name="date" value="<%= date %>" max="<%= isoDate(new Date()) %>" data-autosubmit></div>
+  <div class="col-md-4"><label class="form-label"><%= t('Date') %></label><input type="date" class="form-control" name="date" value="<%= date %>" max="<%= today %>" data-autosubmit></div>
+  <div class="col-md-8 small text-muted pb-2">
+    <i class="bi bi-info-circle"></i> <%= t('Teachers press Check in and Check out themselves. Their times wait here until reception approves the real times. Saving a row approves it.') %>
+  </div>
 </form>
 
-<% var editable = can('attendance.manage'); %>
+<% var editable = can('teacherAttendance.manage'); %>
 <form method="post" action="/school/attendance/teachers">
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <input type="hidden" name="date" value="<%= date %>">
   <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <span><%= fmtDate(sheet.date) %> <% if (sheet.saved) { %><span class="badge badge-soft-success ms-1"><%= t('Saved') %></span><% } %></span>
-      <% if (editable && sheet.rows.length) { %><div class="d-flex gap-2"><button class="btn btn-sm btn-light" type="button" data-mark-all="present"><%= t('All present') %></button><button class="btn btn-sm btn-primary" type="submit"><%= t('Save') %></button></div><% } %>
+    <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
+      <span><%= fmtDate(sheet.date) %>
+        <% if (!sheet.saved) { %><span class="badge badge-soft-warning ms-1"><%= t('Not yet taken') %></span>
+        <% } else { %><span class="badge <%= sheet.recorded < sheet.total ? 'badge-soft-warning' : 'badge-soft-success' %> ms-1"><%= t('{n} of {total} recorded', { n: sheet.recorded, total: sheet.total }) %></span><% } %>
+        <% if (sheet.pending) { %><span class="badge badge-soft-danger ms-1"><i class="bi bi-hourglass-split"></i> <%= t('{n} waiting for approval', { n: sheet.pending }) %></span><% } %>
+      </span>
+      <% if (editable && sheet.rows.length) { %><div class="d-flex gap-2"><button class="btn btn-sm btn-light" type="button" data-mark-all="present"><%= t('All present') %></button><button class="btn btn-sm btn-primary" type="submit"><%= t('Save & approve all') %></button></div><% } %>
     </div>
-    <div class="table-responsive"><table class="table">
-      <thead><tr><th><%= t('Teacher') %></th><th><%= t('Status') %></th><th style="width:120px"><%= t('Check in') %></th><th style="width:120px"><%= t('Check out') %></th><th><%= t('Remarks') %></th></tr></thead>
+    <div class="table-responsive"><table class="table align-middle">
+      <thead><tr>
+        <th><%= t('Teacher') %></th>
+        <th><%= t('Registered time') %></th>
+        <th><%= t('Teacher pressed') %></th>
+        <th><%= t('Status') %></th>
+        <th style="width:115px"><%= t('Real check in') %></th>
+        <th style="width:115px"><%= t('Real check out') %></th>
+        <th><%= t('Remarks') %></th>
+        <th><%= t('Approval') %></th>
+        <% if (editable) { %><th class="no-print"></th><% } %>
+      </tr></thead>
       <tbody>
-        <% if (!sheet.rows.length) { %><tr><td colspan="5" class="empty-state"><%= t('No active teachers') %></td></tr><% } %>
-        <% sheet.rows.forEach(function (r) { var rec = r.record || {}; var st = rec.status || 'present'; var id = r.teacher._id; %>
-          <tr>
+        <% if (!sheet.rows.length) { %><tr><td colspan="9" class="empty-state"><%= t('No active teachers') %></td></tr><% } %>
+        <% sheet.rows.forEach(function (r) { var rec = r.record || {}; var st = rec.status || 'present'; var id = r.teacher._id; var sc = r.schedule; %>
+          <tr id="tc-<%= id %>" class="<%= !r.record ? 'att-unsaved' : (rec.approval === 'pending' ? 'table-warning' : '') %>">
             <td><div class="fw-semibold"><%= r.teacher.fullName %></div><div class="small text-muted"><%= r.teacher.teacherCode %></div></td>
+            <td class="small text-nowrap">
+              <% if (!sc.scheduledIn) { %><span class="text-muted"><%= t('Not registered') %></span>
+              <% } else { %><span class="sched-chip"><%= sc.scheduledIn %> – <%= sc.scheduledOut || '?' %></span><% } %>
+              <% if (!sc.workDay) { %><div><span class="badge badge-soft-info"><%= t('Not a working day') %></span></div><% } %>
+            </td>
+            <td class="small text-nowrap">
+              <% if (rec.selfCheckIn || rec.selfCheckOut) { %>
+                <div><i class="bi bi-box-arrow-in-right text-success"></i> <%= rec.selfCheckIn || '—' %></div>
+                <div><i class="bi bi-box-arrow-right text-danger"></i> <%= rec.selfCheckOut || '—' %></div>
+              <% } else { %><span class="text-muted">—</span><% } %>
+              <% if (r.lateBy) { %><div class="text-warning"><%= t('{time} late', { time: duration(r.lateBy) }) %></div><% } %>
+              <% if (r.earlyBy) { %><div class="text-warning"><%= t('Left {time} early', { time: duration(r.earlyBy) }) %></div><% } %>
+            </td>
             <td><div class="btn-group att-toggle" role="group">
-              <% [['present', 'success'], ['absent', 'danger'], ['late', 'warning'], ['excused', 'info']].forEach(function (o) { %>
+              <% [['present', 'success', t('P')], ['absent', 'danger', t('A')], ['late', 'warning', t('L')], ['excused', 'info', t('E')]].forEach(function (o) { %>
                 <input type="radio" class="btn-check" name="att[<%= id %>][status]" id="t_<%= id %>_<%= o[0] %>" value="<%= o[0] %>" <%= st === o[0] ? 'checked' : '' %> <%= editable ? '' : 'disabled' %>>
-                <label class="btn btn-outline-<%= o[1] %>" for="t_<%= id %>_<%= o[0] %>"><%= titleCase(o[0]) %></label>
+                <label class="btn btn-outline-<%= o[1] %>" for="t_<%= id %>_<%= o[0] %>" title="<%= titleCase(o[0]) %>"><span class="d-none d-xl-inline"><%= titleCase(o[0]) %></span><span class="d-xl-none"><%= o[2] %></span></label>
               <% }) %>
             </div></td>
-            <td><input type="time" class="form-control form-control-sm" name="att[<%= id %>][checkIn]" value="<%= rec.checkIn || '' %>" <%= editable ? '' : 'disabled' %>></td>
-            <td><input type="time" class="form-control form-control-sm" name="att[<%= id %>][checkOut]" value="<%= rec.checkOut || '' %>" <%= editable ? '' : 'disabled' %>></td>
+            <td><input type="time" class="form-control form-control-sm" name="att[<%= id %>][checkIn]" value="<%= rec.checkIn || rec.selfCheckIn || '' %>" <%= editable ? '' : 'disabled' %>></td>
+            <td><input type="time" class="form-control form-control-sm" name="att[<%= id %>][checkOut]" value="<%= rec.checkOut || rec.selfCheckOut || '' %>" <%= editable ? '' : 'disabled' %>></td>
             <td><input class="form-control form-control-sm" name="att[<%= id %>][remarks]" value="<%= rec.remarks || '' %>" maxlength="300" <%= editable ? '' : 'disabled' %>></td>
+            <td class="small">
+              <% if (!r.record) { %><span class="badge badge-soft-warning"><%= t('Not recorded') %></span>
+              <% } else if (rec.approval === 'pending') { %><span class="badge badge-soft-warning"><i class="bi bi-hourglass-split"></i> <%= t('Waiting for approval') %></span>
+              <% } else { %>
+                <span class="badge badge-soft-success"><i class="bi bi-check2"></i> <%= t('Approved') %></span>
+                <div class="text-muted"><%= rec.approvedBy ? rec.approvedBy.name : (rec.recordedBy ? rec.recordedBy.name : '—') %><%= rec.approvedAt ? ' · ' + fmtClock(rec.approvedAt) : '' %></div>
+              <% } %>
+            </td>
+            <% if (editable) { %><td class="text-end no-print"><button class="btn btn-sm <%= rec.approval === 'pending' ? 'btn-primary' : 'btn-light' %> text-nowrap" type="submit" name="only" value="<%= id %>"><i class="bi bi-check2"></i> <%= t(rec.approval === 'pending' ? 'Approve' : 'Save') %></button></td><% } %>
           </tr>
         <% }) %>
       </tbody>

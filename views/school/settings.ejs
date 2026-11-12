@@ -1,7 +1,7 @@
 <%- include('../partials/page-header', { heading: 'School settings' }) %>
 
 <ul class="nav nav-tabs mb-3">
-  <% [['profile', 'School profile'], ['fees', 'Fees & payments'], ['numbering', 'Numbering & receipts'], ['subac', 'Subac deductions'], ['categories', 'Expense categories']].forEach(function (tb) { %>
+  <% [['profile', 'School profile'], ['fees', 'Fees & payments'], ['numbering', 'Numbering & receipts'], ['lessons', 'Lesson rules'], ['subac', 'Subac deductions'], ['categories', 'Expense categories']].forEach(function (tb) { %>
     <li class="nav-item"><a class="nav-link <%= tab === tb[0] ? 'active' : '' %>" href="?tab=<%= tb[0] %>"><%= t(tb[1]) %></a></li>
   <% }) %>
 </ul>
@@ -47,6 +47,46 @@
     </div></div>
     <div class="col-12 text-end"><button class="btn btn-primary" type="submit"><%= t('Save settings') %></button></div>
   </div></div>
+</form>
+<% } else if (tab === 'lessons') {
+  var lr = lessonRules; var o = locals.old || {};
+  var oldLevels = o.levels ? (Array.isArray(o.levels) ? o.levels : Object.keys(o.levels).map(function (k) { return o.levels[k]; })) : null;
+  var levels = oldLevels || lr.levels;
+  var rows = levels.slice(); while (rows.length < Math.min(C.MAX_HIFZ_LEVELS, levels.length + 2)) rows.push({ label: '', min: '' });
+%>
+<form method="post" action="/school/settings/lessons" class="needs-validation" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="alert alert-info small"><i class="bi bi-info-circle"></i> <%= t('These rules apply to lessons scored from now on. Results already recorded keep the rules they were scored with.') %></div>
+  <div class="row g-3">
+    <div class="col-lg-6"><div class="card h-100"><div class="card-header"><%= t('Warnings and scoring') %></div><div class="card-body row g-3">
+      <div class="col-12 small text-muted"><%= t('Every lesson that is listened to starts at {base} points. Each warning removes points; reaching the warning limit returns the lesson to be repeated.', { base: C.LESSON_SCORE_BASE }) %></div>
+      <%- include('../partials/field', { name: 'maxWarnings', label: 'Warnings before the lesson is returned', ftype: 'number', value: lr.maxWarnings, min: 1, max: 100, step: 1, required: true, col: 'col-md-6' }) %>
+      <%- include('../partials/field', { name: 'pointsPerWarning', label: 'Points removed per warning', ftype: 'number', value: lr.pointsPerWarning, min: 0, max: 100, step: 0.5, required: true, col: 'col-md-6' }) %>
+      <%- include('../partials/field', { name: 'returnBelowScore', label: 'Also return lessons scoring below', ftype: 'number', value: lr.returnBelowScore, min: 0, max: 100, step: 1, col: 'col-md-6', help: '0 = off. Only the warning limit returns a lesson.' }) %>
+      <div class="col-md-6"><div class="small text-muted mb-1"><%= t('With the saved rules') %></div><ul class="small mb-0 ps-3">
+        <% for (var w = 1; w <= Math.min(lr.maxWarnings, 6); w++) { var sc = Math.max(0, Math.round((C.LESSON_SCORE_BASE - w * lr.pointsPerWarning) * 100) / 100); %>
+          <li><%= w === 1 ? t('1 warning') : t('{n} warnings', { n: w }) %> = <%= sc %>/<%= C.LESSON_SCORE_BASE %><% if (w >= lr.maxWarnings) { %> — <strong><%= t('lesson returned') %></strong><% } %></li>
+        <% } %>
+      </ul></div>
+      <%- include('../partials/field', { name: 'lessonTypes', label: 'Lesson types (one per line)', ftype: 'textarea', rows: 4, value: lr.types.map(function (x) { return t(x); }).join('\n'), required: true, max: 2000 }) %>
+    </div></div></div>
+    <div class="col-lg-6"><div class="card h-100"><div class="card-header"><%= t('Hifz levels') %></div><div class="card-body">
+      <div class="small text-muted mb-2"><%= t('A score gets the highest level whose starting score it reaches. The lowest level must start at 0; it is also used for lessons that are returned or waiting to be listened to.') %></div>
+      <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+        <thead><tr><th><%= t('Level name') %></th><th style="width:9rem"><%= t('From score') %></th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (l, i) { %>
+            <tr>
+              <td><input class="form-control form-control-sm" name="levels[<%= i %>][label]" value="<%= oldLevels ? l.label : t(l.label) %>" maxlength="60" aria-label="<%= t('Level name') %>"></td>
+              <td><input class="form-control form-control-sm" type="number" name="levels[<%= i %>][min]" value="<%= l.min %>" min="0" max="100" step="1" aria-label="<%= t('From score') %>"></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table></div>
+      <div class="form-text"><%= t('Leave a row empty to remove it.') %></div>
+    </div></div></div>
+    <div class="col-12 text-end"><button class="btn btn-primary" type="submit"><%= t('Save lesson rules') %></button></div>
+  </div>
 </form>
 <% } else if (tab === 'subac') { %>
 <form method="post" action="/school/settings/subac" class="needs-validation" novalidate>

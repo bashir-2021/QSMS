@@ -3,7 +3,8 @@
 const money = require('./money');
 const dates = require('./dates');
 const C = require('../config/constants');
-const { getSurah } = require('./quran');
+const config = require('../config');
+const { getSurah, portionText, reasonText } = require('./quran');
 
 const titleCase = (s) => String(s || '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -17,8 +18,8 @@ const STATUS_COLORS = {
   planned: 'info', in_progress: 'warning', completed: 'success',
   on_leave: 'warning', resigned: 'secondary', terminated: 'danger',
   excellent: 'success', very_good: 'primary', good: 'info', fair: 'warning', needs_improvement: 'danger',
-  acceptable: 'info', not_accepted: 'danger', assigned: 'info', returned: 'warning', passed: 'success',
-  daily: 'primary', one_time: 'info',
+  acceptable: 'info', not_accepted: 'danger', assigned: 'info', returned: 'danger', passed: 'success', heard: 'success', repeat: 'danger',
+  daily: 'primary', one_time: 'info', approved: 'success',
 };
 
 function statusBadge(status, t = (s) => s) {
@@ -64,13 +65,18 @@ function forLocale(t) {
     titleCase: (s) => t(titleCase(s)),
     statusBadge: (s) => statusBadge(s, t),
     reportCell: (value, type, currency) => reportCell(value, type, currency, t),
-    lessonPortion: (l) => [
-      l.surah ? `${surahName(l.surah)} ${l.fromVerse}–${l.toVerse}` : '',
-      l.juz ? t('Juz {n}', { n: l.juz }) : '',
-      l.topic || '',
-    ].filter(Boolean).join(' · '),
+    // a student lesson's start – end; `arabic` writes the surah names in Arabic
+    lessonPortion: (l, arabic = false) => portionText(l, { arabic }),
+    reasonText: (row) => reasonText(t, row),
+    // minutes as "25 min" or "2 h 5 min"
+    duration: (n) => (n < 60 ? t('{n} min', { n }) : t('{h} h {m} min', { h: Math.floor(n / 60), m: n % 60 })),
   };
 }
+
+/** The school-local clock time ("HH:MM") of a moment, e.g. when a record was saved. */
+const fmtClock = (d) => (d ? dates.clock(config.timeZone, new Date(d)).time : '');
+
+const escapeHtml = (x) => String(x === undefined || x === null ? '' : x).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 module.exports = {
   forLocale,
@@ -87,5 +93,7 @@ module.exports = {
   selected,
   checked,
   surahName,
+  escapeHtml,
+  fmtClock,
   C,
 };

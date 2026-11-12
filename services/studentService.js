@@ -18,7 +18,7 @@ function buildFilter(tenantId, q = {}, restrictClassIds) {
   const f = { tenantId };
   if (q.search) {
     const rx = new RegExp(escapeRegex(q.search), 'i');
-    f.$or = [{ fullName: rx }, { studentCode: rx }, { guardianName: rx }, { guardianPhone: rx }];
+    f.$or = [{ fullName: rx }, { studentCode: rx }, { guardianName: rx }, { guardianPhone: rx }, { motherPhone: rx }];
   }
   if (q.status && C.STUDENT_STATUSES.includes(q.status)) f.status = q.status;
   if (q.gender && C.GENDERS.includes(q.gender)) f.gender = q.gender;
@@ -50,6 +50,7 @@ function readFields(data) {
     guardianPhone: data.guardianPhone,
     guardianRelation: data.guardianRelation,
     motherName: data.motherName,
+    motherPhone: data.motherPhone,
     district: data.district,
     program: data.program,
     address: data.address,
@@ -62,7 +63,7 @@ function readFields(data) {
 
 async function resolveRefs(tenantId, data) {
   const cls = await ownedOptional(Class, tenantId, data.class, 'Class');
-  const teacher = await ownedOptional(Teacher, tenantId, data.teacher || (cls && cls.teacher), 'Teacher');
+  const teacher = await ownedOptional(Teacher, tenantId, data.teacher || (cls && (cls.teachers || [])[0]), 'Teacher');
   return { cls, teacher };
 }
 
@@ -165,7 +166,7 @@ async function moveClass(ctx, student, cls, reason) {
   }
   student.class = cls ? cls._id : undefined;
   student.shifts = await activeShiftIds(ctx.tenantId, cls); // shifts belong to a class, so start from all of the new one
-  if (cls && cls.teacher) student.teacher = cls.teacher;
+  if (cls && cls.teachers && cls.teachers.length) student.teacher = cls.teachers[0];
 }
 
 async function transfer(ctx, id, classId, reason) {
@@ -206,7 +207,7 @@ async function profile(tenantId, id) {
     ]),
     LessonProgress.find({ tenantId, student: student._id }).sort({ date: -1 }).limit(50)
       .populate({ path: 'lesson', select: 'title category surah fromVerse toVerse' }).lean(),
-    StudentLesson.find({ tenantId, student: student._id }).sort({ assignedDate: -1, createdAt: -1 }).limit(50).lean(),
+    StudentLesson.find({ tenantId, student: student._id }).sort({ date: -1, createdAt: -1 }).limit(50).lean(),
     ActivityParticipation.find({ tenantId, student: student._id }).sort({ createdAt: -1 }).limit(20)
       .populate({ path: 'activity', select: 'title type date' }).lean(),
     StudentEnrollment.find({ tenantId, student: student._id }).sort({ startDate: -1 }).populate('class', 'name').lean(),

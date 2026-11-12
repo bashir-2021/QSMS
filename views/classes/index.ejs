@@ -3,7 +3,7 @@
 <form class="filter-bar row g-2 align-items-end" method="get">
   <div class="col-md-5"><label class="form-label"><%= t('Search') %></label><input class="form-control" name="search" value="<%= query.search || '' %>" placeholder="<%= t('Class name') %>"></div>
   <div class="col-6 col-md-3"><label class="form-label"><%= t('Level') %></label>
-    <select class="form-select" name="level" data-autosubmit><option value=""><%= t('All levels') %></option><% C.CLASS_LEVELS.forEach(function (l) { %><option value="<%= l %>" <%= selected(query.level, l) %>><%= t(l) %></option><% }) %></select></div>
+    <select class="form-select" name="level" data-autosubmit><option value=""><%= t('All levels') %></option><% C.CLASS_LEVELS.forEach(function (l) { %><option value="<%= l %>" <%= selected(query.level, l) %>><%= titleCase(l) %></option><% }) %></select></div>
   <div class="col-6 col-md-2"><label class="form-label"><%= t('State') %></label>
     <select class="form-select" name="active" data-autosubmit><option value=""><%= t('All') %></option><option value="yes" <%= selected(query.active, 'yes') %>><%= t('Active') %></option><option value="no" <%= selected(query.active, 'no') %>><%= t('Inactive') %></option></select></div>
   <div class="col-md-2 d-flex gap-2"><button class="btn btn-primary flex-fill" type="submit"><i class="bi bi-search"></i></button><a class="btn btn-light" href="/school/classes"><%= t('Reset') %></a></div>
@@ -15,7 +15,7 @@
     <div class="col-md-6 col-xl-4">
       <a class="card h-100 text-decoration-none text-reset" href="/school/classes/<%= c._id %>"><div class="card-body">
         <div class="d-flex justify-content-between align-items-start mb-2">
-          <div><div class="fw-bold fs-6" style="color:var(--q-ink)"><%= c.name %></div><div class="small text-muted"><%= t(c.level) %> · <%= c.teacher ? c.teacher.fullName : t('No teacher') %></div></div>
+          <div><div class="fw-bold fs-6" style="color:var(--q-ink)"><%= c.name %></div><div class="small text-muted"><%= titleCase(c.level) %> · <%= c.teachers && c.teachers.length ? c.teachers.map(function (x) { return x.fullName; }).join(', ') : t('No teacher') %></div></div>
           <%- c.isActive ? statusBadge('active') : statusBadge('inactive') %>
         </div>
         <div class="small text-muted mb-2"><i class="bi bi-clock me-1"></i><%= (c.schedule && c.schedule.days && c.schedule.days.length) ? c.schedule.days.map(function (d) { return t(d); }).join(', ') : t('No schedule') %><%= c.schedule && c.schedule.startTime ? ' · ' + c.schedule.startTime + '–' + (c.schedule.endTime || '') : '' %></div>

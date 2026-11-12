@@ -65,7 +65,7 @@ describe('tenant isolation — HTTP', () => {
 
   test('a tenantId sent by the browser is ignored', async () => {
     const { agent, csrf } = await H.loginSchool(app, 'admin@a.test', 'Pass1234!');
-    const res = await agent.post('/school/classes').type('form').send({ _csrf: csrf, name: 'Injected', level: 'Beginner', capacity: '10', isActive: 'on', tenantId: String(s.b.tenant._id) });
+    const res = await agent.post('/school/classes').type('form').send({ _csrf: csrf, name: 'Injected', level: 'cashra', capacity: '10', isActive: 'on', tenantId: String(s.b.tenant._id) });
     expect(res.status).toBe(302);
     const created = await M.Class.findOne({ tenantId: s.a.tenant._id, name: 'Injected' });
     expect(created).not.toBeNull();
@@ -81,7 +81,7 @@ describe('tenant isolation — HTTP', () => {
 
   test('state-changing requests without a CSRF token are rejected', async () => {
     const { agent } = await H.loginSchool(app, 'admin@a.test', 'Pass1234!');
-    const res = await agent.post('/school/classes').type('form').send({ name: 'NoToken', level: 'Beginner', capacity: '10' });
+    const res = await agent.post('/school/classes').type('form').send({ name: 'NoToken', level: 'cashra', capacity: '10' });
     expect(res.status).toBe(403);
   });
 });

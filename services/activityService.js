@@ -59,8 +59,8 @@ async function list(tenantId, type, q, restrict) {
 async function readFields(tenantId, data, restrict, frequency) {
   const cls = await owned(Class, tenantId, data.class, 'Class');
   assertClassAllowed(cls._id, restrict);
-  if (frequency === 'daily' && cls.level === 'Beginner') throw badRequest('Beginner classes do not have daily Subac. Register a one-time Subac instead.');
-  const teacher = await ownedOptional(Teacher, tenantId, data.teacher || cls.teacher, 'Teacher');
+  if (frequency === 'daily' && cls.level === 'farbar') throw badRequest('Farbar classes do not have daily Subac. Register a one-time Subac instead.');
+  const teacher = await ownedOptional(Teacher, tenantId, data.teacher || (cls.teachers || [])[0], 'Teacher');
   return {
     title: data.title, date: dates.parseDay(data.date) || dates.startOfDay(), class: cls._id,
     teacher: teacher ? teacher._id : undefined, topic: data.topic, objectives: data.objectives,

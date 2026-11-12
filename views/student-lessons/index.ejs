@@ -1,5 +1,12 @@
-<% var editable = can('lessons.manage'); var grades = C.STUDENT_LESSON_GRADES; var gradeButton = { excellent: 'btn-success', very_good: 'btn-primary', acceptable: 'btn-info', not_accepted: 'btn-danger' }; %>
-<%- include('../partials/page-header', { heading: 'Student lessons', sub: 'Give each student a lesson, listen to it, then grade it. A lesson that is not accepted stays open until the student passes.' }) %>
+<%
+  var editable = can('lessons.manage');
+  var here = path + qs(query);
+  var colors = { absent: 'danger', pending: 'warning', heard: 'success', returned: 'danger', passed: 'success', repeat: 'danger' };
+  var badge = function (kind, text) { return '<span class="badge badge-soft-' + (colors[kind] || 'secondary') + '">' + escapeHtml(text) + '</span>'; };
+  var statusText = function (s) { return s === 'absent' ? t('Absent') : (C.LESSON_STATUSES_HEARD[s] ? t(C.LESSON_STATUSES_HEARD[s]) : ''); };
+%>
+<%- include('../partials/page-header', { heading: 'Student lessons', sub: 'First give each student a lesson. When the student is ready, listen to it: attendance, then the warnings, score and hifz level. You can give new lessons before listening; lessons stay waiting until they are passed.',
+  actions: '<a class="btn btn-light btn-icon" href="/school/student-lessons/report' + qs({ class: query.class }) + '"><i class="bi bi-bar-chart-line"></i>' + t('Lesson reports') + '</a>' }) %>
 
 <form class="filter-bar row g-2 align-items-end" method="get">
   <div class="col-md-4"><label class="form-label"><%= t('Search') %></label><input class="form-control" name="search" value="<%= query.search || '' %>" placeholder="<%= t('Name, ID, guardian or phone') %>"></div>
@@ -10,40 +17,38 @@
 
 <div class="card">
   <div class="table-responsive"><table class="table align-middle">
-    <thead><tr><th><%= t('Student') %></th><th><%= t('Current lesson') %></th><th><%= t('Last passed') %></th><% if (editable) { %><th><%= t('Listen and grade') %></th><% } %></tr></thead>
+    <thead><tr><th><%= t('Student') %></th><th><%= t('Today') %></th><th><%= t('Last lesson') %></th><th><%= t('Waiting to be listened to') %></th><% if (editable) { %><th class="text-end"></th><% } %></tr></thead>
     <tbody>
-      <% if (!page.items.length) { %><tr><td colspan="4"><div class="empty-state"><i class="bi bi-card-checklist"></i><%= t('No students found.') %></div></td></tr><% } %>
-      <% page.items.forEach(function (s) { var l = s.openLesson; var done = s.lastPassed; %>
+      <% if (!page.items.length) { %><tr><td colspan="5"><div class="empty-state"><i class="bi bi-card-checklist"></i><%= t('No students found.') %></div></td></tr><% } %>
+      <% page.items.forEach(function (s) { var last = s.lastLesson; %>
         <tr>
           <td>
             <a class="row-link" href="/school/students/<%= s._id %>"><%= s.fullName %></a>
             <div class="small text-muted"><%= s.program ? titleCase(s.program) : t('Category not set') %><%= s.class ? ' · ' + s.class.name : '' %></div>
           </td>
-          <td>
-            <% if (l) { %>
-              <div class="fw-semibold small"><%= lessonPortion(l) %></div>
-              <div class="small text-muted"><%= fmtDate(l.assignedDate) %> <%- statusBadge(l.status) %><% if (l.reviews && l.reviews.length) { %> · <%= l.reviews.length === 1 ? t('1 attempt') : t('{n} attempts', { n: l.reviews.length }) %><% } %></div>
-            <% } else { %><span class="text-muted small"><%= t('No open lesson') %></span><% } %>
+          <td class="small">
+            <% if (!s.today.length) { %><span class="text-muted">—</span><% } %>
+            <% s.today.forEach(function (a) { var k = a.attendance === 'absent' ? 'absent' : a.status; %><div><%- badge(k, statusText(k)) %></div><% }) %>
           </td>
-          <td>
-            <% if (done) { %><div class="small"><%= lessonPortion(done) %></div><div class="small"><%- statusBadge(done.grade) %> <span class="text-muted"><%= done.score %>%</span></div><% } else { %><span class="text-muted">—</span><% } %>
+          <td class="small">
+            <% if (last) { %>
+              <div class="fw-semibold" lang="ar"><%= lessonPortion(last, true) %></div>
+              <div class="text-muted"><%= fmtDate(last.date) %><% if (last.score != null) { %> · <%= last.score %>/100<% } %><% if (last.level && last.status !== 'pending') { %> · <%= t(last.level) %><% } %></div>
+            <% } else { %><span class="text-muted">—</span><% } %>
+          </td>
+          <td class="small">
+            <% if (!s.openLessons.length) { %><span class="text-muted"><%= t('None') %></span><% } %>
+            <% s.openLessons.slice(0, 4).forEach(function (l) { %>
+              <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                <span><%- badge(l.status, statusText(l.status)) %> <span lang="ar"><%= lessonPortion(l, true) %></span> <span class="text-muted"><%= fmtDate(l.date) %></span></span>
+                <% if (editable) { %><a class="btn btn-sm btn-outline-primary py-0 text-nowrap" href="/school/student-lessons/<%= l._id %>/listen?back=<%= encodeURIComponent(here) %>"><i class="bi bi-ear"></i> <%= t('Listen') %></a><% } %>
+              </div>
+            <% }) %>
+            <% if (s.openLessons.length > 4) { %><div class="text-muted"><%= t('and {n} more', { n: s.openLessons.length - 4 }) %></div><% } %>
           </td>
           <% if (editable) { %>
-          <td>
-            <% if (l) { %>
-              <form method="post" action="/school/student-lessons/<%= l._id %>/review">
-                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                <input type="hidden" name="back" value="<%= path %>">
-                <div class="d-flex flex-wrap gap-1 mb-1">
-                  <% Object.keys(grades).forEach(function (g) { %>
-                    <button class="btn btn-sm <%= gradeButton[g] %>" type="submit" name="grade" value="<%= g %>" data-keep><%= t(grades[g].label) %><%= grades[g].passed ? ' ' + grades[g].score + '%' : '' %></button>
-                  <% }) %>
-                </div>
-                <input class="form-control form-control-sm" name="remarks" maxlength="500" placeholder="<%= t('Remarks') %>" aria-label="<%= t('Remarks') %>">
-              </form>
-            <% } else { %>
-              <a class="btn btn-sm btn-light" href="/school/student-lessons/new?student=<%= s._id %>"><i class="bi bi-plus-lg"></i> <%= t('Give a lesson') %></a>
-            <% } %>
+          <td class="text-end text-nowrap">
+            <a class="btn btn-sm btn-primary mb-1" href="/school/student-lessons/new?student=<%= s._id %>&back=<%= encodeURIComponent(here) %>"><i class="bi bi-journal-plus"></i> <%= t('Give lesson') %></a>
           </td>
           <% } %>
         </tr>

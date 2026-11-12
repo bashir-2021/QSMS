@@ -89,7 +89,32 @@ function formatDate(d) {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
 }
 
+/**
+ * The school's wall clock right now: the local day (as UTC midnight, like every stored day), the time as
+ * "HH:MM" and the weekday name used in constants.WEEKDAYS. Check-ins are recorded in this time.
+ */
+function clock(timeZone, at = new Date()) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
+    timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', weekday: 'short', hourCycle: 'h23',
+  }).formatToParts(at).map((p) => [p.type, p.value]));
+  return {
+    day: new Date(Date.UTC(+parts.year, +parts.month - 1, +parts.day)),
+    time: `${parts.hour}:${parts.minute}`,
+    weekday: parts.weekday,
+  };
+}
+
+/** The weekday name ('Sat'…'Fri') of a stored day. */
+const weekdayOf = (day) => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date(day).getUTCDay()];
+
+/** "HH:MM" to minutes after midnight, or null. */
+function minutesOf(hhmm) {
+  const m = /^(\d{2}):(\d{2})$/.exec(hhmm || '');
+  return m ? (+m[1] * 60) + +m[2] : null;
+}
+
 module.exports = {
+  clock, weekdayOf, minutesOf,
   startOfDay, endOfDay, parseDay, toISODate, currentPeriod, isPeriod, periodRange, periodLabel,
   addMonths, addDays, daysBetween, lastPeriods, rangeFromQuery, formatDate,
 };

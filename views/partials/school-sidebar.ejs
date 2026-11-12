@@ -23,9 +23,12 @@
     <% if (can('lessons.view') || can('attendance.view')) { %><div class="nav-section"><%= t('Learning') %></div><% } %>
     <%- link('lessons', '/school/lessons', 'book', 'Quran lessons', can('lessons.view') && f('lessons')) %>
     <%- link('student-lessons', '/school/student-lessons', 'card-checklist', 'Student lessons', can('lessons.view') && f('lessons')) %>
+    <%- link('student-lessons-report', '/school/student-lessons/report', 'graph-up-arrow', 'Lesson reports', can('lessons.view') && f('lessons')) %>
     <%- link('subac', '/school/activities/subac', 'journal-check', 'Subac (سبع)', can('activities.view') && f('activities')) %>
     <%- link('duruus', '/school/activities/duruus', 'mortarboard', 'Duruus (دروس)', can('activities.view') && f('activities')) %>
+    <%- link('my-attendance', '/school/my-attendance', 'clock', 'My attendance', can('attendance.self') && f('attendance')) %>
     <%- link('attendance', '/school/attendance', 'calendar-check', 'Attendance', can('attendance.view') && f('attendance')) %>
+    <%- link('teacher-attendance', '/school/attendance/teachers', 'person-check', 'Teacher attendance', can('teacherAttendance.manage') && f('attendance')) %>
     <%- link('attendance-report', '/school/attendance/reports', 'clipboard-data', 'Attendance reports', can('attendance.view') && f('attendance')) %>
 
     <% if (can('invoices.view') || can('expenses.view')) { %><div class="nav-section"><%= t('Finance') %></div><% } %>

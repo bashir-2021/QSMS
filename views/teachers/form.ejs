@@ -20,6 +20,24 @@
         <%- include('../partials/field', { name: 'status', label: 'Employment status', ftype: 'select', value: tch.status || 'active', placeholder: false, col: 'col-md-4', options: C.TEACHER_STATUSES.map(function (x) { return { value: x, label: titleCase(x) }; }) }) %>
         <%- include('../partials/field', { name: 'notes', label: 'Notes', ftype: 'textarea', value: tch.notes, rows: 2, max: 500 }) %>
       </div></div>
+      <% var formOld = locals.old || {}; var posted = Object.keys(formOld).length > 0;
+         var days = posted ? [].concat(formOld.workDays || []) : (editing ? (tch.workDays || []) : ['Sat', 'Sun', 'Mon', 'Tue', 'Wed']);
+         var dayErr = (locals.formErrors || {}).workDays; %>
+      <div class="card mb-3"><div class="card-header"><i class="bi bi-clock me-1"></i><%= t('Working time') %></div><div class="card-body row g-3">
+        <div class="col-12">
+          <label class="form-label required"><%= t('Working days') %> <span class="text-muted small" data-day-count></span></label>
+          <div class="d-flex flex-wrap gap-2 <%= dayErr ? 'is-invalid' : '' %>" data-work-days>
+            <% C.WEEKDAYS.forEach(function (d) { %>
+              <input type="checkbox" class="btn-check" name="workDays" value="<%= d %>" id="wd_<%= d %>" autocomplete="off" <%= days.indexOf(d) >= 0 ? 'checked' : '' %>>
+              <label class="btn btn-sm btn-outline-success" for="wd_<%= d %>"><%= t(d) %></label>
+            <% }) %>
+          </div>
+          <% if (dayErr) { %><div class="invalid-feedback d-block"><%= t(dayErr) %></div><% } %>
+          <div class="form-text"><%= t('The days of the week this teacher comes to work.') %></div>
+        </div>
+        <%- include('../partials/field', { name: 'checkInTime', label: 'Check-in time', ftype: 'time', value: tch.checkInTime, required: true, col: 'col-md-6', help: 'When the teacher should arrive.' }) %>
+        <%- include('../partials/field', { name: 'checkOutTime', label: 'Check-out time', ftype: 'time', value: tch.checkOutTime, required: true, col: 'col-md-6', help: 'When the teacher may leave.' }) %>
+      </div></div>
     </div>
     <div class="col-lg-4">
       <div class="card mb-3"><div class="card-header"><%= t('Photo') %></div><div class="card-body text-center">
@@ -33,3 +51,5 @@
     </div>
   </div>
 </form>
+<div class="d-none" id="dayCountText" data-text="<%= t('({n} days a week)') %>"></div>
+<script src="/js/teacher-form.js"></script>

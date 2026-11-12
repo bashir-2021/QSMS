@@ -77,8 +77,8 @@ module.exports = {
   student: [
     text('fullName', 'Full name'), oneOf('gender', C.GENDERS, 'Gender'), date('dateOfBirth', 'Date of birth'),
     oneOf('program', Object.keys(C.STUDENT_PROGRAMS), 'Quran category'),
-    text('guardianName', 'Guardian name', { required: false }), phone('guardianPhone', 'Guardian phone'),
-    text('motherName', 'Mother name', { required: false }), text('district', 'District', { max: 80, required: false }),
+    text('guardianName', 'Guardian name', { required: false }), phone('guardianPhone', 'Guardian phone', true),
+    text('motherName', 'Mother name', { required: false }), phone('motherPhone', 'Mother phone', true), text('district', 'District', { max: 80, required: false }),
     text('address', 'Address', { max: 300, required: false }), date('registrationDate', 'Registration date'),
     objectId('class', 'Class', false), objectId('teacher', 'Teacher', false), oneOf('status', C.STUDENT_STATUSES, 'Status', false),
     amount('feeOverride', 'Custom monthly fee', { required: false }), text('notes', 'Notes', { max: 500, required: false }),
@@ -90,9 +90,14 @@ module.exports = {
     text('qualification', 'Qualification', { max: 160, required: false }), text('specialization', 'Specialization', { max: 160, required: false }),
     date('employmentDate', 'Employment date'), amount('monthlySalary', 'Monthly salary', { required: false }),
     oneOf('status', C.TEACHER_STATUSES, 'Status', false),
+    body('workDays').custom((v) => { const d = [].concat(v || []).filter(Boolean); return d.length > 0 && d.every((x) => C.WEEKDAYS.includes(x)); })
+      .withMessage(m('Choose the days the teacher works.')),
+    body('checkInTime').trim().matches(/^([01]\d|2[0-3]):[0-5]\d$/).withMessage(m('{label} is required', 'Check-in time')),
+    body('checkOutTime').trim().matches(/^([01]\d|2[0-3]):[0-5]\d$/).withMessage(m('{label} is required', 'Check-out time')).bail()
+      .custom((v, { req }) => String(v) > String(req.body.checkInTime || '')).withMessage(m('The check-out time must be after the check-in time.')),
   ],
   class: [
-    text('name', 'Class name', { max: 80 }), oneOf('level', C.CLASS_LEVELS, 'Level'), objectId('teacher', 'Teacher', false),
+    text('name', 'Class name', { max: 80 }), oneOf('level', C.CLASS_LEVELS, 'Level'), objectId('mainTeacher', 'Main teacher', false), body('teachers').optional().custom((v) => [].concat(v).every((x) => /^[a-f0-9]{24}$/i.test(String(x)))).withMessage(m('Choose a valid teacher')),
     body('capacity').isInt({ min: 1, max: 500 }).withMessage('Capacity must be between 1 and 500'),
     amount('monthlyFee', 'Monthly fee', { required: false }), date('startDate', 'Start date'), date('endDate', 'End date'),
     body('startTime').optional({ values: 'falsy' }).matches(/^\d{2}:\d{2}$/).withMessage('Invalid start time'),
@@ -103,14 +108,28 @@ module.exports = {
     body('startTime').optional({ values: 'falsy' }).matches(/^\d{2}:\d{2}$/).withMessage('Invalid start time'),
     body('endTime').optional({ values: 'falsy' }).matches(/^\d{2}:\d{2}$/).withMessage('Invalid end time'),
   ],
-  studentLesson: [
-    objectId('student', 'Student'), date('assignedDate', 'Date', true), text('topic', 'Topic', { max: 200, required: false }),
-    body('surah').optional({ values: 'falsy' }).isInt({ min: 1, max: 114 }).withMessage('Choose a valid surah'),
-    body('fromVerse').optional({ values: 'falsy' }).isInt({ min: 1 }).withMessage('Invalid verse'),
-    body('toVerse').optional({ values: 'falsy' }).isInt({ min: 1 }).withMessage('Invalid verse'),
-    body('juz').optional({ values: 'falsy' }).isInt({ min: 1, max: 30 }).withMessage('Juz must be between 1 and 30'),
+  // listening to a lesson: who was there and what happened; the scoring is checked by studentLessonService
+  lessonListen: [
+    date('date', 'Date', true), oneOf('attendance', C.LESSON_ATTENDANCE, 'Attendance'), objectId('teacher', 'Teacher', false),
+    oneOf('status', C.LISTEN_STATUSES, 'Lesson status', false),
+    body('warnings').optional({ values: 'falsy' }).isInt({ min: 0, max: 1000 }).withMessage(m('Warnings must be a whole number of 0 or more.')),
+    text('returnReason', 'Reason', { max: 300, required: false }), text('remarks', 'Remarks', { max: 500, required: false }),
   ],
-  lessonReview: [oneOf('grade', Object.keys(C.STUDENT_LESSON_GRADES), 'Grade'), text('remarks', 'Remarks', { max: 500, required: false })],
+  // giving a lesson: the portion only; the portion itself is checked by studentLessonService
+  studentLesson: [
+    objectId('student', 'Student'), date('date', 'Date', true), objectId('teacher', 'Teacher', false),
+    text('lessonType', 'Lesson type', { max: 60, required: false }),
+    text('topic', 'Topic', { max: 200, required: false }),
+    ...['startSurah', 'endSurah'].map((f) => body(f).optional({ values: 'falsy' }).isInt({ min: 1, max: 114 }).withMessage(m('Choose a valid surah'))),
+    ...['startAyah', 'endAyah'].map((f) => body(f).optional({ values: 'falsy' }).isInt({ min: 1, max: 286 }).withMessage(m('Enter a valid ayah number'))),
+    body('juz').optional({ values: 'falsy' }).isInt({ min: 1, max: 30 }).withMessage(m('Juz must be between 1 and 30')),
+  ],
+  lessonRules: [
+    body('maxWarnings').isInt({ min: 1, max: 100 }).withMessage(m('The warning limit must be a whole number from 1 to 100.')),
+    body('pointsPerWarning').isFloat({ min: 0, max: 100 }).withMessage(m('Points per warning must be between 0 and 100.')),
+    body('returnBelowScore').optional({ values: 'falsy' }).isInt({ min: 0, max: 100 }).withMessage(m('The minimum score must be a whole number from 0 to 100.')),
+    text('lessonTypes', 'Lesson types', { max: 2000 }),
+  ],
   lesson: [
     text('title', 'Title', { max: 160 }), oneOf('category', Object.keys(C.LESSON_CATEGORIES), 'Category'),
     objectId('class', 'Class'), date('date', 'Date', true), oneOf('status', C.LESSON_STATUSES, 'Status'),

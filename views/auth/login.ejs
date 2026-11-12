@@ -16,7 +16,7 @@
       </form>
     </div></div>
     <p class="text-center small text-muted mt-3">
-      <% if (mode === 'platform') { %><a href="/login"><%= t('School sign in') %></a><% } else { %><%= t('New school?') %> <a href="/register"><%= t('Register here') %></a> · <a href="/platform/login"><%= t('Staff') %></a><% } %>
+      <% if (mode === 'platform') { %><a href="/login"><%= t('School sign in') %></a><% } else { %><%= t('New school?') %> <a href="/register"><%= t('Register here') %></a> · <a href="/platform/login"><%= t('Staff') %></a><br><a class="d-inline-block mt-2" href="/parent/login"><i class="bi bi-people"></i> <%= t('Parents: sign in here') %></a><% } %>
     </p>
   </div>
 </div>

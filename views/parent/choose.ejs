@@ -1,0 +1,15 @@
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1 class="h4 text-center mb-3"><%= t('Choose a school') %></h1>
+    <p class="text-muted small text-center"><%= t('Your phone number is registered at more than one school.') %></p>
+    <div class="list-group">
+      <% options.forEach(function (o) { %>
+        <form method="post" action="/parent/choose">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="accountId" value="<%= o.accountId %>">
+          <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3" type="submit"><span class="fw-semibold"><%= o.name %></span><i class="bi bi-chevron-right"></i></button>
+        </form>
+      <% }) %>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,70 @@
+<%
+  var s = student;
+  var colors = { absent: 'danger', pending: 'warning', heard: 'success', returned: 'danger', passed: 'success', repeat: 'danger' };
+  var badge = function (kind, text) { return '<span class="badge badge-soft-' + (colors[kind] || 'secondary') + '">' + escapeHtml(text) + '</span>'; };
+  var statusText = function (k) { return k === 'absent' ? t('Absent') : (C.LESSON_STATUSES_HEARD[k] ? t(C.LESSON_STATUSES_HEARD[k]) : ''); };
+%>
+<a class="small d-inline-block mb-2" href="/parent"><i class="bi bi-arrow-left"></i> <%= t('My children') %></a>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div>
+    <h1 class="h4 mb-0"><%= s.fullName %></h1>
+    <div class="small text-muted"><%= s.studentCode %><%= s.class ? ' · ' + s.class.name : '' %><%= s.program ? ' · ' + t(C.STUDENT_PROGRAMS[s.program]) : '' %></div>
+  </div>
+  <%- statusBadge(s.status) %>
+</div>
+
+<div class="row g-2 mb-3 text-center">
+  <div class="col-6 col-md-3"><div class="card stat-card"><div class="label"><%= t('Lessons passed') %></div><div class="value fs-4"><%= progress.passed %></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat-card"><div class="label"><%= t('Waiting to be listened to') %></div><div class="value fs-4"><%= progress.waiting %></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat-card"><div class="label"><%= t('Pages passed') %></div><div class="value fs-4"><%= progress.pages %></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat-card"><div class="label"><%= t('Ayahs passed') %></div><div class="value fs-4"><%= progress.ayahs %></div></div></div>
+</div>
+
+<div class="card mb-3"><div class="card-header"><%= t('Quran lessons') %></div>
+  <ul class="list-group list-group-flush">
+    <% if (!lessons.length) { %><li class="list-group-item small text-muted"><%= t('No lessons yet') %></li><% } %>
+    <% lessons.forEach(function (l) { %>
+      <li class="list-group-item">
+        <div class="d-flex justify-content-between gap-2 flex-wrap">
+          <div>
+            <div class="fw-semibold" lang="ar"><%= lessonPortion(l, true) %></div>
+            <div class="small text-muted"><%= t('Given on {date}', { date: fmtDate(l.date) }) %><%= l.lessonType ? ' · ' + t(l.lessonType) : '' %><%= l.pages ? ' · ' + (l.pages === 1 ? t('1 page') : t('{n} pages', { n: l.pages })) : '' %></div>
+          </div>
+          <div class="text-end">
+            <%- badge(l.result || l.status, C.LESSON_RESULTS[l.result] ? t(C.LESSON_RESULTS[l.result]) : statusText(l.status)) %>
+            <% if (l.score != null) { %><div class="small"><span class="fw-semibold"><%= l.score %>/100</span><% if (l.level) { %> · <%= t(l.level) %><% } %></div><% } %>
+          </div>
+        </div>
+        <% if (l.attempts && l.attempts.length) { %>
+          <ul class="small text-muted mb-0 mt-1 ps-3">
+            <% l.attempts.forEach(function (a) { %>
+              <li><%= fmtDate(a.date) %> — <%= a.attendance === 'absent' ? t('Absent') : statusText(a.status) %><% if (a.attendance === 'present') { %><% if (a.warnings != null) { %> · <%= t('Warnings') %>: <%= a.warnings %><% } %><% if (a.score != null) { %> · <%= a.score %>/100<% } %><% } %><% if (a.returnReason) { %> · <%= reasonText(a) %><% } %></li>
+            <% }) %>
+          </ul>
+        <% } %>
+      </li>
+    <% }) %>
+  </ul>
+</div>
+
+<div class="card mb-3"><div class="card-header d-flex justify-content-between"><span><%= t('Attendance (30 days)') %></span><span class="small text-muted"><%= t('Present') %> <%= attendanceSummary.present + attendanceSummary.late %> / <%= attendanceSummary.total %></span></div>
+  <div class="table-responsive"><table class="table table-sm mb-0">
+    <tbody>
+      <% if (!attendance.length) { %><tr><td class="small text-muted"><%= t('No attendance recorded yet') %></td></tr><% } %>
+      <% attendance.forEach(function (a) { %><tr><td class="small"><%= fmtDate(a.date) %></td><td class="text-end"><%- statusBadge(a.status) %></td></tr><% }) %>
+    </tbody>
+  </table></div>
+</div>
+
+<% if (finance) { %>
+<div class="card mb-3"><div class="card-header d-flex justify-content-between"><span><%= t('Fees') %></span><span class="fw-semibold <%= balance > 0 ? 'text-danger' : 'text-success' %>"><%= t('Balance') %>: <%= money(balance || 0, currency) %></span></div>
+  <div class="table-responsive"><table class="table table-sm mb-0">
+    <tbody>
+      <% if (!invoices.length) { %><tr><td class="small text-muted"><%= t('Nothing is owed. Thank you.') %></td></tr><% } %>
+      <% invoices.forEach(function (i) { %>
+        <tr class="small"><td><%= i.invoiceNo %><div class="text-muted"><%= i.period ? periodLabel(i.period) : (i.description || t(C.INVOICE_TYPES[i.type])) %></div></td><td><%- statusBadge(i.status) %></td><td class="text-end fw-semibold"><%= money(i.total - i.paid, currency) %></td></tr>
+      <% }) %>
+    </tbody>
+  </table></div>
+</div>
+<% } %>

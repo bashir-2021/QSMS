@@ -1,0 +1,33 @@
+<h1 class="h4 mb-3"><%= t('My children') %></h1>
+
+<% if (!kids.length) { %>
+  <div class="card"><div class="empty-state"><i class="bi bi-people"></i><%= t('No children are linked to this phone number at the moment. Please contact the school.') %></div></div>
+<% } %>
+
+<div class="row g-3">
+  <% kids.forEach(function (k) { var l = k.lastLesson; %>
+    <div class="col-md-6">
+      <a class="card h-100 text-decoration-none text-reset" href="/parent/children/<%= k._id %>"><div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <div class="fw-bold fs-5"><%= k.fullName %></div>
+            <div class="small text-muted"><%= k.studentCode %><%= k.class ? ' · ' + k.class.name : '' %><%= k.program ? ' · ' + titleCase(k.program) : '' %></div>
+          </div>
+          <%- statusBadge(k.status) %>
+        </div>
+        <div class="small mb-2">
+          <div class="text-muted"><%= t('Last lesson') %></div>
+          <% if (l) { %>
+            <div class="fw-semibold" lang="ar"><%= lessonPortion(l, true) %></div>
+            <div class="text-muted"><%= fmtDate(l.date) %> · <%= C.LESSON_RESULTS[l.result] ? t(C.LESSON_RESULTS[l.result]) : '' %><% if (l.score != null) { %> · <%= l.score %>/100<% } %><% if (l.level && l.result !== 'pending') { %> · <%= t(l.level) %><% } %></div>
+          <% } else { %><div class="text-muted">—</div><% } %>
+        </div>
+        <div class="row g-2 text-center small">
+          <div class="col-4"><div class="border rounded p-2 h-100"><div class="text-muted"><%= t('Waiting') %></div><div class="fw-semibold fs-6"><%= k.waiting %></div></div></div>
+          <div class="col-4"><div class="border rounded p-2 h-100"><div class="text-muted"><%= t('Attendance') %></div><div class="fw-semibold fs-6"><%= k.attendanceRate == null ? '—' : k.attendanceRate + '%' %></div></div></div>
+          <% if (finance) { %><div class="col-4"><div class="border rounded p-2 h-100"><div class="text-muted"><%= t('Balance') %></div><div class="fw-semibold fs-6 <%= k.balance > 0 ? 'text-danger' : '' %>"><%= money(k.balance || 0, currency) %></div></div></div><% } %>
+        </div>
+      </div></a>
+    </div>
+  <% }) %>
+</div>

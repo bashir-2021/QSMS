@@ -37,6 +37,7 @@ router.get('/students/:id/edit', can('students.manage'), h(people.studentForm));
 router.post('/students/:id', can('students.manage'), imageUpload.single('photo'), v.student, hv(back('/school/students/:id/edit')), h(people.updateStudent));
 router.post('/students/:id/transfer', can('students.manage'), h(people.transferStudent));
 router.post('/students/:id/status', can('students.manage'), h(people.setStudentStatus));
+router.post('/students/:id/parent-reset', can('students.manage'), h(people.resetParentLogin));
 router.post('/students/:studentId/registration-invoice', can('invoices.manage'), feature('finance'), h(finance.registrationInvoice));
 
 /* Teachers */
@@ -70,11 +71,20 @@ router.post('/lessons/:id', can('lessons.manage'), feature('lessons'), v.lesson,
 router.post('/lessons/:id/progress', can('lessons.manage'), feature('lessons'), h(academic.saveProgress));
 router.post('/lessons/:id/delete', can('lessons.manage'), feature('lessons'), h(academic.deleteLesson));
 
-/* Student lessons: give a lesson, listen, grade */
+/* Student lessons: give a lesson, later listen to it and score it; reports */
+const lessonFormUrl = (req) => (req.params.id ? `/school/student-lessons/${req.params.id}/listen` : `/school/student-lessons/new?student=${encodeURIComponent(req.body.student || '')}`);
 router.get('/student-lessons', can('lessons.view'), feature('lessons'), h(academic.studentLessons));
+router.get('/student-lessons/report', can('lessons.view'), feature('lessons'), (req, res, next) => {
+  if (req.query.format && !res.locals.hasFeature('exports')) {
+    req.flash('warning', 'PDF and Excel exports are not included in your plan.');
+    return res.redirect('/school/student-lessons/report');
+  }
+  return next();
+}, h(academic.studentLessonReport));
 router.get('/student-lessons/new', can('lessons.manage'), feature('lessons'), h(academic.studentLessonForm));
-router.post('/student-lessons', can('lessons.manage'), feature('lessons'), v.studentLesson, hv((req) => `/school/student-lessons/new?student=${encodeURIComponent(req.body.student || '')}`), h(academic.assignStudentLesson));
-router.post('/student-lessons/:id/review', can('lessons.manage'), feature('lessons'), v.lessonReview, hv('/school/student-lessons'), h(academic.reviewStudentLesson));
+router.post('/student-lessons', can('lessons.manage'), feature('lessons'), v.studentLesson, hv(lessonFormUrl), h(academic.giveStudentLesson));
+router.get('/student-lessons/:id/listen', can('lessons.manage'), feature('lessons'), h(academic.studentLessonForm));
+router.post('/student-lessons/:id/listen', can('lessons.manage'), feature('lessons'), v.lessonListen, hv(lessonFormUrl), h(academic.listenStudentLesson));
 router.post('/student-lessons/:id/delete', can('lessons.manage'), feature('lessons'), h(academic.deleteStudentLesson));
 
 /* Subac & Duruus */
@@ -92,7 +102,10 @@ router.post(`${act}/:id/delete`, can('activities.manage'), feature('activities')
 router.get('/attendance', can('attendance.view'), feature('attendance'), h(academic.attendance));
 router.post('/attendance', can('attendance.manage'), feature('attendance'), h(academic.saveAttendance));
 router.get('/attendance/teachers', can('attendance.view'), feature('attendance'), h(academic.teacherAttendance));
-router.post('/attendance/teachers', can('attendance.manage'), feature('attendance'), h(academic.saveTeacherAttendance));
+router.post('/attendance/teachers', can('teacherAttendance.manage'), feature('attendance'), h(academic.saveTeacherAttendance));
+// a teacher's own check-in and check-out, approved later by reception
+router.get('/my-attendance', can('attendance.self'), feature('attendance'), h(academic.myAttendance));
+router.post('/my-attendance/:action(check-in|check-out)', can('attendance.self'), feature('attendance'), h(academic.checkInOut));
 router.get('/attendance/reports', can('attendance.view'), feature('attendance'), h(academic.attendanceReport));
 
 /* Finance — invoices & billing */
@@ -146,6 +159,7 @@ router.get('/settings', can('settings.manage'), h(admin.settings));
 router.post('/settings/profile', can('settings.manage'), imageUpload.single('logo'), v.profile, hv('/school/settings?tab=profile'), h(admin.saveProfile));
 router.post('/settings', can('settings.manage'), v.settings, hv((req) => `/school/settings?tab=${encodeURIComponent(req.body.tab || 'fees')}`), h(admin.saveSettings));
 router.post('/settings/subac', can('settings.manage'), v.subacDeductions, hv('/school/settings?tab=subac'), h(admin.saveSubacDeductions));
+router.post('/settings/lessons', can('settings.manage'), v.lessonRules, hv('/school/settings?tab=lessons'), h(admin.saveLessonRules));
 router.post('/settings/categories', can('settings.manage'), v.category, hv('/school/settings?tab=categories'), h(admin.createCategory));
 router.post('/settings/categories/:id', can('settings.manage'), h(admin.updateCategory));
 router.post('/settings/categories/:id/delete', can('settings.manage'), h(admin.deleteCategory));

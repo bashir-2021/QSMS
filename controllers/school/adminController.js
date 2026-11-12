@@ -37,7 +37,7 @@ async function updateUser(req, res) {
 /* -------------------------------- Settings -------------------------------- */
 async function settings(req, res) {
   const [s, categories] = await Promise.all([settingsService.get(req.tenantId), settingsService.listCategories(req.tenantId)]);
-  res.render('school/settings', { title: 'School settings', s: s.toObject(), categories, nav: 'settings', tab: req.query.tab || 'profile' });
+  res.render('school/settings', { title: 'School settings', s: s.toObject(), lessonRules: settingsService.lessonRules(s), categories, nav: 'settings', tab: req.query.tab || 'profile' });
 }
 async function saveProfile(req, res) {
   await settingsService.updateProfile(req.tenantId, req.body, req.file);
@@ -56,6 +56,19 @@ async function saveSubacDeductions(req, res) {
   await audit.school(req, 'settings.subac');
   req.flash('success', 'Settings saved.');
   res.redirect('/school/settings?tab=subac');
+}
+async function saveLessonRules(req, res) {
+  try {
+    await settingsService.updateLessonRules(req.tenantId, req.body);
+  } catch (err) {
+    if (err.status !== 400) throw err;
+    req.flashForm({}, req.body); // keep the levels and types that were typed
+    req.flash('danger', err.i18nKey ? req.t(err.i18nKey, err.vars) : req.t(err.message));
+    return res.redirect('/school/settings?tab=lessons');
+  }
+  await audit.school(req, 'settings.lessons');
+  req.flash('success', 'Lesson rules saved. They apply to lessons scored from now on; earlier results keep the rules they were scored with.');
+  return res.redirect('/school/settings?tab=lessons');
 }
 async function createCategory(req, res) {
   await settingsService.createCategory(req.tenantId, req.body);
@@ -109,6 +122,6 @@ async function auditLog(req, res) {
 }
 
 module.exports = {
-  users, createUser, updateUser, settings, saveProfile, saveSettings, saveSubacDeductions, createCategory, updateCategory, deleteCategory,
+  users, createUser, updateUser, settings, saveProfile, saveSettings, saveSubacDeductions, saveLessonRules, createCategory, updateCategory, deleteCategory,
   subscription, submitSubscriptionPayment, notificationsPage, markNotifications, auditLog,
 };

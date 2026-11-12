@@ -8,6 +8,7 @@ const tenantContext = require('../utils/tenantContext');
 
 /**
  * Session shape: req.session.auth = { kind: 'school' | 'platform', userId, tenantId? }
+ * (the parent portal uses { kind: 'parent', accountId, tenantId }, see controllers/parentController.js)
  * The tenantId used for every school query comes ONLY from this server-side session,
  * never from the request body, query or URL.
  */
@@ -112,6 +113,7 @@ function redirectIfAuthenticated(req, res, next) {
   const auth = req.session.auth;
   if (auth && auth.kind === 'school') return res.redirect('/school/dashboard');
   if (auth && auth.kind === 'platform') return res.redirect('/platform/dashboard');
+  if (auth && auth.kind === 'parent') return res.redirect('/parent');
   return next();
 }
 

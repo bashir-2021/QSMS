@@ -78,7 +78,9 @@ function pdfTable(doc, section, currency) {
     let x = left;
     doc.fillColor('#111827').font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(7.5);
     cols.forEach((c, i) => {
-      doc.text(cell(row[c.key], c.type, currency), x + 3, y + 4.5, { width: widths[i] - 6, align: align(c), lineBreak: false, ellipsis: true });
+      // pdfKey: a Latin-script alternative for columns whose text the built-in PDF font cannot draw (e.g. Arabic)
+      const v = c.pdfKey && row[c.pdfKey] !== undefined ? row[c.pdfKey] : row[c.key];
+      doc.text(cell(v, c.type, currency), x + 3, y + 4.5, { width: widths[i] - 6, align: align(c), lineBreak: false, ellipsis: true });
       x += widths[i];
     });
     doc.y = y + rowH;

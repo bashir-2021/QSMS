@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="<%= lang %>" dir="<%= dir %>">
+<head>
+  <%- include('../partials/head') %>
+</head>
+<body class="parent-portal">
+  <nav class="navbar public-nav sticky-top">
+    <div class="container">
+      <a class="brand text-decoration-none d-flex align-items-center gap-2" href="<%= locals.parent ? '/parent' : '/parent/login' %>" style="color:var(--q-ink)">
+        <%- include('../partials/brand') %>
+        <span class="text-truncate" style="max-width:55vw"><%= locals.tenant ? tenant.name : t('Parent portal') %></span>
+      </a>
+      <div class="d-flex gap-2 align-items-center">
+        <%- include('../partials/lang-switch', { compact: true }) %>
+        <% if (locals.parent) { %>
+          <div class="dropdown">
+            <button class="btn btn-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="<%= t('Account') %>"><i class="bi bi-person-circle"></i></button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><span class="dropdown-item-text small text-muted"><%= t('Signed in as {phone}', { phone: parent.phoneKey }) %></span></li>
+              <li><a class="dropdown-item" href="/parent/password"><i class="bi bi-key"></i> <%= t('Change password') %></a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><form method="post" action="/parent/logout"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="dropdown-item text-danger" type="submit"><i class="bi bi-box-arrow-right"></i> <%= t('Sign out') %></button></form></li>
+            </ul>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </nav>
+  <main class="container py-3" style="max-width:960px">
+    <%- include('../partials/flash') %>
+    <%- body %>
+  </main>
+  <%- include('../partials/scripts') %>
+</body>
+</html>

@@ -20,6 +20,7 @@
       <div><dt><%= t('Guardian') %></dt><dd><%= s.guardianName || '—' %><% if (s.guardianRelation) { %> <span class="text-muted small">(<%= s.guardianRelation %>)</span><% } %></dd></div>
       <div><dt><%= t('Guardian phone') %></dt><dd><%= s.guardianPhone || '—' %></dd></div>
       <div><dt><%= t('Mother name') %></dt><dd><%= s.motherName || '—' %></dd></div>
+      <div><dt><%= t('Mother phone') %></dt><dd><%= s.motherPhone || '—' %></dd></div>
       <div><dt><%= t('District') %></dt><dd><%= s.district || '—' %></dd></div>
       <div><dt><%= t('Registered') %></dt><dd><%= fmtDate(s.registrationDate) %></dd></div>
       <div><dt><%= t('Address') %></dt><dd><%= s.address || '—' %></dd></div>
@@ -33,6 +34,26 @@
     <% } %>
     <div class="col-6 col-lg-12"><div class="card stat-card"><div class="label"><%= t('Attendance (90 days)') %></div><div class="value"><%= attendanceRate == null ? '—' : attendanceRate + '%' %></div>
       <div class="meta"><%= t('{present} present · {late} late · {absent} absent · {excused} excused', { present: att.present, late: att.late, absent: att.absent, excused: att.excused }) %></div></div></div>
+    <div class="col-12 no-print"><div class="card stat-card"><div class="label"><i class="bi bi-people"></i> <%= t('Parent login') %></div>
+      <% if (!parentLogin.length) { %>
+        <div class="meta"><%= t('Add a guardian phone number to give the parent a login.') %></div>
+      <% } %>
+      <% parentLogin.forEach(function (pl, i) { %>
+        <div class="<%= i ? 'border-top pt-2 mt-2' : '' %>">
+        <div class="small"><span class="text-muted"><%= t(pl.who) %></span> · <%= t('Username') %>: <span class="font-monospace fw-semibold"><%= pl.key %></span></div>
+        <div class="meta">
+          <% if (!pl.account) { %><%= t('Not used yet. The first password is the phone number.') %>
+          <% } else if (pl.account.mustChangePassword) { %><%= t('Signed in, but has not chosen a new password yet.') %>
+          <% } else { %><%= t('Active · last sign-in {date}', { date: fmtDate(pl.account.lastLoginAt) || '—' }) %><% } %>
+        </div>
+        <% if (can('students.manage') && pl.account) { %>
+          <form method="post" action="/school/students/<%= s._id %>/parent-reset" class="mt-2" data-confirm="<%= t('Reset this parent password to the phone number? Every child with this phone number shares this login.') %>" data-confirm-variant="btn-primary">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="phone" value="<%= pl.key %>"><button class="btn btn-sm btn-light" type="submit"><i class="bi bi-arrow-counterclockwise"></i> <%= t('Reset parent password') %></button>
+          </form>
+        <% } %>
+        </div>
+      <% }) %>
+    </div></div>
   </div></div>
 </div>
 
@@ -95,17 +116,29 @@
   <% } %>
 
   <div class="tab-pane fade <%= can('invoices.view') ? '' : 'show active' %>" id="tabProg">
-    <div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center"><span><%= t('Student lessons') %></span>
-      <% if (can('lessons.manage') && hasFeature('lessons')) { %><a class="small" href="/school/student-lessons/new?student=<%= s._id %>"><%= t('Give a lesson') %></a><% } %></div>
+    <% var lsColors = { absent: 'danger', pending: 'warning', heard: 'success', returned: 'danger', passed: 'success', repeat: 'danger' };
+       var lsBadge = function (k, text) { return '<span class="badge badge-soft-' + (lsColors[k] || 'secondary') + '">' + escapeHtml(text) + '</span>'; };
+       var lsStatus = function (k) { return k === 'absent' ? t('Absent') : (C.LESSON_STATUSES_HEARD[k] ? t(C.LESSON_STATUSES_HEARD[k]) : ''); }; %>
+    <div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2"><span><%= t('Student lessons') %></span>
+      <span class="small d-flex gap-3">
+        <% if (can('lessons.view') && hasFeature('lessons')) { %><a href="/school/student-lessons/report?student=<%= s._id %>&from=<%= isoDate(new Date(Date.now() - 30 * 864e5)) %>"><%= t('Progress report') %></a><% } %>
+        <% if (can('lessons.manage') && hasFeature('lessons')) { %><a href="/school/student-lessons/new?student=<%= s._id %>"><%= t('Give lesson') %></a><% } %>
+      </span></div>
     <div class="table-responsive"><table class="table">
-      <thead><tr><th><%= t('Date') %></th><th><%= t('Portion') %></th><th><%= t('Status') %></th><th><%= t('Grade') %></th><th class="num"><%= t('Score') %></th><th class="num"><%= t('Attempts') %></th><th><%= t('Remarks') %></th><% if (can('lessons.manage')) { %><th></th><% } %></tr></thead>
+      <thead><tr><th><%= t('Date') %></th><th><%= t('Lesson type') %></th><th><%= t('Lesson (start – end)') %></th><th class="num"><%= t('Pages') %></th><th><%= t('Lesson status') %></th><th class="num"><%= t('Warnings') %></th><th class="num"><%= t('Score') %></th><th><%= t('Hifz level') %></th><th><%= t('Result') %></th><th class="num"><%= t('Sittings') %></th><% if (can('lessons.manage')) { %><th></th><% } %></tr></thead>
       <tbody>
-        <% if (!studentLessons.length) { %><tr><td colspan="8" class="empty-state"><%= t('No student lessons yet') %></td></tr><% } %>
-        <% studentLessons.forEach(function (l) { var lastReview = (l.reviews || [])[l.reviews.length - 1]; %>
-          <tr><td><%= fmtDate(l.assignedDate) %></td><td class="small"><%= lessonPortion(l) %></td><td><%- statusBadge(l.status) %></td>
-            <td><%- l.grade ? statusBadge(l.grade) : '—' %></td><td class="num"><%= l.score != null ? l.score + '%' : '—' %></td><td class="num"><%= (l.reviews || []).length %></td>
-            <td class="small text-muted"><%= lastReview ? lastReview.remarks : '' %></td>
-            <% if (can('lessons.manage')) { %><td class="text-end no-print"><form method="post" action="/school/student-lessons/<%= l._id %>/delete" data-confirm="<%= t('Delete this lesson and its grades?') %>" data-confirm-button="<%= t('Delete') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-sm btn-light text-danger" type="submit" aria-label="<%= t('Delete') %>"><i class="bi bi-trash"></i></button></form></td><% } %></tr>
+        <% if (!studentLessons.length) { %><tr><td colspan="11" class="empty-state"><%= t('No student lessons yet') %></td></tr><% } %>
+        <% studentLessons.forEach(function (l) { var attempts = l.attempts || []; var listened = l.status === 'heard' || l.status === 'returned'; %>
+          <tr><td class="text-nowrap"><%= fmtDate(l.date) %></td><td class="small"><%= l.lessonType ? t(l.lessonType) : '' %></td>
+            <td class="small" lang="ar"><%= l.status === 'absent' ? '—' : lessonPortion(l, true) %></td><td class="num"><%= l.pages || '' %></td>
+            <td><%- lsBadge(l.status, lsStatus(l.status)) %></td>
+            <td class="num"><%= listened && l.warnings != null ? l.warnings : '—' %></td><td class="num"><%= l.score != null ? l.score : '—' %></td>
+            <td class="small"><%= l.status === 'absent' || !l.level ? '—' : t(l.level) %></td>
+            <td><%- l.result ? lsBadge(l.result, t(C.LESSON_RESULTS[l.result])) : '—' %></td><td class="num"><%= attempts.length %></td>
+            <% if (can('lessons.manage')) { %><td class="text-end no-print text-nowrap">
+              <% if (l.isOpen && hasFeature('lessons')) { %><a class="btn btn-sm btn-outline-primary" href="/school/student-lessons/<%= l._id %>/listen"><%= t('Listen') %></a><% } %>
+              <% if (!attempts.length) { %><form class="d-inline" method="post" action="/school/student-lessons/<%= l._id %>/delete" data-confirm="<%= t('Delete this lesson? It was never listened to.') %>" data-confirm-button="<%= t('Delete') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-sm btn-light text-danger" type="submit" aria-label="<%= t('Delete') %>"><i class="bi bi-trash"></i></button></form><% } %>
+            </td><% } %></tr>
         <% }) %>
       </tbody>
     </table></div></div>

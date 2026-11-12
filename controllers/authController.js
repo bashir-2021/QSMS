@@ -45,7 +45,7 @@ async function logout(req, res) {
   const kind = req.session.auth && req.session.auth.kind;
   await authService.destroySession(req);
   res.clearCookie('quranic.sid');
-  res.redirect(kind === 'platform' ? '/platform/login' : '/login');
+  res.redirect(kind === 'platform' ? '/platform/login' : kind === 'parent' ? '/parent/login' : '/login');
 }
 
 /* ----------------------------- Account pages ------------------------------ */

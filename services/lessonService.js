@@ -33,7 +33,7 @@ const list = (tenantId, q, restrict) => paginate(Lesson, buildFilter(tenantId, q
 async function readFields(tenantId, data, restrict) {
   const cls = await owned(Class, tenantId, data.class, 'Class');
   assertClassAllowed(cls, restrict);
-  const teacher = await ownedOptional(Teacher, tenantId, data.teacher || cls.teacher, 'Teacher');
+  const teacher = await ownedOptional(Teacher, tenantId, data.teacher || (cls.teachers || [])[0], 'Teacher');
   const out = {
     title: data.title, category: data.category, class: cls._id, teacher: teacher ? teacher._id : undefined,
     date: dates.parseDay(data.date) || dates.startOfDay(), objectives: data.objectives, description: data.description,

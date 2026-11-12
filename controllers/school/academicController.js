@@ -2,8 +2,12 @@
 /** Lessons & progress, Subac/Duruus activities, attendance. */
 const ctx = require('../../utils/ctx');
 const C = require('../../config/constants');
-const { SURAHS } = require('../../utils/quran');
+const { SURAHS, layout: mushafLayout } = require('../../utils/quran');
+
+const quranLayout = mushafLayout(); // page/juz tables for the lesson form's live preview
 const dates = require('../../utils/dates');
+const config = require('../../config');
+const { fmtClock } = require('../../utils/viewHelpers');
 const lessonService = require('../../services/lessonService');
 const studentLessonService = require('../../services/studentLessonService');
 const shiftService = require('../../services/shiftService');
@@ -77,28 +81,132 @@ async function studentLessons(req, res) {
   const [page, classes] = await Promise.all([studentLessonService.board(req.tenantId, req.query, restrict), classService.all(req.tenantId, restrict)]);
   res.render('student-lessons/index', { title: 'Student lessons', page, classes, query: req.query, nav: 'student-lessons' });
 }
+
+/** Give a new lesson (?student=), or listen to one the student has taken (/:id/listen). */
 async function studentLessonForm(req, res) {
-  const data = await studentLessonService.assignForm(req.tenantId, req.query.student, await classService.restrictedClassIds(req));
-  res.render('student-lessons/form', { title: 'New student lesson', ...data, surahs: SURAHS, nav: 'student-lessons' });
+  const restrict = await classService.restrictedClassIds(req);
+  const data = await studentLessonService.formData(req.tenantId, { studentId: req.query.student, lessonId: req.params.id }, restrict, req.user);
+  if (data.lesson && !data.lesson.isOpen) {
+    req.flash('info', 'This lesson was already passed and is closed.');
+    return res.redirect(`/school/student-lessons/new?student=${data.student._id}`);
+  }
+  return res.render('student-lessons/form', {
+    title: data.lesson ? 'Listen to lesson' : 'Give lesson', ...data, surahs: SURAHS, mushaf: quranLayout,
+    back: boardUrl({ body: { back: req.query.back } }), nav: 'student-lessons',
+  });
 }
-async function assignStudentLesson(req, res) {
-  const { lesson, student } = await studentLessonService.assign(ctx(req), req.body, await classService.restrictedClassIds(req));
-  await audit.school(req, 'studentLesson.assign', { entity: 'StudentLesson', entityId: lesson._id, details: { student: student.studentCode } });
-  req.flash('success', req.t('Lesson given to {name}.', { name: student.fullName }));
-  res.redirect(student.class ? `/school/student-lessons?class=${student.class}` : '/school/student-lessons');
+
+/** Keep what the teacher typed when a lesson cannot be saved, and go back to the form. */
+async function keepInputOnError(req, res, fn) {
+  try {
+    return await fn();
+  } catch (err) {
+    if (!err.expose || !err.status || err.status >= 500 || err.status === 403) throw err;
+    req.flashForm({}, req.body);
+    req.flash('danger', err.i18nKey ? req.t(err.i18nKey, err.vars) : req.t(err.message));
+    return res.redirect(req.get('Referrer') || '/school/student-lessons');
+  }
 }
-async function reviewStudentLesson(req, res) {
-  const { lesson, student, passed } = await studentLessonService.review(ctx(req), req.params.id, req.body, await classService.restrictedClassIds(req));
-  await audit.school(req, 'studentLesson.review', { entity: 'StudentLesson', entityId: lesson._id, details: { student: student.studentCode, grade: req.body.grade } });
-  if (passed) req.flash('success', req.t('{name} passed the lesson: {grade} ({score}%).', { name: student.fullName, grade: req.t(C.STUDENT_LESSON_GRADES[lesson.grade].label), score: lesson.score }));
-  else req.flash('warning', req.t('{name} was not accepted and returns to the same lesson.', { name: student.fullName }));
-  res.redirect(boardUrl(req));
+
+/** One line that says what the sitting came to, in the chain's own terms. */
+function outcomeMessage(req, name, o) {
+  if (o.attendance === 'absent') return ['warning', req.t('{name} was absent. Only the absence was recorded.', { name })];
+  if (o.status === 'returned') {
+    return ['warning', req.t('{name}: the lesson was returned and is to be repeated ({reason}).', { name, reason: studentLessonService.reasonText(req.t, o) })];
+  }
+  return ['success', req.t('{name} passed the lesson: {score}/100 · {level}.', { name, score: o.score, level: req.t(o.level) })];
+}
+
+async function giveStudentLesson(req, res) {
+  await keepInputOnError(req, res, async () => {
+    const { lesson, student } = await studentLessonService.give(ctx(req), req.body, await classService.restrictedClassIds(req));
+    await audit.school(req, 'studentLesson.give', { entity: 'StudentLesson', entityId: lesson._id, details: { student: student.studentCode, portion: studentLessonService.portionText(lesson) } });
+    req.flash('success', req.t('Lesson given to {name}. Listen to it when the student is ready.', { name: student.fullName }));
+    res.redirect(boardUrl(req));
+  });
+}
+async function listenStudentLesson(req, res) {
+  await keepInputOnError(req, res, async () => {
+    const { lesson, student, outcome } = await studentLessonService.listen(ctx(req), req.params.id, req.body, await classService.restrictedClassIds(req));
+    await audit.school(req, 'studentLesson.listen', { entity: 'StudentLesson', entityId: lesson._id, details: { student: student.studentCode, attempt: lesson.attempts.length, attendance: outcome.attendance, status: outcome.status, score: outcome.score } });
+    req.flash(...outcomeMessage(req, student.fullName, outcome));
+    res.redirect(boardUrl(req));
+  });
 }
 async function deleteStudentLesson(req, res) {
   const { lesson, student } = await studentLessonService.remove(ctx(req), req.params.id, await classService.restrictedClassIds(req));
   await audit.school(req, 'studentLesson.delete', { entity: 'StudentLesson', entityId: lesson._id, details: { student: student.studentCode } });
   req.flash('success', 'Lesson deleted.');
   res.redirect(boardUrl(req));
+}
+
+/** Daily and past lessons, attendance, waiting and returned lessons, levels and progress — HTML, PDF or Excel. */
+async function studentLessonReport(req, res) {
+  const restrict = await classService.restrictedClassIds(req);
+  const data = await studentLessonService.report(req.tenantId, req.query, restrict);
+  const t = req.t;
+  const label = (map, k) => (map[k] ? t(map[k]) : '');
+  const statusLabel = (s) => (s === 'absent' ? t('Absent') : label(C.LESSON_STATUSES_HEARD, s));
+  const sitting = (r) => ({
+    ...r, attendance: r.attendance === 'absent' ? t('Absent') : t('Present'), status: statusLabel(r.status),
+    result: label(C.LESSON_RESULTS, r.result), level: r.level ? t(r.level) : '', reason: r.reason ? studentLessonService.reasonText(t, r) : '',
+  });
+  const portionCols = [
+    { key: 'portionArabic', pdfKey: 'portion', label: t('Lesson (start – end)') },
+    { key: 'ayahs', label: t('Ayahs'), type: 'number' }, { key: 'pages', label: t('Pages'), type: 'number' }, { key: 'juz', label: t('Juz'), type: 'number' },
+  ];
+  const tot = data.totals;
+  const range = dates.toISODate(data.from) === dates.toISODate(data.to) ? dates.formatDate(data.from) : `${dates.formatDate(data.from)} – ${dates.formatDate(data.to)}`;
+  const report = {
+    title: t('Student lessons report'),
+    subtitle: range,
+    summary: [
+      { label: t('Lessons given'), value: tot.given, type: 'number' }, { label: t('Sittings'), value: tot.sittings, type: 'number' }, { label: t('Present'), value: tot.present, type: 'number' },
+      { label: t('Absent'), value: tot.absent, type: 'number' }, { label: t('Passed'), value: tot.passed, type: 'number' },
+      { label: t('Returned'), value: tot.returned, type: 'number' }, { label: t('Waiting to be listened to'), value: tot.waiting, type: 'number' },
+      { label: t('Average score'), value: tot.avgScore == null ? '—' : tot.avgScore, type: 'text' }, { label: t('Warnings'), value: tot.warnings, type: 'number' },
+      { label: t('Ayahs passed'), value: tot.ayahs, type: 'number' }, { label: t('Pages passed'), value: tot.pages, type: 'number' },
+      { label: t('Juz passed'), value: tot.juz, type: 'number' },
+    ],
+    sections: [{
+      title: t('Lessons'),
+      columns: [{ key: 'date', label: t('Date'), type: 'date' }, { key: 'student', label: t('Student') }, { key: 'className', label: t('Class') },
+        { key: 'teacher', label: t('Teacher listening') }, { key: 'lessonType', label: t('Lesson type') }, ...portionCols,
+        { key: 'attempt', label: t('Attempt'), type: 'number' }, { key: 'attendance', label: t('Attendance') }, { key: 'status', label: t('Lesson status') },
+        { key: 'warnings', label: t('Warnings'), type: 'number' }, { key: 'score', label: t('Score'), type: 'number' }, { key: 'level', label: t('Hifz level') },
+        { key: 'result', label: t('Result') }, { key: 'reason', label: t('Reason') }],
+      rows: data.sittings.map(sitting),
+    }, {
+      title: t('Progress by student'),
+      columns: [{ key: 'code', label: t('ID') }, { key: 'student', label: t('Student') }, { key: 'className', label: t('Class') },
+        { key: 'given', label: t('Lessons given'), type: 'number' }, { key: 'sittings', label: t('Sittings'), type: 'number' }, { key: 'present', label: t('Present'), type: 'number' }, { key: 'absent', label: t('Absent'), type: 'number' },
+        { key: 'passed', label: t('Passed'), type: 'number' }, { key: 'returned', label: t('Returned'), type: 'number' },
+        { key: 'warnings', label: t('Warnings'), type: 'number' }, { key: 'avgScore', label: t('Average score'), type: 'number' }, { key: 'level', label: t('Latest hifz level') },
+        { key: 'ayahs', label: t('Ayahs passed'), type: 'number' }, { key: 'pages', label: t('Pages passed'), type: 'number' }, { key: 'juz', label: t('Juz passed'), type: 'number' }],
+      rows: data.byStudent.map((p) => ({ ...p, level: p.level ? t(p.level) : '' })),
+      totals: { code: t('Total'), given: tot.given, sittings: tot.sittings, present: tot.present, absent: tot.absent, passed: tot.passed, returned: tot.returned, warnings: tot.warnings, avgScore: tot.avgScore, ayahs: tot.ayahs, pages: tot.pages, juz: tot.juz },
+    }, {
+      title: t('Waiting to be listened to'),
+      columns: [{ key: 'lessonDate', label: t('Given on'), type: 'date' }, { key: 'student', label: t('Student') }, { key: 'className', label: t('Class') },
+        { key: 'teacher', label: t('Teacher') }, ...portionCols, { key: 'days', label: t('Days waiting'), type: 'number' }],
+      rows: data.waiting,
+    }, {
+      title: t('Returned lessons'),
+      columns: [{ key: 'returnedOn', label: t('Returned on'), type: 'date' }, { key: 'student', label: t('Student') }, { key: 'className', label: t('Class') },
+        { key: 'teacher', label: t('Teacher') }, ...portionCols, { key: 'attempt', label: t('Attempt'), type: 'number' }, { key: 'warnings', label: t('Warnings'), type: 'number' },
+        { key: 'reason', label: t('Reason') }],
+      rows: data.returned.map((r) => ({ ...r, reason: r.reason ? studentLessonService.reasonText(t, r) : '' })),
+    }],
+  };
+  if (await exportService.respond(req, res, report, { org: org(req), currency: req.settings.currency })) return;
+  const [classes, teachers, student] = await Promise.all([
+    classService.all(req.tenantId, restrict), teacherService.all(req.tenantId, { activeOnly: false }),
+    /^[a-f0-9]{24}$/i.test(req.query.student || '') ? Student.findOne({ tenantId: req.tenantId, _id: req.query.student }).select('fullName').lean() : null,
+  ]);
+  res.render('student-lessons/report', {
+    title: 'Student lessons report', report, query: req.query, from: dates.toISODate(data.from), to: dates.toISODate(data.to),
+    classes, teachers, student, nav: 'student-lessons-report',
+  });
 }
 
 /* ------------------------- Activities (Subac/Duruus) ---------------------- */
@@ -155,6 +263,12 @@ async function saveParticipation(req, res) {
 }
 
 /* -------------------------------- Attendance ------------------------------ */
+const wantsJson = (req) => req.get('accept') === 'application/json';
+/** What a register row shows about its saved record: status, who saved it and when. */
+const recordInfo = (r) => ({
+  status: r.status, by: r.recordedBy ? r.recordedBy.name : '', at: fmtClock(r.updatedAt), day: dates.formatDate(r.updatedAt),
+});
+
 async function attendance(req, res) {
   const restrict = await classService.restrictedClassIds(req);
   const classes = await classService.all(req.tenantId, restrict);
@@ -164,20 +278,49 @@ async function attendance(req, res) {
 }
 async function saveAttendance(req, res) {
   const restrict = await classService.restrictedClassIds(req);
-  const r = await attendanceService.saveStudentSheet(ctx(req), req.body.class, req.body.date, req.body.att, restrict, req.body.shift);
-  await audit.school(req, 'attendance.students', { entity: 'Class', entityId: r.cls._id, details: { date: dates.toISODate(r.date), shift: r.shift ? r.shift.name : undefined, saved: r.saved } });
-  req.flash('success', r.saved === 1 ? req.t('Attendance saved for 1 student in {cls}.', { cls: r.cls.name }) : req.t('Attendance saved for {n} students in {cls}.', { n: r.saved, cls: r.cls.name }));
-  res.redirect(`/school/attendance?class=${r.cls._id}&date=${dates.toISODate(r.date)}${r.shift ? `&shift=${r.shift._id}` : ''}`);
+  const only = req.body.only || undefined;
+  const r = await attendanceService.saveStudentSheet(ctx(req), req.body.class, req.body.date, req.body.att, restrict, req.body.shift, { only });
+  if (r.saved) await audit.school(req, 'attendance.students', { entity: 'Class', entityId: r.cls._id, details: { date: dates.toISODate(r.date), shift: r.shift ? r.shift.name : undefined, saved: r.saved, only } });
+  let message;
+  if (!r.saved && r.unchanged) message = req.t('Nothing changed. The attendance was already saved.');
+  else if (r.saved === 1) message = req.t('Attendance saved for 1 student in {cls}.', { cls: r.cls.name });
+  else message = req.t('Attendance saved for {n} students in {cls}.', { n: r.saved, cls: r.cls.name });
+  if (wantsJson(req)) {
+    return res.json({ ok: true, message, rows: Object.fromEntries(r.records.map((x) => [String(x.student), recordInfo(x)])) });
+  }
+  req.flash('success', message);
+  return res.redirect(`/school/attendance?class=${r.cls._id}&date=${dates.toISODate(r.date)}${r.shift ? `&shift=${r.shift._id}` : ''}${only ? `#st-${only}` : ''}`);
 }
 async function teacherAttendance(req, res) {
   const sheet = await attendanceService.teacherSheet(req.tenantId, req.query.date);
-  res.render('attendance/teachers', { title: 'Teacher attendance', sheet, date: dates.toISODate(sheet.date), nav: 'attendance' });
+  res.render('attendance/teachers', { title: 'Teacher attendance', sheet, date: dates.toISODate(sheet.date), today: dates.toISODate(dates.clock(config.timeZone).day), nav: res.locals.can('attendance.manage') ? 'attendance' : 'teacher-attendance' });
 }
 async function saveTeacherAttendance(req, res) {
-  const r = await attendanceService.saveTeacherSheet(ctx(req), req.body.date, req.body.att);
-  await audit.school(req, 'attendance.teachers', { details: { date: dates.toISODate(r.date), saved: r.saved } });
-  req.flash('success', req.t('Teacher attendance saved ({n}).', { n: r.saved }));
-  res.redirect(`/school/attendance/teachers?date=${dates.toISODate(r.date)}`);
+  const only = req.body.only || undefined;
+  const r = await attendanceService.saveTeacherSheet(ctx(req), req.body.date, req.body.att, { only });
+  if (r.saved) await audit.school(req, 'attendance.teachers', { details: { date: dates.toISODate(r.date), saved: r.saved, only } });
+  const message = r.saved ? req.t('Teacher attendance saved and approved ({n}).', { n: r.saved }) : req.t('Nothing changed. The attendance was already saved.');
+  req.flash('success', message);
+  res.redirect(`/school/attendance/teachers?date=${dates.toISODate(r.date)}${only ? `#tc-${only}` : ''}`);
+}
+/** A teacher's own check-in page. */
+async function myAttendance(req, res) {
+  if (!req.user.teacher) {
+    return res.render('attendance/mine', { title: 'My attendance', data: null, nav: 'my-attendance' });
+  }
+  const data = await attendanceService.myAttendance(req.tenantId, req.user.teacher);
+  return res.render('attendance/mine', { title: 'My attendance', data, nav: 'my-attendance' });
+}
+async function checkInOut(req, res) {
+  const action = req.params.action === 'check-out' ? 'out' : 'in';
+  const r = await attendanceService.selfCheck(ctx(req), req.user.teacher, action);
+  await audit.school(req, action === 'in' ? 'attendance.check_in' : 'attendance.check_out', { entity: 'Teacher', entityId: req.user.teacher, details: { time: r.time } });
+  if (action === 'in') {
+    req.flash(r.late ? 'warning' : 'success', req.t(r.late ? 'Checked in at {time}, after your registered time. Reception will approve it.' : 'Checked in at {time}. Reception will approve it.', { time: r.time }));
+  } else {
+    req.flash(r.early ? 'warning' : 'success', req.t(r.early ? 'Checked out at {time}, before your registered time. Reception will approve it.' : 'Checked out at {time}. Reception will approve it.', { time: r.time }));
+  }
+  res.redirect('/school/my-attendance');
 }
 async function attendanceReport(req, res) {
   const restrict = await classService.restrictedClassIds(req);
@@ -217,7 +360,7 @@ async function attendanceReport(req, res) {
 
 module.exports = {
   lessons, lessonForm, createLesson, updateLesson, deleteLesson, lessonDetail, saveProgress,
-  studentLessons, studentLessonForm, assignStudentLesson, reviewStudentLesson, deleteStudentLesson,
+  studentLessons, studentLessonForm, giveStudentLesson, listenStudentLesson, deleteStudentLesson, studentLessonReport,
   activities, activityForm, createActivity, updateActivity, deleteActivity, activityDetail, saveParticipation,
-  attendance, saveAttendance, teacherAttendance, saveTeacherAttendance, attendanceReport,
+  attendance, saveAttendance, teacherAttendance, saveTeacherAttendance, myAttendance, checkInOut, attendanceReport,
 };

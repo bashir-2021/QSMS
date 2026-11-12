@@ -71,6 +71,62 @@ async function updateSubacDeductions(tenantId, data) {
   return s;
 }
 
+/* ------------------------------ Lesson rules ------------------------------ */
+
+/**
+ * The school's student lesson rules, falling back to the defaults:
+ * warning limit, points lost per warning, optional minimum score, hifz levels (highest first) and lesson types.
+ */
+function lessonRules(settings) {
+  const saved = (settings && settings.lessonRules) || {};
+  const num = (k) => (typeof saved[k] === 'number' ? saved[k] : C.DEFAULT_LESSON_RULES[k]);
+  const levels = (settings && settings.hifzLevels && settings.hifzLevels.length ? settings.hifzLevels : C.DEFAULT_HIFZ_LEVELS)
+    .map((l) => ({ label: l.label, min: l.min })).sort((a, b) => b.min - a.min);
+  const types = settings && settings.lessonTypes && settings.lessonTypes.length ? [...settings.lessonTypes] : [...C.DEFAULT_LESSON_TYPES];
+  return { maxWarnings: num('maxWarnings'), pointsPerWarning: num('pointsPerWarning'), returnBelowScore: num('returnBelowScore'), levels, types };
+}
+
+function readNumber(value, { min, max, integer }, message) {
+  const n = Number(value);
+  if (value === '' || value === undefined || !Number.isFinite(n) || n < min || n > max || (integer && !Number.isInteger(n))) throw badRequest(message);
+  return n;
+}
+
+/** Levels arrive as levels[i][label] / levels[i][min]; empty rows are ignored. */
+function readLevels(raw) {
+  const rows = Array.isArray(raw) ? raw : Object.values(raw || {});
+  const levels = rows
+    .map((r) => ({ label: String((r && r.label) || '').trim(), min: r && r.min }))
+    .filter((r) => r.label || (r.min !== undefined && r.min !== ''))
+    .map((r) => {
+      if (!r.label || r.label.length > 60) throw badRequest('Every hifz level needs a name of up to 60 characters.');
+      return { label: r.label, min: readNumber(r.min, { min: 0, max: 100, integer: true }, 'Level scores must be whole numbers from 0 to 100.') };
+    })
+    .sort((a, b) => b.min - a.min);
+  if (levels.length < 2 || levels.length > C.MAX_HIFZ_LEVELS) throw badRequest('Set between 2 and {n} hifz levels.', null, { n: C.MAX_HIFZ_LEVELS });
+  if (new Set(levels.map((l) => l.min)).size !== levels.length) throw badRequest('Two hifz levels cannot start at the same score.');
+  if (new Set(levels.map((l) => l.label.toLowerCase())).size !== levels.length) throw badRequest('Each hifz level needs a different name.');
+  if (levels[levels.length - 1].min !== 0) throw badRequest('The lowest hifz level must start at 0 so every score has a level.');
+  return levels;
+}
+
+/** Only affects lessons scored from now on: each sitting keeps the rules it was scored with. */
+async function updateLessonRules(tenantId, data) {
+  const s = await get(tenantId);
+  s.lessonRules = {
+    maxWarnings: readNumber(data.maxWarnings, { min: 1, max: 100, integer: true }, 'The warning limit must be a whole number from 1 to 100.'),
+    pointsPerWarning: readNumber(data.pointsPerWarning, { min: 0, max: 100 }, 'Points per warning must be between 0 and 100.'),
+    returnBelowScore: readNumber(data.returnBelowScore || 0, { min: 0, max: 100, integer: true }, 'The minimum score must be a whole number from 0 to 100.'),
+  };
+  s.hifzLevels = readLevels(data.levels);
+  const types = [...new Set(String(data.lessonTypes || '').split(/\r?\n/).map((x) => x.trim()).filter(Boolean))];
+  if (!types.length) throw badRequest('Add at least one lesson type.');
+  if (types.length > C.MAX_LESSON_TYPES || types.some((x) => x.length > 60)) throw badRequest('Use up to {n} lesson types of up to 60 characters each.', null, { n: C.MAX_LESSON_TYPES });
+  s.lessonTypes = types;
+  await s.save();
+  return s;
+}
+
 /* --------------------------- Expense categories --------------------------- */
 
 const listCategories = (tenantId, { activeOnly = false } = {}) => ExpenseCategory
@@ -100,4 +156,4 @@ async function deleteCategory(tenantId, id) {
   await ExpenseCategory.deleteOne({ tenantId, _id: cat._id });
 }
 
-module.exports = { get, updateProfile, updateSettings, subacRates, updateSubacDeductions, listCategories, createCategory, updateCategory, deleteCategory };
+module.exports = { get, updateProfile, updateSettings, subacRates, updateSubacDeductions, lessonRules, updateLessonRules, listCategories, createCategory, updateCategory, deleteCategory };

@@ -34,7 +34,8 @@ module.exports = {
     cashra: 'Cashra (a lesson every day)',
     taxfiid: 'Taxfiid (listening to verses or a juz every day)',
   },
-  CLASS_LEVELS: ['Beginner', 'Elementary', 'Intermediate', 'Advanced', 'Hifz', 'Mixed'],
+  // A class is at one of the same three levels as the Quran categories of its students.
+  CLASS_LEVELS: ['farbar', 'cashra', 'taxfiid'],
   WEEKDAYS: ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
 
   LESSON_CATEGORIES: {
@@ -47,14 +48,39 @@ module.exports = {
   },
   LESSON_STATUSES: ['planned', 'in_progress', 'completed', 'cancelled'],
   PERFORMANCE_LEVELS: ['excellent', 'very_good', 'good', 'fair', 'needs_improvement'],
-  // How a teacher grades a recited lesson. Only passing grades let the student move on.
-  STUDENT_LESSON_GRADES: {
-    excellent: { label: 'Excellent', score: 100, passed: true },
-    very_good: { label: 'Very good', score: 85, passed: true },
-    acceptable: { label: 'Acceptable', score: 70, passed: true },
-    not_accepted: { label: 'Not accepted', score: 0, passed: false },
+  /*
+   * Student lessons. Each sitting follows one chain:
+   * attendance -> lesson status -> warnings -> score -> hifz level -> result.
+   */
+  LESSON_ATTENDANCE: ['present', 'absent'],
+  // What happened to the lesson at a sitting where the student was present.
+  LESSON_STATUSES_HEARD: {
+    pending: 'Not listened to yet',
+    heard: 'Listened to',
+    returned: 'Returned',
   },
-  STUDENT_LESSON_STATUSES: ['assigned', 'returned', 'passed'],
+  // The lesson record's own status: the three above, or "absent" for a day the student was away.
+  STUDENT_LESSON_STATUSES: ['absent', 'pending', 'heard', 'returned'],
+  // What the teacher can record when listening to a lesson the student was present for.
+  LISTEN_STATUSES: ['heard', 'returned'],
+  LESSON_RESULTS: {
+    passed: 'Passed',
+    repeat: 'Lesson to repeat',
+    pending: 'Waiting to be listened to',
+  },
+  LESSON_SCORE_BASE: 100,
+  // Defaults for a new school; each school manager changes them under School settings > Lesson rules.
+  DEFAULT_LESSON_RULES: { maxWarnings: 3, pointsPerWarning: 5, returnBelowScore: 0 },
+  DEFAULT_HIFZ_LEVELS: [
+    { label: 'Very Good', min: 90 },
+    { label: 'Good', min: 80 },
+    { label: 'Average', min: 70 },
+    { label: 'Weak', min: 60 },
+    { label: 'Needs revision', min: 0 },
+  ],
+  DEFAULT_LESSON_TYPES: ['New lesson', 'Revision', 'Juz listening'],
+  MAX_HIFZ_LEVELS: 10,
+  MAX_LESSON_TYPES: 20,
   ACTIVITY_TYPES: { subac: 'Subac (سبع)', duruus: 'Duruus (دروس)' },
   SUBAC_FREQUENCIES: ['daily', 'one_time'],
   SUBAC_BASE_SCORE: 100,
@@ -68,6 +94,8 @@ module.exports = {
   },
 
   ATTENDANCE_STATUSES: ['present', 'absent', 'late', 'excused'],
+  // A teacher's own check-in or check-out waits for the receptionist to approve the real times.
+  TEACHER_ATTENDANCE_APPROVAL: ['pending', 'approved'],
 
   INVOICE_TYPES: { registration: 'Registration fee', monthly: 'Monthly fee', other: 'Other' },
   INVOICE_STATUSES: ['unpaid', 'partial', 'paid', 'overdue', 'cancelled'],

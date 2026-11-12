@@ -5,18 +5,19 @@ const dates = require('../utils/dates');
 const money = require('../utils/money');
 const { paginate, escapeRegex } = require('../utils/paginate');
 const { badRequest, conflict } = require('../utils/errors');
-const { owned, ownedOptional } = require('./scope');
+const { owned, ownedMany } = require('./scope');
 const subscriptionService = require('./subscriptionService');
 
 const PERF_SCORE = { excellent: 95, very_good: 85, good: 75, fair: 60, needs_improvement: 45 };
 
 /**
  * Classes a user may work with. Teacher-role users linked to a teacher profile are limited
- * to their own classes; everyone else sees all classes of the school. Returns null = no limit.
+ * to the classes they teach (a class can have several teachers); everyone else sees all classes
+ * of the school. Returns null = no limit.
  */
 async function restrictedClassIds(req) {
   if (req.user.role !== 'teacher' || !req.user.teacher) return null;
-  const classes = await Class.find({ tenantId: req.tenantId, teacher: req.user.teacher }).select('_id').lean();
+  const classes = await Class.find({ tenantId: req.tenantId, teachers: req.user.teacher }).select('_id').lean();
   return classes.map((c) => c._id);
 }
 
@@ -24,6 +25,7 @@ function buildFilter(tenantId, q = {}, restrict) {
   const f = { tenantId };
   if (q.search) f.name = new RegExp(escapeRegex(q.search), 'i');
   if (C.CLASS_LEVELS.includes(q.level)) f.level = q.level;
+  if (/^[a-f0-9]{24}$/i.test(q.teacher || '')) f.teachers = q.teacher;
   if (q.active === 'yes') f.isActive = true;
   if (q.active === 'no') f.isActive = false;
   if (restrict) f._id = { $in: restrict };
@@ -32,7 +34,7 @@ function buildFilter(tenantId, q = {}, restrict) {
 
 async function list(tenantId, q, restrict) {
   const page = await paginate(Class, buildFilter(tenantId, q, restrict), {
-    page: q.page, limit: q.limit || 20, sort: { name: 1 }, populate: { path: 'teacher', select: 'fullName' },
+    page: q.page, limit: q.limit || 20, sort: { name: 1 }, populate: { path: 'teachers', select: 'fullName' },
   });
   const counts = await Student.aggregate([
     { $match: { tenantId, status: 'active', class: { $in: page.items.map((c) => c._id) } } },
@@ -44,18 +46,21 @@ async function list(tenantId, q, restrict) {
 }
 
 const all = (tenantId, restrict) => Class.find({ tenantId, isActive: true, ...(restrict ? { _id: { $in: restrict } } : {}) })
-  .sort({ name: 1 }).select('name level teacher monthlyFee capacity').lean();
+  .sort({ name: 1 }).select('name level teachers monthlyFee capacity').lean();
 
 async function readFields(tenantId, data) {
-  const teacher = await ownedOptional(Teacher, tenantId, data.teacher, 'Teacher');
+  // the main teacher first, then the other teachers ticked on the form
+  const ids = [...new Set([].concat(data.mainTeacher || [], data.teachers || [], data.teacher || []).filter(Boolean).map(String))];
+  const found = ids.length ? await ownedMany(Teacher, tenantId, ids, 'Teacher') : [];
+  const byId = Object.fromEntries(found.map((t) => [String(t._id), t._id]));
   const fee = data.monthlyFee === '' || data.monthlyFee === undefined ? null : money.toMinor(data.monthlyFee);
   if (data.monthlyFee && (fee === null || fee < 0)) throw badRequest('Monthly fee must be a valid amount.');
   const start = dates.parseDay(data.startDate);
   const end = dates.parseDay(data.endDate);
   if (start && end && end < start) throw badRequest('End date must be after the start date.');
   return {
-    name: data.name, level: C.CLASS_LEVELS.includes(data.level) ? data.level : 'Beginner',
-    teacher: teacher ? teacher._id : null, capacity: parseInt(data.capacity, 10) || 30,
+    name: data.name, level: C.CLASS_LEVELS.includes(data.level) ? data.level : 'cashra',
+    teachers: ids.map((id) => byId[id]), capacity: parseInt(data.capacity, 10) || 30,
     schedule: {
       days: [].concat(data.days || []).filter((d) => C.WEEKDAYS.includes(d)),
       startTime: data.startTime, endTime: data.endTime, room: data.room,
@@ -89,14 +94,16 @@ async function update(ctx, id, data) {
     if (err.code === 11000) throw conflict('A class with this name already exists.');
     throw err;
   }
-  // keep students' assigned teacher in sync with the class teacher
-  if (fields.teacher) await Student.updateMany({ tenantId: ctx.tenantId, class: cls._id }, { $set: { teacher: fields.teacher } });
+  // students whose teacher no longer teaches this class move to the class's main teacher
+  if (fields.teachers.length) {
+    await Student.updateMany({ tenantId: ctx.tenantId, class: cls._id, teacher: { $nin: fields.teachers } }, { $set: { teacher: fields.teachers[0] } });
+  }
   return cls;
 }
 
 /** Class page: roster plus performance (attendance rate and average lesson score). */
 async function detail(tenantId, id) {
-  const cls = await owned(Class, tenantId, id, 'Class', { populate: { path: 'teacher', select: 'fullName phone' } });
+  const cls = await owned(Class, tenantId, id, 'Class', { populate: { path: 'teachers', select: 'fullName phone' } });
   const since = dates.addDays(new Date(), -30);
   const [students, attendance, lessons, enrollments] = await Promise.all([
     Student.find({ tenantId, class: cls._id, status: 'active' }).sort({ fullName: 1 }).lean(),
@@ -110,7 +117,7 @@ async function detail(tenantId, id) {
   const lessonIds = (await Lesson.find({ tenantId, class: cls._id, date: { $gte: dates.addDays(new Date(), -90) } }).select('_id').lean()).map((l) => l._id);
   const [progress, passedLessons] = await Promise.all([
     LessonProgress.find({ tenantId, lesson: { $in: lessonIds } }).select('student performance score').lean(),
-    StudentLesson.find({ tenantId, student: { $in: students.map((s) => s._id) }, status: 'passed', passedAt: { $gte: dates.addDays(new Date(), -90) } }).select('student score').lean(),
+    StudentLesson.find({ tenantId, student: { $in: students.map((s) => s._id) }, result: 'passed', passedAt: { $gte: dates.addDays(new Date(), -90) } }).select('student score').lean(),
   ]);
 
   const perStudent = {};

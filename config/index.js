@@ -36,6 +36,9 @@ const config = {
     jobIntervalMinutes: int(process.env.JOB_INTERVAL_MINUTES, 60),
   },
 
+  // The schools' local time, used for teacher check-in and check-out times.
+  timeZone: process.env.SCHOOL_TIMEZONE || 'Africa/Mogadishu',
+
   backupDir: path.resolve(__dirname, '..', process.env.BACKUP_DIR || 'backups'),
 };
 

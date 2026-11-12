@@ -1,6 +1,8 @@
 <% var cur = currency; var showFin = can('payments.view') && hasFeature('finance'); %>
 <%- include('../partials/page-header', { heading: t('Assalamu alaikum, {name}', { name: currentUser.name.split(' ')[0] }), sub: t('Here is how {school} is doing in {period}.', { school: tenant.name, period: periodLabel(data.period) }),
-  actions: (can('students.manage') ? '<a class="btn btn-light btn-icon" href="/school/students/new"><i class="bi bi-person-plus"></i>' + t('Add student') + '</a>' : '') +
+  actions: (can('attendance.self') && hasFeature('attendance') ? '<a class="btn btn-primary btn-icon" href="/school/my-attendance"><i class="bi bi-clock"></i>' + t('Check in / out') + '</a>' : '') +
+           (can('teacherAttendance.manage') && hasFeature('attendance') ? '<a class="btn btn-light btn-icon" href="/school/attendance/teachers"><i class="bi bi-person-check"></i>' + t('Teacher attendance') + '</a>' : '') +
+           (can('students.manage') ? '<a class="btn btn-light btn-icon" href="/school/students/new"><i class="bi bi-person-plus"></i>' + t('Add student') + '</a>' : '') +
            (can('attendance.manage') && hasFeature('attendance') ? '<a class="btn btn-light btn-icon" href="/school/attendance"><i class="bi bi-calendar-check"></i>' + t('Take attendance') + '</a>' : '') +
            (can('payments.create') && hasFeature('finance') ? '<a class="btn btn-primary btn-icon" href="/school/finance/payments/new"><i class="bi bi-cash-coin"></i>' + t('Receive payment') + '</a>' : '') }) %>
 

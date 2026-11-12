@@ -82,6 +82,7 @@ function createApp({ sessionStore } = {}) {
   app.use('/', require('./routes/public'));
   app.use('/platform', require('./routes/platform'));
   app.use('/school', require('./routes/school'));
+  app.use('/parent', require('./routes/parent'));
 
   app.use(notFoundHandler);
   app.use(errorHandler);
@@ -90,6 +91,7 @@ function createApp({ sessionStore } = {}) {
 
 async function start() {
   await db.connect();
+  await require('./services/migrationService').run();
   const app = createApp();
   app.listen(config.port, () => {
     console.log(`Quranic running on ${config.appUrl} (${config.env}) — transactions ${config.useTransactions ? 'on' : 'OFF'}`);

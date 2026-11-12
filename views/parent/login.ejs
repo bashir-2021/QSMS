@@ -1,0 +1,18 @@
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="text-center mb-4">
+      <h1 class="h3 mb-1"><%= t('Parent portal') %></h1>
+      <p class="text-muted small"><%= t('Follow your children\'s Quran lessons, attendance and fees.') %></p>
+    </div>
+    <div class="card"><div class="card-body p-4">
+      <form method="post" action="/parent/login" class="row g-3 needs-validation" novalidate>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <%- include('../partials/field', { name: 'phone', label: 'Phone number', ftype: 'tel', required: true, placeholder: 'e.g. 061 555 0100', attrs: 'autocomplete="username" inputmode="tel" autofocus' }) %>
+        <%- include('../partials/field', { name: 'password', label: 'Password', ftype: 'password', required: true, attrs: 'autocomplete="current-password"' }) %>
+        <div class="col-12"><button class="btn btn-primary w-100" type="submit"><%= t('Sign in') %></button></div>
+      </form>
+      <div class="alert alert-info small mt-3 mb-0"><i class="bi bi-info-circle"></i> <%= t('Use the phone number the school has for you. The first time, your password is the same phone number; you will then choose a new one.') %></div>
+    </div></div>
+    <p class="text-center small text-muted mt-3"><a href="/login"><%= t('School staff sign in') %></a></p>
+  </div>
+</div>

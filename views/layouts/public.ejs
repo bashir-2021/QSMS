@@ -21,6 +21,8 @@
           <%- include('../partials/lang-switch') %>
           <% if (locals.auth && auth.kind === 'school') { %>
             <a class="btn btn-primary" href="/school/dashboard"><%= t('Open dashboard') %></a>
+          <% } else if (locals.auth && auth.kind === 'parent') { %>
+            <a class="btn btn-primary" href="/parent"><%= t('My children') %></a>
           <% } else if (locals.auth && auth.kind === 'platform') { %>
             <a class="btn btn-primary" href="/platform/dashboard"><%= t('Platform console') %></a>
           <% } else { %>

@@ -1,0 +1,29 @@
+<% var base = '/school/student-lessons/report'; var day = function (d) { return isoDate(new Date(Date.now() + d * 864e5)); }; var today = day(0); %>
+<%- include('../partials/page-header', { heading: 'Student lessons report', sub: report.subtitle, crumbs: [['Student lessons', '/school/student-lessons'], ['Reports', null]],
+  actions: (hasFeature('exports') ? '<a class="btn btn-light btn-icon" href="' + base + qs(query, { format: 'xlsx' }) + '"><i class="bi bi-file-earmark-excel"></i>' + t('Excel') + '</a><a class="btn btn-light btn-icon" href="' + base + qs(query, { format: 'pdf' }) + '"><i class="bi bi-file-earmark-pdf"></i>' + t('PDF') + '</a>' : '') +
+    '<button class="btn btn-light btn-icon" type="button" data-print><i class="bi bi-printer"></i>' + t('Print') + '</button>' }) %>
+
+<div class="d-flex flex-wrap gap-2 mb-2 no-print">
+  <% [['Today', today, today], ['Yesterday', day(-1), day(-1)], ['Last 7 days', day(-6), today], ['Last 30 days', day(-29), today]].forEach(function (p) { var on = from === p[1] && to === p[2]; %>
+    <a class="btn btn-sm <%= on ? 'btn-primary' : 'btn-light' %>" href="<%= base + qs(query, { from: p[1], to: p[2], format: '' }) %>"><%= t(p[0]) %></a>
+  <% }) %>
+</div>
+
+<form class="filter-bar row g-2 align-items-end" method="get">
+  <div class="col-6 col-md-2"><label class="form-label"><%= t('From') %></label><input type="date" class="form-control" name="from" value="<%= from %>"></div>
+  <div class="col-6 col-md-2"><label class="form-label"><%= t('To') %></label><input type="date" class="form-control" name="to" value="<%= to %>"></div>
+  <div class="col-6 col-md-2"><label class="form-label"><%= t('Class') %></label><select class="form-select" name="class"><option value=""><%= t('All classes') %></option><% classes.forEach(function (c) { %><option value="<%= c._id %>" <%= selected(query.class, c._id) %>><%= c.name %></option><% }) %></select></div>
+  <div class="col-6 col-md-2"><label class="form-label"><%= t('Teacher') %></label><select class="form-select" name="teacher"><option value=""><%= t('All teachers') %></option><% teachers.forEach(function (tc) { %><option value="<%= tc._id %>" <%= selected(query.teacher, tc._id) %>><%= tc.fullName %></option><% }) %></select></div>
+  <div class="col-6 col-md-2"><label class="form-label"><%= t('Lesson status') %></label><select class="form-select" name="status"><option value=""><%= t('All') %></option><option value="absent" <%= selected(query.status, 'absent') %>><%= t('Absent') %></option><% C.LISTEN_STATUSES.forEach(function (k) { %><option value="<%= k %>" <%= selected(query.status, k) %>><%= t(C.LESSON_STATUSES_HEARD[k]) %></option><% }) %></select></div>
+  <div class="col-6 col-md-2"><label class="form-label"><%= t('Result') %></label><select class="form-select" name="result"><option value=""><%= t('All') %></option><% Object.keys(C.LESSON_RESULTS).forEach(function (k) { %><option value="<%= k %>" <%= selected(query.result, k) %>><%= t(C.LESSON_RESULTS[k]) %></option><% }) %></select></div>
+  <% if (student) { %><input type="hidden" name="student" value="<%= query.student %>"><div class="col-6 col-md-3"><label class="form-label"><%= t('Student') %></label><div class="input-group"><div class="form-control bg-light text-truncate"><%= student.fullName %></div><a class="btn btn-light" href="<%= base + qs(query, { student: '', format: '' }) %>" aria-label="<%= t('All students') %>"><i class="bi bi-x-lg"></i></a></div></div><% } %>
+  <div class="col-6 col-md-2 d-flex gap-2"><button class="btn btn-primary flex-fill" type="submit"><%= t('Run') %></button><a class="btn btn-light" href="<%= base %>"><%= t('Reset') %></a></div>
+</form>
+
+<div class="row g-3 mb-3">
+  <% report.summary.forEach(function (s) { %>
+    <div class="col-6 col-md-4 col-xl-2"><div class="card stat-card"><div class="label"><%= s.label %></div><div class="value fs-4"><%= s.value %></div></div></div>
+  <% }) %>
+</div>
+
+<%- include('../reports/sections', { report: report, currencyCode: currency }) %>

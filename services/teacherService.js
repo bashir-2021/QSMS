@@ -32,6 +32,9 @@ function readFields(data) {
     qualification: data.qualification, specialization: data.specialization,
     employmentDate: dates.parseDay(data.employmentDate) || undefined, monthlySalary: salary,
     status: C.TEACHER_STATUSES.includes(data.status) ? data.status : 'active', notes: data.notes,
+    // kept in week order whatever order the boxes were ticked in
+    workDays: C.WEEKDAYS.filter((d) => [].concat(data.workDays || []).includes(d)),
+    checkInTime: data.checkInTime || undefined, checkOutTime: data.checkOutTime || undefined,
   };
 }
 
@@ -64,7 +67,7 @@ async function update(ctx, id, data, photo) {
 async function profile(tenantId, id) {
   const teacher = await owned(Teacher, tenantId, id, 'Teacher');
   const [classes, salaries, attendance, studentCount] = await Promise.all([
-    Class.find({ tenantId, teacher: teacher._id }).sort({ name: 1 }).lean(),
+    Class.find({ tenantId, teachers: teacher._id }).sort({ name: 1 }).lean(),
     TeacherSalaryPayment.find({ tenantId, teacher: teacher._id }).sort({ period: -1 }).limit(24).lean(),
     TeacherAttendance.find({ tenantId, teacher: teacher._id }).sort({ date: -1 }).limit(30).lean(),
     Student.countDocuments({ tenantId, teacher: teacher._id, status: 'active' }),

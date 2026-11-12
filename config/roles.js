@@ -21,14 +21,14 @@ const SCHOOL_ROLES = {
     permissions: [
       'dashboard.view', 'students.view', 'classes.view',
       'lessons.view', 'lessons.manage', 'activities.view', 'activities.manage',
-      'attendance.view', 'attendance.manage', 'reports.academic', 'notifications.view',
+      'attendance.view', 'attendance.manage', 'attendance.self', 'reports.academic', 'notifications.view',
     ],
   },
   receptionist: {
     label: 'Receptionist',
     permissions: [
-      'dashboard.view', 'students.view', 'students.manage', 'teachers.view', 'classes.view',
-      'attendance.view', 'invoices.view', 'payments.view', 'payments.create', 'receipts.view',
+      'dashboard.view', 'students.view', 'students.manage', 'teachers.view', 'teachers.manage', 'classes.view',
+      'attendance.view', 'teacherAttendance.manage', 'invoices.view', 'payments.view', 'payments.create', 'receipts.view',
       'notifications.view',
     ],
   },

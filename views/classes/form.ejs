@@ -7,9 +7,20 @@
     <div class="col-lg-8">
       <div class="card mb-3"><div class="card-header"><%= t('Class') %></div><div class="card-body row g-3">
         <%- include('../partials/field', { name: 'name', label: 'Class name', value: c.name, required: true, col: 'col-md-6', placeholder: 'e.g. Hifz Group A' }) %>
-        <%- include('../partials/field', { name: 'level', label: 'Level', ftype: 'select', value: c.level || 'Beginner', placeholder: false, required: true, col: 'col-md-3', options: C.CLASS_LEVELS.map(function (l) { return { value: l, label: t(l) }; }) }) %>
+        <%- include('../partials/field', { name: 'level', label: 'Level (Quran category)', ftype: 'select', value: c.level || 'cashra', placeholder: false, required: true, col: 'col-md-3', options: C.CLASS_LEVELS.map(function (l) { return { value: l, label: C.STUDENT_PROGRAMS[l] }; }) }) %>
         <%- include('../partials/field', { name: 'capacity', label: 'Capacity', ftype: 'number', value: c.capacity, min: 1, required: true, col: 'col-md-3' }) %>
-        <%- include('../partials/field', { name: 'teacher', label: 'Class teacher', ftype: 'select', value: c.teacher, col: 'col-md-6', placeholder: '— Not assigned —', options: teachers.map(function (tc) { return { value: tc._id, label: tc.fullName }; }) }) %>
+        <% var classTeachers = (old.mainTeacher !== undefined ? [].concat(old.mainTeacher || [], old.teachers || []) : (c.teachers || [])).map(String); %>
+        <%- include('../partials/field', { name: 'mainTeacher', label: 'Main teacher', ftype: 'select', value: classTeachers[0], col: 'col-md-6', placeholder: '— Not assigned —', options: teachers.map(function (tc) { return { value: tc._id, label: tc.fullName }; }) }) %>
+        <div class="col-md-6">
+          <div class="form-label"><%= t('Other teachers') %></div>
+          <div class="border rounded p-2" style="max-height:10rem;overflow:auto">
+            <% if (!teachers.length) { %><div class="small text-muted"><%= t('No teachers yet') %></div><% } %>
+            <% teachers.forEach(function (tc) { var on = classTeachers.slice(1).indexOf(String(tc._id)) >= 0; %>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="teachers" value="<%= tc._id %>" id="tch_<%= tc._id %>" <%= on ? 'checked' : '' %>><label class="form-check-label" for="tch_<%= tc._id %>"><%= tc.fullName %></label></div>
+            <% }) %>
+          </div>
+          <div class="form-text"><%= t('Every teacher of the class can take attendance and give and listen to lessons.') %></div>
+        </div>
         <%- include('../partials/field', { name: 'monthlyFee', label: 'Monthly fee (optional)', ftype: 'money', value: c.monthlyFee != null ? moneyInput(c.monthlyFee) : '', col: 'col-md-6', help: t('Leave empty to use the school fee of {fee}.', { fee: money(settings.monthlyFee, currency) }) }) %>
         <%- include('../partials/field', { name: 'startDate', label: 'Start date', ftype: 'date', value: isoDate(c.startDate), col: 'col-md-6' }) %>
         <%- include('../partials/field', { name: 'endDate', label: 'End date', ftype: 'date', value: isoDate(c.endDate), col: 'col-md-6' }) %>

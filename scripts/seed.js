@@ -94,15 +94,24 @@ async function seedSchool({ name, city, email, plan, verifyPaid, classDefs, teac
   ]);
 
   const teachers = [];
-  for (const t of teacherDefs) {
-    teachers.push(await teacherService.create(ctx, { ...t, employmentDate: '2024-09-01', status: 'active' }));
+  // registered working time: a morning teacher, an afternoon teacher, and so on
+  const SCHEDULES = [
+    { workDays: ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu'], checkInTime: '07:00', checkOutTime: '12:00' },
+    { workDays: ['Sat', 'Mon', 'Wed'], checkInTime: '13:30', checkOutTime: '17:00' },
+    { workDays: ['Sat', 'Sun', 'Mon', 'Tue', 'Wed'], checkInTime: '15:30', checkOutTime: '18:00' },
+  ];
+  for (let i = 0; i < teacherDefs.length; i += 1) {
+    teachers.push(await teacherService.create(ctx, { ...SCHEDULES[i % SCHEDULES.length], ...teacherDefs[i], employmentDate: '2024-09-01', status: 'active' }));
   }
   // teacher login linked to the first teacher profile
   await M.SchoolUser.create({ tenantId: tenant._id, name: teachers[0].fullName, email: `teacher@${slug}.so`, passwordHash: pass, role: 'teacher', teacher: teachers[0]._id });
 
   const classes = [];
   for (let i = 0; i < classDefs.length; i += 1) {
-    const cls = await classService.create(ctx, { ...classDefs[i], teacher: String(teachers[i % teachers.length]._id), isActive: 'on', startDate: '2026-01-10' });
+    // the first class of each school has two teachers; the others one
+    const main = teachers[i % teachers.length];
+    const other = i === 0 && teachers.length > 1 ? teachers[(i + 1) % teachers.length] : null;
+    const cls = await classService.create(ctx, { ...classDefs[i], mainTeacher: String(main._id), teachers: other ? [String(other._id)] : [], isActive: 'on', startDate: '2026-01-10' });
     classes.push(cls);
     await shiftService.create(ctx, cls._id, { name: 'Morning', startTime: '07:00', endTime: '10:00' });
     await shiftService.create(ctx, cls._id, { name: 'Evening', startTime: '16:00', endTime: '18:00' });
@@ -110,6 +119,7 @@ async function seedSchool({ name, city, email, plan, verifyPaid, classDefs, teac
 
   ({ ctx, req } = await ctxFor(tenant._id));
   const students = [];
+  let lastPhone = null; let lastMother; // siblings share a guardian phone (see below)
   for (const cls of classes) {
     for (let i = 0; i < studentsPerClass; i += 1) {
       const female = rand() < 0.45;
@@ -119,9 +129,10 @@ async function seedSchool({ name, city, email, plan, verifyPaid, classDefs, teac
       const regDate = dates.toISODate(dates.addDays(new Date(), -Math.floor(60 + rand() * 200)));
       students.push((await studentService.create(ctx, {
         fullName: `${first} ${father} ${pick(FATHERS)}`, gender: female ? 'female' : 'male', dateOfBirth: `${year}-0${1 + Math.floor(rand() * 9)}-1${Math.floor(rand() * 9)}`,
-        guardianName: `${father} ${pick(FATHERS)}`, guardianRelation: 'Father', guardianPhone: `+252 61 ${String(1000000 + Math.floor(rand() * 8999999))}`,
+        guardianName: `${father} ${pick(FATHERS)}`, guardianRelation: 'Father', guardianPhone: i % 3 === 2 && lastPhone ? lastPhone : (lastPhone = `+252 61 ${String(1000000 + Math.floor(rand() * 8999999))}`),
+        motherPhone: i % 3 === 2 && lastMother ? lastMother : (lastMother = `+252 61 ${String(1000000 + Math.floor(rand() * 8999999))}`),
         motherName: `${pick(GIRLS)} ${pick(FATHERS)}`, district: pick(['Hodan', 'Wadajir', 'Waberi', 'Yaqshid', 'Hamar Weyne', 'Kaaraan']),
-        address: city, registrationDate: regDate, program: pick(Object.keys(C.STUDENT_PROGRAMS)),
+        address: city, registrationDate: regDate, program: cls.level, // a class's students share its Quran category
         class: String(cls._id),
       }, null, { registrationFee: ctx.settings.registrationFee })).student);
     }
@@ -179,10 +190,21 @@ async function seedSchool({ name, city, email, plan, verifyPaid, classDefs, teac
         await attendanceService.saveStudentSheet(ctx, String(cls._id), iso, att, null, String(shift._id));
       }
     }
+    if (d === 0) continue; // today: teachers check in themselves below
+    // past days: reception recorded and approved each teacher on their working days
     const tatt = {};
-    teachers.forEach((t) => { tatt[String(t._id)] = { status: rand() < 0.92 ? 'present' : 'late', checkIn: '07:30', checkOut: '12:30' }; });
+    const at = (hhmm, plus) => { const m = dates.minutesOf(hhmm) + plus; return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; };
+    teachers.forEach((t) => {
+      if (!t.workDays.includes(dates.weekdayOf(day))) return;
+      const r = rand();
+      const late = r > 0.85 ? 10 + Math.floor(rand() * 25) : 0;
+      tatt[String(t._id)] = r > 0.95 ? { status: 'absent' } : { status: late ? 'late' : 'present', checkIn: at(t.checkInTime, late - 5), checkOut: at(t.checkOutTime, Math.floor(rand() * 10)) };
+    });
     await attendanceService.saveTeacherSheet(ctx, iso, tatt);
   }
+  // today: the first teacher has checked in and waits for reception to approve
+  const teacherUser = await M.SchoolUser.findOne({ tenantId: tenant._id, role: 'teacher' }).lean();
+  await attendanceService.selfCheck({ ...ctx, user: teacherUser }, teacherUser.teacher, 'in');
 
   // lessons with per-student progress
   const lessonPlan = [['hifz', 67, 1, 10, 'Hifz — Surah Al-Mulk 1–10'], ['murajaah', 78, 1, 20, "Muraja'ah — Surah An-Naba 1–20"], ['tajweed', 1, 1, 7, 'Tajweed — rules of noon sakinah in Al-Fatihah'], ['reading', 36, 1, 12, 'Reading — Surah Ya-Sin 1–12'], ['islamic_studies', null, null, null, 'Pillars of Islam'], ['arabic', null, null, null, 'Arabic letters and harakat']];
@@ -202,14 +224,40 @@ async function seedSchool({ name, city, email, plan, verifyPaid, classDefs, teac
       });
       await lessonService.saveProgress(ctx, String(lesson._id), rows);
     }
-    // each student has a passed lesson and an open one, some returned to the teacher
+    // four days of student lessons, given first and listened to later: passed, absent at listening,
+    // returned at the warning limit then listened to again, and lessons still waiting
     const lessonStudents = await M.Student.find({ tenantId: tenant._id, class: cls._id, status: 'active' }).select('_id program').lean();
+    const day = (n) => dates.toISODate(dates.addDays(new Date(), -n));
+    const listeners = (cls.teachers || []).map(String);
+    // consecutive portions of Al-Mulk (page 562 onwards) for Cashra, a whole juz for Taxfiid, a topic for Farbar
+    const portions = [['67', '1', '67', '12'], ['67', '13', '67', '26'], ['67', '27', '68', '15'], ['68', '16', '68', '42']];
     for (const s of lessonStudents) {
-      const portion = (from, to) => (s.program === 'farbar' ? { topic: 'Writing the letters Alif to Jiim' } : { surah: '67', fromVerse: String(from), toVerse: String(to) });
-      const first = await studentLessonService.assign(ctx, { ...portion(1, 12), student: String(s._id), assignedDate: dates.toISODate(dates.addDays(new Date(), -2)) });
-      await studentLessonService.review(ctx, first.lesson._id, { grade: pick(['excellent', 'very_good', 'acceptable']) });
-      const second = await studentLessonService.assign(ctx, { ...portion(13, 20), student: String(s._id), assignedDate: dates.toISODate(new Date()) });
-      if (rand() < 0.3) await studentLessonService.review(ctx, second.lesson._id, { grade: 'not_accepted', remarks: 'Revise and recite again' });
+      const student = String(s._id);
+      const portion = (i) => {
+        if (s.program === 'farbar') return { topic: `Writing the letters ${['Alif to Jiim', 'Haa to Zaay', 'Siin to Ghayn', 'Faa to Yaa'][i]}` };
+        if (s.program === 'taxfiid') return { juz: String(26 + i) };
+        const [a, b, c, d] = portions[i];
+        return { startSurah: a, startAyah: b, endSurah: c, endAyah: d };
+      };
+      const type = s.program === 'taxfiid' ? 'Juz listening' : 'New lesson';
+      const give = async (i) => (await studentLessonService.give(ctx, { student, date: day(3 - i), lessonType: type, ...portion(i) })).lesson;
+      // any of the class's teachers may listen
+      const listen = (lesson, date, extra) => studentLessonService.listen(ctx, lesson._id, {
+        date, attendance: 'present', status: 'heard', teacher: listeners.length ? pick(listeners) : undefined, ...extra,
+      });
+      const warnings = (max) => String(Math.floor(rand() * max));
+
+      const first = await give(0); // given and listened to the same day
+      await listen(first, day(3), { warnings: warnings(3) });
+      const second = await give(1); // sometimes absent when the teacher came to listen
+      if (rand() < 0.2) await listen(second, day(2), { attendance: 'absent' });
+      await listen(second, day(1), { warnings: warnings(3) });
+      const third = await give(2);
+      const r = await listen(third, day(1), { warnings: rand() < 0.3 ? '3' : warnings(2) });
+      if (r.lesson.status === 'returned' && rand() < 0.6) {
+        await listen(third, day(0), { warnings: warnings(2) }); // returned yesterday, passed today as attempt 2
+      }
+      if (rand() < 0.6) await give(3); // given today, waiting to be listened to
     }
     // one Subac and one Duruus session per class
     for (const type of ['subac', 'duruus']) {
@@ -262,9 +310,9 @@ async function main() {
       { fullName: 'Macallimad Khadija Osman', gender: 'female', phone: '+252 61 700 1003', qualification: 'Hafiza', specialization: "Muraja'ah", monthlySalary: '300' },
     ],
     classDefs: [
-      { name: 'Hifz Group A', level: 'Hifz', capacity: 20, monthlyFee: '20', days: ['Sat', 'Sun', 'Mon', 'Tue', 'Wed'], startTime: '07:00', endTime: '11:00', room: 'Room 1' },
-      { name: 'Tajweed Intermediate', level: 'Intermediate', capacity: 25, monthlyFee: '', days: ['Sat', 'Mon', 'Wed'], startTime: '14:00', endTime: '16:00', room: 'Room 2' },
-      { name: 'Juz Amma Beginners', level: 'Beginner', capacity: 30, monthlyFee: '12', days: ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu'], startTime: '16:00', endTime: '17:30', room: 'Hall' },
+      { name: 'Hifz Group A', level: 'taxfiid', capacity: 20, monthlyFee: '20', days: ['Sat', 'Sun', 'Mon', 'Tue', 'Wed'], startTime: '07:00', endTime: '11:00', room: 'Room 1' },
+      { name: 'Tajweed Intermediate', level: 'cashra', capacity: 25, monthlyFee: '', days: ['Sat', 'Mon', 'Wed'], startTime: '14:00', endTime: '16:00', room: 'Room 2' },
+      { name: 'Juz Amma Beginners', level: 'farbar', capacity: 30, monthlyFee: '12', days: ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu'], startTime: '16:00', endTime: '17:30', room: 'Hall' },
     ],
   });
 
@@ -276,8 +324,8 @@ async function main() {
       { fullName: 'Macallimad Asma Hirsi', gender: 'female', phone: '+252 63 400 2002', qualification: 'Diploma Arabic', specialization: 'Arabic', monthlySalary: '220' },
     ],
     classDefs: [
-      { name: 'Hifz Morning', level: 'Hifz', capacity: 15, monthlyFee: '18', days: ['Sat', 'Sun', 'Mon', 'Tue', 'Wed'], startTime: '06:30', endTime: '10:00' },
-      { name: 'Qaida & Reading', level: 'Beginner', capacity: 25, monthlyFee: '', days: ['Sat', 'Mon', 'Wed'], startTime: '15:00', endTime: '17:00' },
+      { name: 'Hifz Morning', level: 'taxfiid', capacity: 15, monthlyFee: '18', days: ['Sat', 'Sun', 'Mon', 'Tue', 'Wed'], startTime: '06:30', endTime: '10:00' },
+      { name: 'Qaida & Reading', level: 'farbar', capacity: 25, monthlyFee: '', days: ['Sat', 'Mon', 'Wed'], startTime: '15:00', endTime: '17:00' },
     ],
   });
 
@@ -291,10 +339,13 @@ async function main() {
   console.log('  finance         finance@quranic.app (same password)');
   console.log('  support         support@quranic.app (same password)');
   console.log('School login      /login   (password School!2026 for every school user)');
+  const sibling = await M.Student.aggregate([{ $match: { tenantId: a.tenant._id } }, { $group: { _id: '$guardianPhone', n: { $sum: 1 } } }, { $match: { n: { $gt: 1 } } }, { $limit: 1 }]);
   for (const s of [a, b]) {
     const slug = s.tenant.slug.split('-')[0];
     console.log(`  ${s.tenant.name.padEnd(22)} ${s.email}, finance@${slug}.so, reception@${slug}.so, teacher@${slug}.so`);
   }
+  console.log('Parent portal     /parent/login  (first sign-in: the guardian or mother phone number is the password)');
+  if (sibling.length) console.log(`  a parent with two children: ${sibling[0]._id}`);
 }
 
 main()

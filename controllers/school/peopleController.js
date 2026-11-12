@@ -11,6 +11,7 @@ const exportService = require('../../services/exportService');
 const audit = require('../../services/auditService');
 const paymentService = require('../../services/paymentService');
 const subscriptionService = require('../../services/subscriptionService');
+const parentService = require('../../services/parentService');
 const { schoolCan } = require('../../config/roles');
 const { Student, Teacher, Class } = require('../../models');
 const { owned } = require('../../services/scope');
@@ -34,7 +35,7 @@ async function students(req, res) {
     const report = exportService.listReport(req.t('Students'), [
       { key: 'studentCode', label: req.t('Student ID') }, { key: 'fullName', label: req.t('Name') }, { key: 'gender', label: req.t('Gender'), type: 'status' },
       { key: 'dateOfBirth', label: req.t('Date of birth'), type: 'date' }, { key: 'program', label: req.t('Quran category'), type: 'status' }, { key: 'class', label: req.t('Class') }, { key: 'teacher', label: req.t('Teacher') },
-      { key: 'guardianName', label: req.t('Guardian') }, { key: 'guardianPhone', label: req.t('Guardian phone') }, { key: 'motherName', label: req.t('Mother name') }, { key: 'district', label: req.t('District') },
+      { key: 'guardianName', label: req.t('Guardian') }, { key: 'guardianPhone', label: req.t('Guardian phone') }, { key: 'motherName', label: req.t('Mother name') }, { key: 'motherPhone', label: req.t('Mother phone') }, { key: 'district', label: req.t('District') },
       { key: 'registrationDate', label: req.t('Registered'), type: 'date' }, { key: 'status', label: req.t('Status'), type: 'status' },
     ], rows.map((s) => ({ ...s, class: s.class ? s.class.name : '', teacher: s.teacher ? s.teacher.fullName : '' })));
     if (await exportService.respond(req, res, report, { org: org(req), currency: req.settings.currency })) return;
@@ -106,8 +107,19 @@ async function studentProfile(req, res) {
   const restrict = await classService.restrictedClassIds(req);
   const data = await studentService.profile(req.tenantId, req.params.id);
   if (restrict && !(data.student.class && restrict.map(String).includes(String(data.student.class._id)))) throw notFound('Student');
-  const classes = await classService.all(req.tenantId);
-  res.render('students/show', { title: data.student.fullName, ...data, classes, nav: 'students', print: req.query.print === '1' });
+  const [classes, parentLogin] = await Promise.all([classService.all(req.tenantId), parentService.loginFor(req.tenantId, data.student)]);
+  res.render('students/show', { title: data.student.fullName, ...data, classes, parentLogin, nav: 'students', print: req.query.print === '1' });
+}
+
+/** Put the parent's password back to their phone number; they choose a new one at the next sign-in. */
+async function resetParentLogin(req, res) {
+  const restrict = await classService.restrictedClassIds(req);
+  const target = await owned(Student, req.tenantId, req.params.id, 'Student');
+  if (restrict && !(target.class && restrict.map(String).includes(String(target.class)))) throw notFound('Student');
+  const { student, key } = await parentService.resetForStudent(ctx(req), target._id, req.body.phone);
+  await audit.school(req, 'parent.password_reset', { entity: 'Student', entityId: student._id, details: { phone: key } });
+  req.flash('success', req.t('The parent login for {phone} was reset. The password is the phone number again until the parent changes it.', { phone: key }));
+  res.redirect(`/school/students/${student._id}`);
 }
 
 async function transferStudent(req, res) {
@@ -244,7 +256,7 @@ async function file(req, res) {
 }
 
 module.exports = {
-  dashboard, students, studentForm, createStudent, updateStudent, studentProfile, transferStudent, setStudentStatus, studentSearch,
+  resetParentLogin, dashboard, students, studentForm, createStudent, updateStudent, studentProfile, transferStudent, setStudentStatus, studentSearch,
   teachers, teacherForm, createTeacher, updateTeacher, teacherProfile,
   classes, classForm, createClass, updateClass, classDetail, enrol, createShift, updateShift, setShiftStatus, deleteShift, file, C, money,
 };

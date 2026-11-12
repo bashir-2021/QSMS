@@ -1,25 +1,200 @@
-<% var o = suggestion; %>
-<%- include('../partials/page-header', { heading: 'New student lesson', crumbs: [['Student lessons', '/school/student-lessons'], [student.fullName, null]] }) %>
+<%
+  var o = locals.old || {};
+  var listening = !!lesson;
+  var val = function (k, d) { return o[k] !== undefined ? o[k] : (d === undefined || d === null ? '' : d); };
+  var sug = suggestion || {};
+  var colors = { absent: 'danger', pending: 'warning', heard: 'success', returned: 'danger', passed: 'success', repeat: 'danger' };
+  var badge = function (kind, text) { return '<span class="badge badge-soft-' + (colors[kind] || 'secondary') + '">' + escapeHtml(text) + '</span>'; };
+  var statusText = function (s) { return s === 'absent' ? t('Absent') : (C.LESSON_STATUSES_HEARD[s] ? t(C.LESSON_STATUSES_HEARD[s]) : ''); };
+  var resultText = function (r) { return C.LESSON_RESULTS[r] ? t(C.LESSON_RESULTS[r]) : ''; };
+  var portion = function (l) { return lessonPortion(l, true); };
+  var size = function (l) { return l && l.ayahs ? t('{ayahs} ayahs · page {from}–{to} ({pages}) · {juz} juz', { ayahs: l.ayahs, from: l.startPage, to: l.endPage, pages: l.pages, juz: l.juz }) : ''; };
+  var surahOptions = function (selectedValue) {
+    return surahs.map(function (s) { return '<option value="' + s.number + '" data-verses="' + s.verses + '"' + (String(selectedValue) === String(s.number) ? ' selected' : '') + '>' + s.number + '. ' + escapeHtml(s.arabic) + ' — ' + escapeHtml(s.name) + '</option>'; }).join('');
+  };
+  var attendance = val('attendance', 'present');
+  var status = val('status', 'heard');
+  var action = listening ? '/school/student-lessons/' + lesson._id + '/listen' : '/school/student-lessons';
+  var lowest = rules.levels[rules.levels.length - 1].label;
+  var teacherOptions = teachers.map(function (tc) { return { value: tc._id, label: tc.fullName }; });
+%>
+<%- include('../partials/page-header', { heading: listening ? 'Listen to lesson' : 'Give lesson', crumbs: [['Student lessons', back], [student.fullName, null]],
+  sub: listening ? 'The student has taken this lesson. Record attendance, then listen and give the warnings and score.' : 'Give the student the next portion. It waits to be listened to; you can give more lessons before listening.' }) %>
 
-<form method="post" action="/school/student-lessons" class="needs-validation" novalidate>
-  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-  <input type="hidden" name="student" value="<%= student._id %>">
-  <div class="row g-3">
-    <div class="col-lg-8"><div class="card"><div class="card-header"><%= t('Lesson for {name}', { name: student.fullName }) %></div><div class="card-body row g-3">
-      <div class="col-12 small text-muted"><%= student.program ? t(C.STUDENT_PROGRAMS[student.program]) : t('Category not set') %><%= student.class ? ' · ' + student.class.name : '' %></div>
-      <%- include('../partials/field', { name: 'surah', label: 'Surah', ftype: 'select', value: o.surah, col: 'col-md-6', placeholder: '— Not applicable —', options: surahs.map(function (s) { return { value: s.number, label: t('{n}. {name} ({verses} verses)', { n: s.number, name: s.name, verses: s.verses }), attrs: 'data-verses="' + s.verses + '"' }; }) }) %>
-      <%- include('../partials/field', { name: 'fromVerse', label: 'From verse', ftype: 'number', value: o.fromVerse, min: 1, col: 'col-md-3' }) %>
-      <%- include('../partials/field', { name: 'toVerse', label: 'To verse', ftype: 'number', min: 1, col: 'col-md-3' }) %>
-      <%- include('../partials/field', { name: 'juz', label: 'Juz', ftype: 'number', value: o.juz, min: 1, max: 30, col: 'col-md-3', help: 'For Taxfiid.' }) %>
-      <%- include('../partials/field', { name: 'topic', label: 'Topic', col: 'col-md-9', max: 200, placeholder: 'e.g. writing the letters Alif to Jiim', help: 'For Farbar, or any note about the lesson.' }) %>
-      <div class="col-12 form-text"><%= t('Enter a surah and verses, a juz or a topic.') %></div>
-    </div></div></div>
-    <div class="col-lg-4"><div class="card"><div class="card-body row g-3">
-      <%- include('../partials/field', { name: 'assignedDate', label: 'Date', ftype: 'date', value: isoDate(new Date()), required: true }) %>
-      <div class="col-12 d-grid gap-2">
-        <button class="btn btn-primary" type="submit"><%= t('Give lesson') %></button>
-        <a class="btn btn-light" href="/school/student-lessons"><%= t('Cancel') %></a>
+<div class="row g-3">
+  <div class="col-lg-8">
+    <form method="post" action="<%= action %>" class="needs-validation" novalidate data-lesson-form>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="back" value="<%= back %>">
+      <% if (!listening) { %><input type="hidden" name="student" value="<%= student._id %>"><% } %>
+
+      <!-- The lesson -->
+      <div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-1">
+        <span><%= student.fullName %></span>
+        <span class="small text-muted"><%= student.program ? t(C.STUDENT_PROGRAMS[student.program]) : t('Category not set') %><%= student.class ? ' · ' + student.class.name : '' %></span>
+      </div><div class="card-body row g-3">
+        <%- include('../partials/field', { name: 'date', label: listening ? 'Date listened' : 'Date given', ftype: 'date', value: isoDate(new Date()), required: true, col: 'col-6 col-md-4' }) %>
+        <%- include('../partials/field', { name: 'teacher', label: listening ? 'Teacher listening' : 'Teacher', ftype: 'select', value: defaultTeacher, col: 'col-6 col-md-4', placeholder: '— Not set —', options: teacherOptions }) %>
+        <% if (listening) { %>
+          <div class="col-md-4"><div class="form-label"><%= t('Lesson type') %></div><div class="form-control bg-light"><%= lesson.lessonType ? t(lesson.lessonType) : '—' %></div></div>
+          <div class="col-12">
+            <div class="border rounded p-3 bg-light">
+              <div class="small text-muted"><%= t('Lesson (start – end)') %></div>
+              <div class="fs-5" lang="ar" dir="rtl"><%= portion(lesson) || '—' %></div>
+              <div class="small text-muted"><%= size(lesson) %></div>
+              <div class="small text-muted"><%= t('Given on {date}', { date: fmtDate(lesson.date) }) %> · <%- badge(lesson.status, statusText(lesson.status)) %><% if (lesson.attempts.length) { %> · <%= lesson.attempts.length === 1 ? t('1 sitting') : t('{n} sittings', { n: lesson.attempts.length }) %><% } %></div>
+            </div>
+          </div>
+        <% } else { %>
+          <%- include('../partials/field', { name: 'lessonType', label: 'Lesson type', ftype: 'select', value: rules.types[0], required: true, col: 'col-md-4', placeholder: false, options: rules.types.map(function (x) { return { value: x, label: x }; }) }) %>
+        <% } %>
+      </div></div>
+
+      <% if (!listening) { %>
+      <!-- 1. Give: the portion -->
+      <div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center"><span><%= t('Lesson (start – end)') %></span><span class="small text-muted"><%= t('Madinah Mushaf, 604 pages') %></span></div><div class="card-body row g-3">
+        <div class="col-md-8">
+          <label class="form-label" for="f_startSurah"><%= t('Start surah') %></label>
+          <select class="form-select" id="f_startSurah" name="startSurah" data-surah="start" lang="ar"><option value=""><%= t('— Select —') %></option><%- surahOptions(val('startSurah', sug.start && sug.start.surah)) %></select>
+        </div>
+        <%- include('../partials/field', { name: 'startAyah', label: 'Start ayah', ftype: 'number', value: sug.start && sug.start.ayah, min: 1, col: 'col-md-4', attrs: 'inputmode="numeric" data-ayah="start"' }) %>
+        <div class="col-md-8">
+          <label class="form-label" for="f_endSurah"><%= t('End surah') %></label>
+          <select class="form-select" id="f_endSurah" name="endSurah" data-surah="end" lang="ar"><option value=""><%= t('— Select —') %></option><%- surahOptions(val('endSurah', sug.end && sug.end.surah)) %></select>
+        </div>
+        <%- include('../partials/field', { name: 'endAyah', label: 'End ayah', ftype: 'number', value: sug.end && sug.end.ayah, min: 1, col: 'col-md-4', attrs: 'inputmode="numeric" data-ayah="end"' }) %>
+        <div class="col-md-4">
+          <label class="form-label" for="f_juzFill"><%= t('Or a whole juz') %></label>
+          <select class="form-select" id="f_juzFill" data-juz-fill><option value=""><%= t('— Select —') %></option><% for (var j = 1; j <= 30; j++) { %><option value="<%= j %>"><%= t('Juz {n}', { n: j }) %></option><% } %></select>
+        </div>
+        <% if (student.program === 'farbar') { %>
+          <%- include('../partials/field', { name: 'topic', label: 'Topic', col: 'col-md-8', max: 200, placeholder: 'e.g. writing the letters Alif to Jiim', help: 'For Farbar, a topic can be given instead of ayahs.' }) %>
+        <% } %>
+        <div class="col-12"><div class="small fw-semibold" data-portion-size aria-live="polite"></div><% if (lastLesson) { %><div class="form-text"><%= t('Filled in from the ayah after the last lesson. Change it if needed.') %></div><% } %></div>
+      </div></div>
+      <% } else { %>
+      <!-- 2. Listen: attendance, then what happened -->
+      <div class="card mb-3"><div class="card-header"><%= t('Attendance and lesson status') %></div><div class="card-body row g-3">
+        <div class="col-md-5">
+          <div class="form-label required"><%= t('Attendance') %></div>
+          <div class="btn-group w-100" role="group" aria-label="<%= t('Attendance') %>">
+            <input type="radio" class="btn-check" name="attendance" id="att_present" value="present" <%= attendance === 'present' ? 'checked' : '' %>>
+            <label class="btn btn-outline-success" for="att_present"><i class="bi bi-person-check"></i> <%= t('Present') %></label>
+            <input type="radio" class="btn-check" name="attendance" id="att_absent" value="absent" <%= attendance === 'absent' ? 'checked' : '' %>>
+            <label class="btn btn-outline-danger" for="att_absent"><i class="bi bi-person-x"></i> <%= t('Absent') %></label>
+          </div>
+        </div>
+        <div class="col-md-7">
+          <div class="form-label required"><%= t('Lesson status') %></div>
+          <div class="btn-group w-100" role="group" aria-label="<%= t('Lesson status') %>">
+            <% C.LISTEN_STATUSES.forEach(function (k) { %>
+              <input type="radio" class="btn-check" name="status" id="st_<%= k %>" value="<%= k %>" <%= status === k ? 'checked' : '' %> data-lesson-part>
+              <label class="btn btn-outline-<%= k === 'heard' ? 'success' : 'danger' %>" for="st_<%= k %>"><%= t(C.LESSON_STATUSES_HEARD[k]) %></label>
+            <% }) %>
+          </div>
+        </div>
+        <div class="col-12 alert alert-warning small mb-0 d-none" data-absent-note><i class="bi bi-info-circle"></i> <%= t('The student is absent: only the absence is recorded — no score, level or result. The lesson stays waiting.') %></div>
+      </div></div>
+
+      <div class="card mb-3"><div class="card-header"><%= t('Warnings and score') %></div><div class="card-body row g-3">
+        <div class="col-md-5">
+          <label class="form-label" for="f_warnings"><%= t('Warnings') %></label>
+          <div class="input-group">
+            <button class="btn btn-outline-secondary" type="button" data-step="-1" aria-label="<%= t('One warning less') %>"><i class="bi bi-dash-lg"></i></button>
+            <input class="form-control text-center" type="number" id="f_warnings" name="warnings" min="0" max="1000" step="1" inputmode="numeric" value="<%= val('warnings', 0) %>" data-warnings>
+            <button class="btn btn-outline-secondary" type="button" data-step="1" aria-label="<%= t('One more warning') %>"><i class="bi bi-plus-lg"></i></button>
+          </div>
+          <div class="form-text"><%= t('{points} points per warning · returned at {max} warnings', { points: rules.pointsPerWarning, max: rules.maxWarnings }) %><%= rules.returnBelowScore ? ' · ' + t('or below {min}', { min: rules.returnBelowScore }) : '' %></div>
+        </div>
+        <div class="col-md-7">
+          <div class="row g-2 text-center">
+            <div class="col-4"><div class="border rounded p-2 h-100"><div class="small text-muted"><%= t('Score') %></div><div class="fs-4 fw-semibold" data-out-score>—</div></div></div>
+            <div class="col-4"><div class="border rounded p-2 h-100"><div class="small text-muted"><%= t('Hifz level') %></div><div class="fw-semibold" data-out-level>—</div></div></div>
+            <div class="col-4"><div class="border rounded p-2 h-100"><div class="small text-muted"><%= t('Result') %></div><div class="fw-semibold" data-out-result>—</div></div></div>
+          </div>
+        </div>
+        <div class="col-12 d-none" data-reason-box>
+          <%- include('../partials/field', { name: 'returnReason', label: 'Reason for returning', max: 300, placeholder: 'e.g. weak memorisation of the second page', attrs: 'data-reason' }) %>
+        </div>
+        <%- include('../partials/field', { name: 'remarks', label: 'Remarks', max: 500 }) %>
+      </div></div>
+      <% } %>
+
+      <div class="d-grid d-md-flex gap-2 justify-content-md-end mb-3">
+        <a class="btn btn-light" href="<%= back %>"><%= t('Cancel') %></a>
+        <button class="btn btn-primary px-4" type="submit"><i class="bi <%= listening ? 'bi-check2-circle' : 'bi-journal-plus' %>"></i> <%= t(listening ? 'Save' : 'Give lesson') %></button>
       </div>
-    </div></div></div>
+    </form>
   </div>
-</form>
+
+  <!-- Below the form on phones, beside it on wide screens: the last lesson, lessons waiting and history -->
+  <div class="col-lg-4">
+    <div class="card mb-3"><div class="card-header"><%= t('Last lesson') %></div><div class="card-body">
+      <% if (lastLesson) { %>
+        <dl class="row small mb-0">
+          <dt class="col-4"><%= t('Start') %></dt><dd class="col-8" lang="ar"><%= surahs[lastLesson.start.surah - 1].arabic %> <%= lastLesson.start.ayah %></dd>
+          <dt class="col-4"><%= t('End') %></dt><dd class="col-8" lang="ar"><%= surahs[lastLesson.end.surah - 1].arabic %> <%= lastLesson.end.ayah %></dd>
+          <dt class="col-4"><%= t('Date') %></dt><dd class="col-8"><%= fmtDate(lastLesson.date) %></dd>
+          <dt class="col-4"><%= t('Status') %></dt><dd class="col-8"><%- badge(lastLesson.status, statusText(lastLesson.status)) %><% if (lastLesson.score != null) { %> <%= lastLesson.score %>/100<% } %></dd>
+          <% if (lastLesson.ayahs) { %><dt class="col-4"><%= t('Size') %></dt><dd class="col-8 mb-0"><%= size(lastLesson) %></dd><% } %>
+        </dl>
+      <% } else { %><div class="text-muted small"><%= t('No lessons yet') %></div><% } %>
+    </div></div>
+
+    <div class="card mb-3"><div class="card-header d-flex justify-content-between"><span><%= t('Waiting to be listened to') %></span><span class="badge bg-secondary"><%= openLessons.length %></span></div>
+      <ul class="list-group list-group-flush">
+        <% if (!openLessons.length) { %><li class="list-group-item small text-muted"><%= t('No lessons waiting or returned') %></li><% } %>
+        <% openLessons.forEach(function (l) { var current = listening && String(l._id) === String(lesson._id); %>
+          <li class="list-group-item small <%= current ? 'bg-light' : '' %>">
+            <div class="d-flex justify-content-between gap-2">
+              <div><div class="fw-semibold" lang="ar"><%= portion(l) %></div><div class="text-muted"><%= fmtDate(l.date) %> · <%- badge(l.status, statusText(l.status)) %><% if (l.attempts.length) { %> · <%= l.attempts.length === 1 ? t('1 sitting') : t('{n} sittings', { n: l.attempts.length }) %><% } %></div></div>
+              <% if (!current) { %><a class="btn btn-sm btn-outline-primary align-self-center text-nowrap" href="/school/student-lessons/<%= l._id %>/listen?back=<%= encodeURIComponent(back) %>"><i class="bi bi-ear"></i> <%= t('Listen') %></a><% } %>
+            </div>
+          </li>
+        <% }) %>
+      </ul>
+    </div>
+
+    <% if (listening && lesson.attempts.length) { %>
+    <div class="card mb-3"><div class="card-header"><%= t('Earlier sittings of this lesson') %></div>
+      <ul class="list-group list-group-flush">
+        <% lesson.attempts.forEach(function (a) { %>
+          <li class="list-group-item small">
+            <div class="d-flex justify-content-between"><span><%= fmtDate(a.date) %> · <%= t('Attempt {n}', { n: a.attempt }) %></span><%- badge(a.attendance === 'absent' ? 'absent' : a.status, a.attendance === 'absent' ? t('Absent') : statusText(a.status)) %></div>
+            <% if (a.attendance === 'present' && a.status !== 'pending') { %><div class="text-muted"><%= t('Warnings') %>: <%= a.warnings || 0 %><% if (a.score != null) { %> · <%= a.score %>/100<% } %> · <%= t(a.level) %></div><% } %>
+            <% if (a.returnReason) { %><div class="text-muted"><%= reasonText(a) %></div><% } %>
+          </li>
+        <% }) %>
+      </ul>
+    </div>
+    <% } %>
+
+    <div class="card"><div class="card-header d-flex justify-content-between"><span><%= t('Recent lessons') %></span><a class="small" href="/school/student-lessons/report?student=<%= student._id %>&from=<%= isoDate(new Date(Date.now() - 30 * 864e5)) %>"><%= t('Full report') %></a></div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <tbody>
+          <% if (!history.length) { %><tr><td class="text-muted small"><%= t('No lessons yet') %></td></tr><% } %>
+          <% history.forEach(function (l) { var removable = !l.attempts.length; %>
+            <tr class="small">
+              <td class="text-nowrap"><%= fmtDate(l.date) %></td>
+              <td lang="ar"><%= portion(l) %></td>
+              <td class="text-nowrap"><%- badge(l.result === 'pending' ? 'pending' : (l.result || l.status), resultText(l.result) || statusText(l.status)) %><% if (l.score != null) { %> <span class="text-muted"><%= l.score %></span><% } %></td>
+              <% if (can('lessons.manage')) { %><td class="text-end no-print"><% if (removable) { %><form method="post" action="/school/student-lessons/<%= l._id %>/delete" data-confirm="<%= t('Delete this lesson? It was never listened to.') %>" data-confirm-button="<%= t('Delete') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="back" value="<%= back %>"><button class="btn btn-sm btn-light text-danger" type="submit" aria-label="<%= t('Delete') %>"><i class="bi bi-trash"></i></button></form><% } %></td><% } %>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<script type="application/json" id="lessonConfig"><%- JSON.stringify({
+  base: C.LESSON_SCORE_BASE,
+  rules: { maxWarnings: rules.maxWarnings, pointsPerWarning: rules.pointsPerWarning, returnBelowScore: rules.returnBelowScore, levels: rules.levels.map(function (l) { return { label: t(l.label), min: l.min }; }) },
+  mushaf: listening ? null : mushaf,
+  text: {
+    passed: t(C.LESSON_RESULTS.passed), repeat: t(C.LESSON_RESULTS.repeat), lowest: t(lowest),
+    size: t('{ayahs} ayahs · page {from}–{to} ({pages}) · {juz} juz'), invalid: t('The lesson must end at or after the ayah it starts at.'),
+    autoReturn: t('Returned automatically: the warning limit was reached.'), autoLow: t('Returned automatically: the score is below the minimum.'),
+  },
+}).replace(/</g, '\\u003c') %></script>
+<script src="/js/student-lesson.js"></script>

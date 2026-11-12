@@ -16,6 +16,8 @@
       <div><dt><%= t('Specialization') %></dt><dd><%= tch.specialization || '—' %></dd></div>
       <div><dt><%= t('Employed since') %></dt><dd><%= fmtDate(tch.employmentDate) || '—' %></dd></div>
       <div><dt><%= t('Address') %></dt><dd><%= tch.address || '—' %></dd></div>
+      <div><dt><%= t('Working days') %></dt><dd><% if ((tch.workDays || []).length) { %><%= tch.workDays.map(function (d) { return t(d); }).join(', ') %> <span class="text-muted small"><%= t('({n} days a week)', { n: tch.workDays.length }) %></span><% } else { %>—<% } %></dd></div>
+      <div><dt><%= t('Working hours') %></dt><dd><%= tch.checkInTime ? tch.checkInTime + ' – ' + (tch.checkOutTime || '?') : '—' %></dd></div>
     </dl>
   </div></div></div>
   <div class="col-lg-4"><div class="row g-3">

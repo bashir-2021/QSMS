@@ -20,8 +20,9 @@
       <div class="card mb-3"><div class="card-header"><%= t('Guardian') %></div><div class="card-body row g-3">
         <%- include('../partials/field', { name: 'guardianName', label: 'Guardian name', value: s.guardianName, col: 'col-md-5' }) %>
         <%- include('../partials/field', { name: 'guardianRelation', label: 'Relationship', value: s.guardianRelation, col: 'col-md-3', placeholder: 'Father, Mother…' }) %>
-        <%- include('../partials/field', { name: 'guardianPhone', label: 'Guardian phone', ftype: 'tel', value: s.guardianPhone, col: 'col-md-4' }) %>
+        <%- include('../partials/field', { name: 'guardianPhone', label: 'Guardian phone', ftype: 'tel', value: s.guardianPhone, col: 'col-md-4', required: true }) %>
         <%- include('../partials/field', { name: 'motherName', label: 'Mother name', value: s.motherName, col: 'col-md-5' }) %>
+        <%- include('../partials/field', { name: 'motherPhone', label: 'Mother phone', ftype: 'tel', value: s.motherPhone, col: 'col-md-4', required: true, help: 'The guardian and the mother can each sign in to the parent portal with their own number.' }) %>
       </div></div>
 
       <div class="card mb-3"><div class="card-header"><%= t('Class placement & fees') %></div><div class="card-body row g-3">

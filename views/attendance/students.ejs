@@ -11,27 +11,27 @@
 <% if (!sheet) { %>
   <div class="card"><div class="empty-state"><i class="bi bi-easel"></i><%= t('Create a class first to take attendance.') %></div></div>
 <% } else { var editable = can('attendance.manage'); %>
-<form method="post" action="/school/attendance">
+<form method="post" action="/school/attendance" data-att-register>
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <input type="hidden" name="class" value="<%= sheet.cls._id %>">
   <% if (sheet.shift) { %><input type="hidden" name="shift" value="<%= sheet.shift._id %>"><% } %>
   <input type="hidden" name="date" value="<%= date %>">
   <div class="card">
     <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
-      <span><%= sheet.cls.name %><%= sheet.shift ? ' · ' + t(sheet.shift.name) : '' %> · <%= fmtDate(sheet.date) %> <% if (sheet.saved) { %><span class="badge badge-soft-success ms-1"><%= t('Saved') %></span><% } else { %><span class="badge badge-soft-warning ms-1"><%= t('Not yet taken') %></span><% } %></span>
+      <span><%= sheet.cls.name %><%= sheet.shift ? ' · ' + t(sheet.shift.name) : '' %> · <%= fmtDate(sheet.date) %> <% if (!sheet.saved) { %><span class="badge badge-soft-warning ms-1"><%= t('Not yet taken') %></span><% } else if (sheet.recorded < sheet.total) { %><span class="badge badge-soft-warning ms-1" data-att-count><%= t('{n} of {total} recorded', { n: sheet.recorded, total: sheet.total }) %></span><% } else { %><span class="badge badge-soft-success ms-1" data-att-count><%= t('All recorded') %></span><% } %></span>
       <% if (editable && sheet.rows.length) { %>
         <div class="d-flex gap-2 no-print">
           <button class="btn btn-sm btn-light" type="button" data-mark-all="present"><%= t('All present') %></button>
-          <button class="btn btn-sm btn-primary" type="submit"><%= t('Save attendance') %></button>
+          <button class="btn btn-sm btn-primary" type="submit" title="<%= t('Saves every student at once') %>"><%= t('Save attendance') %></button>
         </div>
       <% } %>
     </div>
     <div class="table-responsive"><table class="table">
-      <thead><tr><th><%= t('Student') %></th><th><%= t('Status') %></th><th><%= t('Remarks') %></th></tr></thead>
+      <thead><tr><th><%= t('Student') %></th><th><%= t('Status') %></th><th><%= t('Remarks') %></th><th><%= t('Recorded by') %></th><% if (editable) { %><th class="text-end no-print"></th><% } %></tr></thead>
       <tbody>
-        <% if (!sheet.rows.length) { %><tr><td colspan="3" class="empty-state"><%= t(sheet.shift ? 'No active students in this shift' : 'No active students in this class') %></td></tr><% } %>
+        <% if (!sheet.rows.length) { %><tr><td colspan="5" class="empty-state"><%= t(sheet.shift ? 'No active students in this shift' : 'No active students in this class') %></td></tr><% } %>
         <% sheet.rows.forEach(function (r) { var st = r.record ? r.record.status : 'present'; var id = r.student._id; %>
-          <tr>
+          <tr id="st-<%= id %>" data-att-row="<%= id %>" class="<%= r.record ? '' : 'att-unsaved' %>">
             <td><div class="fw-semibold"><%= r.student.fullName %></div><div class="small text-muted font-monospace"><%= r.student.studentCode %></div></td>
             <td><div class="btn-group att-toggle" role="group">
               <% [['present', 'success', t('P')], ['absent', 'danger', t('A')], ['late', 'warning', t('L')], ['excused', 'info', t('E')]].forEach(function (o) { %>
@@ -40,6 +40,13 @@
               <% }) %>
             </div></td>
             <td><input class="form-control form-control-sm" name="att[<%= id %>][remarks]" value="<%= r.record ? r.record.remarks || '' : '' %>" maxlength="300" <%= editable ? '' : 'disabled' %>></td>
+            <td class="small" data-att-who>
+              <% if (r.record) { %>
+                <span class="badge badge-soft-success"><i class="bi bi-check2"></i> <%= t('Saved') %></span>
+                <div class="text-muted"><%= r.record.recordedBy ? r.record.recordedBy.name : '—' %> · <%= fmtClock(r.record.updatedAt) %></div>
+              <% } else { %><span class="badge badge-soft-warning"><%= t('Not recorded') %></span><% } %>
+            </td>
+            <% if (editable) { %><td class="text-end no-print"><button class="btn btn-sm btn-light" type="submit" name="only" value="<%= id %>" data-att-save title="<%= t('Save this student only') %>"><i class="bi bi-check2"></i><span class="d-none d-lg-inline"> <%= t('Save') %></span></button></td><% } %>
           </tr>
         <% }) %>
       </tbody>
@@ -47,3 +54,5 @@
   </div>
 </form>
 <% } %>
+<div class="d-none" id="attText" data-saved="<%= t('Saved') %>" data-all="<%= t('All recorded') %>" data-of="<%= t('{n} of {total} recorded') %>" data-failed="<%= t('Could not save. Try again.') %>"></div>
+<script src="/js/attendance.js"></script>
